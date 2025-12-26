@@ -1,0 +1,57 @@
+@model IEnumerable<ProjectsWebApp.Areas.Admin.Models.PermanentlyLockedUserViewModel>
+
+@{
+    ViewData["Title"] = "Dauerhaft gesperrte Konten";
+}
+
+<div class="mt-4">
+    <h2 class="mb-3">Dauerhaft gesperrte Konten</h2>
+
+    @if (TempData["success"] is string success && !string.IsNullOrWhiteSpace(success))
+    {
+        <div class="alert alert-success">@success</div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p>Es sind derzeit keine dauerhaft gesperrten Konten vorhanden.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>E-Mail</th>
+                        <th>Benutzername</th>
+                        <th>Lockout-Fenster</th>
+                        <th>Erste Sperrung (UTC)</th>
+                        <th>Letzte Sperrung (UTC)</th>
+                        <th class="text-end">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td>@(u.Email ?? "(unbekannt)")</td>
+                        <td>@(u.UserName ?? "(unbekannt)")</td>
+                        <td>@u.LockoutWindowCount</td>
+                        <td>@(u.FirstLockoutAtUtc?.ToString("u") ?? "-")</td>
+                        <td>@(u.LastLockoutAtUtc?.ToString("u") ?? "-")</td>
+                        <td class="text-end">
+                            <form asp-area="Admin" asp-controller="LockedUsers" asp-action="Unlock" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="userId" value="@u.UserId" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    Konto reaktivieren
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

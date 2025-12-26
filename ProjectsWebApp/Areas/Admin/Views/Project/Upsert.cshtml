@@ -1,0 +1,1225 @@
+﻿@model ProjectsWebApp.Models.ViewModels.ProjectVM
+
+@{
+    ViewData["Title"] = Model.Project.Id == 0 ? "Neues Projekt hinzufügen" : "Projekt bearbeiten";
+}
+
+<style>
+    /* Ensure the buttons in the group are responsive */
+
+    /* Ensure accordion and form take full width */
+    .accordion {
+        width: 100%;
+    }
+
+    /* ─── Accordion layout fixes ───────────────────────────── */
+
+    /* 1 – Spacing between top-level accordion items */
+    #accordionPanelsStayOpenExample > .accordion-item,
+    #accordionPanelsStayOpenExample > .accordion-item + .accordion-item {
+        margin-bottom: 1.25rem; /* space between main panels */
+    }
+
+    /* 2 – Spacing between nested accordion items */
+    #accordionPanelsStayOpenExample .accordion .accordion-item,
+    #accordionPanelsStayOpenExample .accordion .accordion-item + .accordion-item {
+        margin-top: 0.75rem; /* space inside sub-accordions */
+    }
+
+    /* 3 – Optional: give nested accordions a soft background so they
+              visually separate from their parent section.                      */
+    #accordionPanelsStayOpenExample .accordion .accordion-body {
+        background: #f9fafb; /* very light gray */
+        border-radius: .35rem;
+    }
+
+    /* 4 – Round the edges of each accordion header so adjacent
+              headers don’t look like one big block.                             */
+    .accordion-button {
+        border-radius: .35rem !important;
+        margin: 0; /* remove BS5’s tiny negative margin */
+    }
+
+        /* 5 – When an accordion is collapsed, keep its header totally visible
+              (Bootstrap sometimes clips corners).                               */
+        .accordion-button.collapsed {
+            border-bottom-left-radius: .35rem !important;
+            border-bottom-right-radius: .35rem !important;
+        }
+
+    /* 6 – Prevent nested accordions from inheriting extra border-width
+              (the default looks heavy when many levels are open).              */
+    #accordionPanelsStayOpenExample .accordion .accordion-item {
+        border-width: 1px;
+    }
+
+
+    .accordion-item {
+        border: 2px solid #ddd;
+        border-radius: 5px;
+    }
+
+    .form-control {
+        width: 100%;
+    }
+    /* Style specifically for the status buttons */
+    .status-buttons-group .status-button {
+        width: 150px; /* Ensure all buttons have the same width */
+        text-align: center; /* Center text within the button */
+        padding: 10px 15px; /* Adjust padding for better appearance */
+    }
+
+    .status-buttons-group {
+        gap: 10px; /* Space between buttons */
+        flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        justify-content: center; /* Center the buttons horizontally */
+    }
+
+
+    /*label {
+            font-weight: 700;
+        } */
+
+
+    @@media (max-width: 576px) {
+        .d-flex.flex-wrap .btn {
+            font-size: 0.9rem; /* Adjust font size on smaller screens */
+            padding: 8px 12px; /* Adjust padding */
+        }
+
+        .status-buttons-group .status-button {
+            font-size: 0.9rem; /* Adjust font size on smaller screens */
+            padding: 8px 12px; /* Adjust padding for smaller screens */
+            width: 100%; /* Full width on small screens */
+        }
+    }
+
+    /*     .form-check-input {
+            width: 50px;
+            height: 25px;
+            cursor: pointer;
+        }
+
+            .form-check-input:checked {
+                background-color: #90bc14 !important;
+                border-color: #90bc14 !important;
+            }
+
+            .form-check-input:focus {
+                box-shadow: none !important;
+            }
+
+     */
+</style>
+
+<div class="container-fluid mt-5">
+    <div class="row justify-content-center">
+        <div class="col-12">
+            <div class="card shadow-lg border-0 mb-5">
+                <div class="card-header bg-secondary bg-gradient text-white">
+                    <h3 class="text-center">@ViewData["Title"]</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Upsert" method="post" enctype="multipart/form-data">
+                        <input type="hidden" asp-for="Project.Id" />
+                        <input type="hidden" name="isVK" value="@(ViewBag.IsVK?.ToString().ToLower() ?? "false")" />
+
+                        <!-- Main Accordion (keeps all panels openable) -->
+                        <div class="accordion" id="accordionPanelsStayOpenExample">
+
+                            <!-- Speichern -->
+                            <div class="text-center mt-3">
+                                <button type="submit" class="btn saveBtn text-light w-50 btn-success mb-4">
+                                    <i class="fas fa-save"></i> Speichern
+                                </button>
+                            </div>
+
+                            <!-- 1.2. Projektübersicht -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOverview">
+                                    <button class="accordion-button"
+                                            type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapseOverview"
+                                            aria-expanded="false"
+                                            aria-controls="collapseOverview">
+                                        1. Projektübersicht
+                                    </button>
+                                </h2>
+                                <div id="collapseOverview"
+                                     class="accordion-collapse collapse show"
+                                     aria-labelledby="headingOverview">
+                                    <div class="accordion-body">
+
+
+
+                                        <!-- Status -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label">Status</label>
+                                            <div class="d-flex flex-wrap justify-content-center gap-2 status-buttons-group" role="group" aria-label="Status Selection">
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusAnstehend" value="Anstehend" />
+                                                <label class="btn btn-outline-primary status-button" for="statusAnstehend">Anstehend</label>
+
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusInBearbeitung" value="InBearbeitung" />
+                                                <label class="btn btn-outline-primary status-button" for="statusInBearbeitung">In Bearbeitung</label>
+
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusInEntwicklung" value="InEntwicklung" />
+                                                <label class="btn btn-outline-primary status-button" for="statusInEntwicklung">In Entwicklung</label>
+
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusOnHold" value="Ausgesetzt" />
+                                                <label class="btn btn-outline-primary status-button" for="statusOnHold">Ausgesetzt</label>
+
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusAbgeschlossen" value="Abgeschlossen" />
+                                                <label class="btn btn-outline-primary status-button" for="statusAbgeschlossen">Abgeschlossen</label>
+
+                                                <input type="radio" asp-for="Project.Status" class="btn-check" id="statusArchiviert" value="Archiviert" />
+                                                <label class="btn btn-outline-primary status-button" for="statusArchiviert">Archiviert</label>
+                                            </div>
+                                            <span asp-validation-for="Project.Status" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="form-group mb-3">
+                                            <label for="DisplayOrder" class="form-label"><strong>Anzeigereihenfolge</strong></label>
+                                            <input type="number"
+                                                   class="form-control"
+                                                   id="displayOrder"
+                                                   name="Project.DisplayOrder"
+                                                   value="@Model.Project.DisplayOrder"
+                                                   placeholder="Anzeigereihenfolge eingeben"
+                                                   required>
+                                        </div>
+
+                                        <!-- Titel -->
+                                        <div class="form-group mb-3">
+                                            <label for="Title" class="form-label"><strong>Titel* [Pflicht]</strong></label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="Title"
+                                                   name="Project.Title"
+                                                   value="@Model.Project.Title"
+                                                   placeholder="offizieller Projekttitel"
+                                                   required>
+                                        </div>
+
+                                        <!-- Projekt-Akronym -->
+                                        <div class="form-group mb-3">
+                                            <label for="ProjectAcronym" class="form-label"><strong>Projekt-Akronym</strong></label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="ProjectAcronym"
+                                                   name="Project.ProjectAcronym"
+                                                   value="@Model.Project.ProjectAcronym"
+                                                   placeholder="kurze Identifikation des Projekts">
+                                        </div>
+
+                                        <!-- Schlagworte -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Schlagworte* [Pflicht]</strong></label>
+                                            <textarea asp-for="Project.Tags"
+                                                      class="form-control"
+                                                      row="5"
+                                                      placeholder="Comma-separated tags (e.g., AI, Machine Learning)"
+                                                      required>
+                                            </textarea>
+                                            <span asp-validation-for="Project.Tags" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Nested Accordion inside Projektübersicht for "Categories" & Licensing -->
+                                        <div class="accordion" id="projectOverviewSubAccordion">
+                                            <!-- Categories -->
+                                            <div class="accordion-item mb-3">
+                                                <h2 class="accordion-header" id="headingCategories">
+                                                    <button class="accordion-button collapsed"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseCategories"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseCategories">
+                                                        <strong>Categories* [Pflicht]</strong>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseCategories"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="headingCategories">
+                                                    <div class="accordion-body">
+                                                        @foreach (var category in Model.CategoryList)
+                                                        {
+                                                            <div class="form-check">
+                                                                <input type="checkbox"
+                                                                       class="form-check-input"
+                                                                       name="SelectedCategories"
+                                                                       value="@category.Value"
+                                                                @(Model.SelectedCategories.Contains(int.Parse(category.Value)) ? "checked" : "") />
+                                                                <label class="form-check-label">@category.Text</label>
+                                                            </div>
+                                                        }
+                                                        <span asp-validation-for="SelectedCategories"
+                                                              class="text-danger"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Bilder hochladen -->
+                                            <div class="form-group mb-3">
+                                                <label class="form-label">  Bilder hochladen* [Pflicht]</label>
+                                                <input type="file" name="files" class="form-control" multiple />
+                                            </div>
+
+                                            <!-- Vorhandene Bilder -->
+                                            @if (Model.Project.Images != null && Model.Project.Images.Any())
+                                            {
+                                                <div class="form-group mb-3 mt-4">
+                                                    <label class="form-label">Vorhandene Bilder</label>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        @foreach (var image in Model.Project.Images)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@image.Url"
+                                                                     width="100px"
+                                                                     class="img-thumbnail"
+                                                                     alt="Project Image" />
+                                                                <div class="form-check mt-2">
+                                                                    <input class="form-check-input"
+                                                                           type="radio"
+                                                                           name="mainImageId"
+                                                                           value="@image.Id"
+                                                                    @(image.IsMainImage ? "checked" : "") />
+                                                                    <label class="form-check-label">
+                                                                        Main Image
+                                                                    </label>
+                                                                </div>
+                                                                <button type="button"
+                                                                        class="btn btn-danger btn-sm position-absolute top-0 end-0"
+                                                                        onclick="deleteImage('@Url.Action("DeleteImage", "Project", new { imageId = image.Id })')">
+                                                                    &times;
+                                                                </button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <div class="form-group mb-3">
+                                                <label for="ExternalImageUrl" class="form-label">Externe Bild-URL hinzufügen (optional)</label>
+                                                <input type="url"
+                                                       class="form-control"
+                                                       id="ExternalImageUrl"
+                                                       name="ExternalImageUrl"
+                                                       placeholder="https://example.com/dein-bild.jpg"
+                                                       onchange="previewExternalImage(this.value)">
+                                                <small class="text-muted">Optional: Statt Upload kannst du eine externe Bild-URL verwenden (.jpg, .jpeg, .png, .webp)</small>
+
+                                                <!-- Live preview -->
+                                                <div id="externalImagePreviewContainer" class="mt-3" style="display:none;">
+                                                    <strong>Vorschau:</strong><br />
+                                                    <img id="externalImagePreview" src="" style="max-width: 300px; max-height: 200px; border-radius: 12px; object-fit: cover;" alt="Externe Bildvorschau" />
+                                                </div>
+                                            </div>
+
+
+                                            <!-- Multiple video file input -->
+                                            <div class="form-group mb-3">
+                                                <label><strong>Videos hochladen (max. 500 MB pro Video)</strong></label>
+                                                <input type="file" name="videoFiles" class="form-control" accept="video/*" multiple />
+                                            </div>
+
+                                            @if (Model.Project.Videos != null && Model.Project.Videos.Any())
+                                            {
+                                                <div class="form-group mb-3 mt-4">
+                                                    <label class="form-label">Existing Videos</label>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        @foreach (var video in Model.Project.Videos)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <video controls width="300px" class="mb-2">
+                                                                    <source src="@video.Url" type="video/mp4">
+                                                                    Your browser does not support the video tag.
+                                                                </video>
+                                                                <button type="button"
+                                                                        class="btn btn-danger btn-sm position-absolute top-0 end-0"
+                                                                        onclick="deleteVideo('@Url.Action("DeleteVideo", "Project", new { videoId = video.Id })')">
+                                                                    &times;
+                                                                </button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            <!-- Lizenzierung -->
+                                            <div class="accordion-item mb-3 mt-3">
+                                                <h2 class="accordion-header" id="headingLicensing">
+                                                    <button class="accordion-button collapsed"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseLicensing"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseLicensing">
+                                                        Lizenzierung
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseLicensing"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="headingLicensing">
+                                                    <div class="accordion-body">
+                                                        <input type="text" autocomplete="nope" style="display: none;">
+                                                        <div class="form-group mb-3">
+                                                            <label class="form-label"><strong>Lizenz</strong></label>
+                                                            <input asp-for="@Model.Project.Lizenz"
+                                                                   class="form-control"
+                                                                   placeholder="Enter Lizenz"
+                                                                   list="projectLizenzOptions"
+                                                                   autocomplete="off" />
+                                                            <datalist id="projectLizenzOptions">
+                                                               
+                                                                @foreach (var Theme in Model.ExistingLizenz.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                                {
+                                                                    <option value="@Theme.Trim()"></option>
+                                                                }
+                                                            </datalist>
+                                                        </div>
+
+                                                        <input type="text" autocomplete="nope" style="display: none;">
+                                                        <div class="form-group mb-3">
+                                                            <label class="form-label"><strong>OpenSource</strong></label>
+                                                            <input asp-for="@Model.Project.OpenSource"
+                                                                   class="form-control"
+                                                                   placeholder="Enter OpenSource Info."
+                                                                   list="projectOpenSourceOptions"
+                                                                   autocomplete="off" />
+                                                            <datalist id="projectOpenSourceOptions">
+                                                                @foreach (var OpenSource in Model.ExistingOpenSource.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                                {
+                                                                    <option value="@OpenSource.Trim()"></option>
+                                                                }
+                                                            </datalist>
+                                                        </div>
+
+                                                        <input type="text" autocomplete="nope" style="display: none;">
+                                                        <div class="form-group mb-3">
+                                                            <label class="form-label"><strong>CreativeCommons</strong></label>
+                                                            <input asp-for="@Model.Project.CreativeCommons"
+                                                                   class="form-control"
+                                                                   placeholder="Enter CreativeCommons Info."
+                                                                   list="projectCreativeCommonsOptions"
+                                                                   autocomplete="off" />
+                                                            <datalist id="projectCreativeCommonsOptions">
+                                                                @foreach (var CreativeCommons in Model.ExistingCreativeCommons.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                                {
+                                                                    <option value="@CreativeCommons.Trim()"></option>
+                                                                }
+                                                            </datalist>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- End Nested Accordion -->
+                                        <!-- Kurze Beschreibung -->
+                                        <div class="form-group mb-3">
+                                            <label for="KurzeBeschreibung" class="form-label">
+                                                <strong>Kurze Beschreibung* [Pflicht] (min. 100 Zeichen, max. 1200 Zeichen)</strong>
+                                            </label>
+                                            <textarea id="KurzeBeschreibung"
+                                                      name="Project.KurzeBeschreibung"
+                                                      rows="6"
+                                                      maxlength="1200"
+                                                      minlength="100"
+                                                      placeholder="min. 100 Zeichen, max. 1200 Zeichen"
+                                                      class="form-control"
+                                                      required>
+                                                @Model.Project.KurzeBeschreibung
+                                            </textarea>
+                                            <span asp-validation-for="Project.KurzeBeschreibung" class="text-danger"></span>
+                                            <div id="charCounter" style="font-size: 0.9rem; color: gray; text-align: right;">0/1200</div>
+                                            <small id="minCharWarning" style="color: red; display: none;">Minimum 100 characters required.</small>
+                                        </div>
+
+                                        <!-- Erscheinungsjahr -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Erscheinungsjahr* [Pflicht]</strong></label>
+                                            <select required asp-for="Project.ReleaseYear" class="form-select" asp-items="Model.ReleaseYearList">
+                                                <option value="">Jahr auswählen</option>
+                                            </select>
+                                            <span asp-validation-for="Project.ReleaseYear" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Version -->
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Version</strong></label>
+                                            <input asp-for="@Model.Project.Version"
+                                                   class="form-control"
+                                                   placeholder="Enter Version"
+                                                   list="projectVersionOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectVersionOptions">
+                                                @foreach (var Version in Model.ExistingVersion.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Version.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <!-- Produktive Webseite -->
+                                        <div class="form-group mt-3">
+                                            <label for="Url" class="form-label"><strong>Produktive Webseite</strong></label>
+                                            <input type="url"
+                                                   class="form-control"
+                                                   id="Url"
+                                                   name="Project.Url"
+                                                   value="@Model.Project.Url"
+                                                   placeholder="URL Zur produktiven Webseite">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End 1.2. Projektübersicht -->
+                            <!-- 1.3. Strategisches und organisatorisches Team -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTeam">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapseTeam"
+                                            aria-expanded="false"
+                                            aria-controls="collapseTeam">
+                                        2. Strategisches und oparatives Team
+                                    </button>
+                                </h2>
+                                <div id="collapseTeam"
+                                     class="accordion-collapse collapse"
+                                     aria-labelledby="headingTeam">
+                                    <div class="accordion-body">
+
+                                        <!-- Sub-Accordion for Organisation + Fachgruppen -->
+                                        <div class="accordion" id="orgaFachgruppenAccordion">
+
+                                            <!-- Organisation -->
+                                            <div class="accordion-item mb-3">
+                                                <h2 class="accordion-header" id="headingFakultaet">
+                                                    <button class="accordion-button collapsed"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseFakultaet"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseFakultaet">
+                                                        <strong>Organisation* [Pflicht]</strong>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseFakultaet"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="headingFakultaet">
+                                                    <div class="accordion-body">
+                                                        @foreach (var fakultaet in Model.FakulteatList)
+                                                        {
+                                                            <div class="form-check">
+                                                                <input type="checkbox"
+                                                                       class="form-check-input"
+                                                                       name="selectedFakultaets"
+                                                                       value="@fakultaet.Value"
+                                                                @(Model.SelectedFakultaets.Contains(int.Parse(fakultaet.Value)) ? "checked" : "") />
+                                                                <label class="form-check-label">@fakultaet.Text</label>
+                                                            </div>
+                                                        }
+                                                        <span asp-validation-for="SelectedFakultaets"
+                                                              class="text-danger"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Fachgruppen -->
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="headingFachgruppe">
+                                                    <button class="accordion-button collapsed"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseFachgruppe"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseFachgruppe">
+                                                        <strong>Fachgruppen* [Pflicht]</strong>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseFachgruppe"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="headingFachgruppe">
+                                                    <div class="accordion-body">
+                                                        @foreach (var Fachgruppe in Model.FachgruppenList)
+                                                        {
+                                                            <div class="form-check">
+                                                                <input type="checkbox"
+                                                                       class="form-check-input"
+                                                                       name="selectedFachgruppen"
+                                                                       value="@Fachgruppe.Value"
+                                                                @(Model.SelectedFachgruppen.Contains(int.Parse(Fachgruppe.Value)) ? "checked" : "") />
+                                                                <label class="form-check-label">@Fachgruppe.Text</label>
+                                                            </div>
+                                                        }
+                                                        <span asp-validation-for="SelectedFachgruppen"
+                                                              class="text-danger"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- End Sub-Accordion for Organisation + Fachgruppen -->
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektverantwortung</strong></label>
+                                            <input asp-for="@Model.Project.ProjectResponsibility"
+                                                   class="form-control"
+                                                   placeholder="Enter Projektverantwortung"
+                                                   list="projectProjectResponsibilityOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectProjectResponsibilityOptions">
+                                                @foreach (var Responsibility in Model.ExistingProjectResponsibility.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Responsibility.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektentwicklung</strong></label>
+                                            <input asp-for="@Model.Project.ProjectDevelopment"
+                                                   class="form-control"
+                                                   placeholder="Enter Projektentwicklung"
+                                                   list="projectDevelopmentOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectDevelopmentOptions">
+                                                @foreach (var Development in Model.ExistingProjectDevelopment.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Development.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektleitung</strong></label>
+                                            <input asp-for="@Model.Project.ProjectLeadership"
+                                                   class="form-control"
+                                                   placeholder="Enter Projektleitung"
+                                                   list="projectLeadershipOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectLeadershipOptions">
+                                                @foreach (var Leadership in Model.ExistingProjectLeadership.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Leadership.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektmanagement</strong></label>
+                                            <input asp-for="@Model.Project.ProjectManagement"
+                                                   class="form-control"
+                                                   placeholder="Enter ProjectManagement"
+                                                   list="projectManagementOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectManagementOptions">
+                                                @foreach (var Management in Model.ExistingProjectManagement.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Management.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Förderung</strong></label>
+                                            <input asp-for="@Model.Project.Foerderung"
+                                                   class="form-control"
+                                                   placeholder="Förderinstitutionen oder -programme"
+                                                   list="projectFoerderungOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectFoerderungOptions">
+                                                @foreach (var Foerderung in Model.ExistingFoerderung.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Foerderung.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektpartner</strong></label>
+                                            <input asp-for="@Model.Project.ProjectPartners"
+                                                   class="form-control"
+                                                   placeholder="Externe und interne Partner"
+                                                   list="projectPartnersOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectPartnersOptions">
+                                                @foreach (var Partners in Model.ExistingProjectPartners.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Partners.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Netzwerk</strong></label>
+                                            <input asp-for="@Model.Project.Netzwerk"
+                                                   class="form-control"
+                                                   placeholder="Kooperationen und Verbindungen"
+                                                   list="projectNetzwerkOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectNetzwerkOptions">
+                                                @foreach (var Netzwerk in Model.ExistingNetzwerk.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Netzwerk.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Expertise</strong></label>
+                                            <input asp-for="@Model.Project.Expertise"
+                                                   class="form-control"
+                                                   placeholder="Spezifische Kompetenzen"
+                                                   list="projectExpertiseOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectExpertiseOptions">
+                                                @foreach (var Expertise in Model.ExistingExpertise.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Expertise.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektkoordination</strong></label>
+                                            <input asp-for="@Model.Project.ProjectCoordination"
+                                                   class="form-control"
+                                                   placeholder="Aufgabenbeschreibung"
+                                                   list="projectCoordinationOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectCoordinationOptions">
+                                                @foreach (var Coordination in Model.ExistingProjectCoordination.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Coordination.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektkonzeption</strong></label>
+                                            <input asp-for="@Model.Project.ProjectConception"
+                                                   class="form-control"
+                                                   placeholder="Planungs- und Konzeptarbeit"
+                                                   list="projectConceptionOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectConceptionOptions">
+                                                @foreach (var Conception in Model.ExistingProjectConception.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Conception.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Projektbetreuung</strong></label>
+                                            <input asp-for="@Model.Project.ProjectSupport"
+                                                   class="form-control"
+                                                   placeholder="Laufende Betreuung"
+                                                   list="projectSupportOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectSupportOptions">
+                                                @foreach (var Support in Model.ExistingProjectSupport.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Support.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <!-- Offenes Feld -->
+                                        <div class="form-group mb-3">
+                                            <label for="OpenField" class="form-label"><strong>zusätzliche Informationen</strong></label>
+                                            <textarea asp-for="Project.zusaetzlicheInformationen"
+                                                      class="form-control"
+                                                      placeholder="Zusätzliche Informationen eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.zusaetzlicheInformationen"
+                                                  class="text-danger"></span>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End 1.3. Strategisches und organisatorisches Team -->
+                            <!-- 1.4. Projektbeschreibung -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingProjectDescription">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapseProjectDescription"
+                                            aria-expanded="false"
+                                            aria-controls="collapseProjectDescription">
+                                        3. Projektbeschreibung
+                                    </button>
+                                </h2>
+                                <div id="collapseProjectDescription"
+                                     class="accordion-collapse collapse"
+                                     aria-labelledby="headingProjectDescription">
+                                    <div class="accordion-body">
+
+                                        <!-- Technische Anforderungen -->
+                                        <div class="accordion" id="projectDescriptionSubAccordion">
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header" id="headingTechAnforderungen">
+                                                    <button class="accordion-button collapsed"
+                                                            type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseTechAnforderungen"
+                                                            aria-expanded="false"
+                                                            aria-controls="collapseTechAnforderungen">
+                                                        <strong> Technische Anforderungen* [Pflicht] </strong>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseTechAnforderungen"
+                                                     class="accordion-collapse collapse"
+                                                     aria-labelledby="headingTechAnforderungen">
+                                                    <div class="accordion-body">
+                                                        @foreach (var TechAnforderung in Model.TechAnforderungList)
+                                                        {
+                                                            <div class="form-check">
+                                                                <input type="checkbox" class="form-check-input"
+                                                                       name="selectedTechAnforderungen"
+                                                                       value="@TechAnforderung.Value"
+                                                                @(Model.SelectedTechAnforderungen.Contains(int.Parse(TechAnforderung.Value)) ? "checked" : "") />
+                                                                <label class="form-check-label">@TechAnforderung.Text</label>
+                                                            </div>
+                                                        }
+                                                        <span asp-validation-for="SelectedTechAnforderungen" class="text-danger"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- End Technische Anforderungen -->
+                                        <!-- Primäre Zielgruppe -->
+                                        <div class="form-group mb-3">
+                                            <label for="PrimaryTargetGroup" class="form-label"><strong>Primäre Zielgruppe</strong></label>
+                                            <textarea asp-for="Project.PrimaryTargetGroup"
+                                                      class="form-control"
+                                                      placeholder="Zielgruppenbeschreibung eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.PrimaryTargetGroup"
+                                                  class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Projektziele -->
+                                        <div class="form-group mb-3">
+                                            <label for="ProjectGoals" class="form-label"><strong> Kompetenzziele / Future Skills</strong></label>
+                                            <textarea asp-for="Project.ProjectGoals"
+                                                      class="form-control"
+                                                      placeholder="Angestrebte Kompetenzziele/Ergebnisse eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.ProjectGoals"
+                                                  class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Höchste Taxonomiestufe -->
+                                        <input type="text" autocomplete="nope" style="display: none;">
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Höchste Taxonomiestufe</strong></label>
+                                            <input asp-for="@Model.Project.TaxonomyLevel"
+                                                   class="form-control"
+                                                   placeholder="Einordnung nach Bloom/Anderson"
+                                                   list="projectTaxonomiestufeOptions"
+                                                   autocomplete="off" />
+                                            <datalist id="projectTaxonomiestufeOptions">
+                                                @foreach (var Taxonomiestufe in Model.ExistingTaxonomyLevel.Distinct().Where(e => !string.IsNullOrWhiteSpace(e)))
+                                                {
+                                                    <option value="@Taxonomiestufe.Trim()"></option>
+                                                }
+                                            </datalist>
+                                        </div>
+
+                                        <!-- Lange Beschreibung -->
+                                        <div class="form-group mb-3">
+                                            <label for="LongDescription" class="form-label"><strong>Lange Beschreibung* [Pflicht]</strong></label>
+                                            <textarea id="langeBeschreibung"
+                                                      name="Project.longDescription"
+                                                      rows="6"
+                                                      placeholder="Ausführliche Beschreibung eingeben"
+                                                      class="form-control"
+                                                      required>
+                                                @Model.Project.longDescription
+                                            </textarea>
+                                            <span asp-validation-for="Project.longDescription" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Didaktisches Design -->
+                                        <div class="form-group mb-3">
+                                            <label for="DidacticDesign" class="form-label"><strong>Didaktisches Szenario / Methoden</strong></label>
+                                            <textarea asp-for="Project.DidacticDesign"
+                                                      id="DidacticDesign"
+                                                      class="form-control"
+                                                      placeholder="z. B. Simulation, Projektarbeit, Design Thinking...">
+                                            </textarea>
+                                            <span asp-validation-for="Project.DidacticDesign"
+                                                  class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Ablauf -->
+                                        <div class="form-group mb-3">
+                                            <label for="Process" class="form-label"><strong>Ablauf / Phasenplan</strong></label>
+                                            <textarea asp-for="Project.Methods"
+                                                      id="Ablauf"
+                                                      class="form-control"
+                                                      placeholder="Chronologischer Projektverlauf eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Methods" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Didaktischer Ansatz -->
+                                        <div class="form-group mb-3">
+                                            <label for="DidactictisheApproach" class="form-label"><strong>Sozialform(en)</strong></label>
+                                            <textarea asp-for="Project.DidaktischerAnsatz"
+                                                      id="DidacticApproach"
+                                                      class="form-control"
+                                                      placeholder="z.B Einzel-, Gruppenarbeit etc.">
+                                            </textarea>
+                                            <span asp-validation-for="Project.DidaktischerAnsatz" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Applikationen -->
+                                        <div class="form-group mb-3">
+                                            <label for="Applications" class="form-label"><strong>Raumgestaltung / Lernumgebung</strong></label>
+                                            <textarea asp-for="Project.Applications"
+                                                      id="Applikationen"
+                                                      class="form-control"
+                                                      placeholder="z.B. Virtuelle Tische, Ideenwand mit Abstimmungspunkten">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Applications" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Konzeption -->
+                                        <div class="form-group mb-3">
+                                            <label for="Conception" class="form-label"><strong>Technikeinsatz</strong></label>
+                                            <textarea asp-for="Project.Conception"
+                                                      class="form-control"
+                                                      id="Konzeption"
+                                                      placeholder="Mindmap, Sticky Note, Storyboards, Raumwechsel, Timer, Feedback-Wand">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Conception" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Evaluation -->
+                                        <div class="form-group mb-3">
+                                            <label for="Evaluation" class="form-label"><strong>Apps / Tools</strong></label>
+                                            <textarea asp-for="Project.Evaluation"
+                                                      class="form-control"
+                                                      id="Evaluation"
+                                                      placeholder="Welche Apps / Tools kommen zu einsatz">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Evaluation" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Forschung -->
+                                        <div class="form-group mb-3">
+                                            <label for="Research" class="form-label"><strong>Zeitrahmen / Dauer</strong></label>
+                                            <textarea asp-for="Project.Research"
+                                                      class="form-control"
+                                                      id="Forschung"
+                                                      placeholder="Dauer der Durchführung..">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Research" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Materialien -->
+                                        <div class="form-group mb-3">
+                                            <label for="Research" class="form-label"><strong>Materialien / Vorbereitung</strong></label>
+                                            <textarea asp-for="Project.Materialien"
+                                                      class="form-control"
+                                                      id="Material"
+                                                      placeholder="Welche Materialien werden genutzt">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Materialien" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Evaluation / Erfolgsmessung -->
+                                        <div class="form-group mb-3">
+                                            <label for="Research" class="form-label"><strong>Evaluation / Erfolgsmessung</strong></label>
+                                            <textarea asp-for="Project.Erfolgsmessung"
+                                                      class="form-control"
+                                                      id="Erfolgsmessung"
+                                                      placeholder=" ">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Erfolgsmessung" class="text-danger"></span>
+                                        </div>
+
+
+
+                                        <!-- Tipps -->
+                                        <div class="form-group mb-3">
+                                            <label for="Tips" class="form-label"><strong>Tipps</strong></label>
+                                            <textarea asp-for="Project.Recommendations"
+                                                      class="form-control"
+                                                      id="Tipps"
+                                                      placeholder="Empfehlungen oder Hinweise eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Recommendations" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Offenes Feld -->
+                                        <div class="form-group mb-3">
+                                            <label for="OpenField" class="form-label"><strong>Offenes Feld</strong></label>
+                                            <textarea asp-for="Project.zusaetzlicheInformationen1"
+                                                      class="form-control"
+                                                      id="OpenField"
+                                                      placeholder="Zusätzliche Informationen eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.zusaetzlicheInformationen1" class="text-danger"></span>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End 1.4. Projektbeschreibung -->
+                            <!-- 1.5. Weiterführende Informationen -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingWeiterfuhrendeInfos">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapseWeiterfuhrendeInfos"
+                                            aria-expanded="false"
+                                            aria-controls="collapseWeiterfuhrendeInfos">
+                                        4. Weiterführende Informationen
+                                    </button>
+                                </h2>
+                                <div id="collapseWeiterfuhrendeInfos"
+                                     class="accordion-collapse collapse"
+                                     aria-labelledby="headingWeiterfuhrendeInfos">
+                                    <div class="accordion-body">
+
+                                        <!-- Dokumente -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Dokumente</strong></label>
+                                            <textarea asp-for="Project.Documents"
+                                                      class="form-control"
+                                                      id="Dokumente"
+                                                      placeholder="Links zu Forschungsarbeiten, Berichten oder Präsentationen eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Documents" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Verweise -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Verweise</strong></label>
+                                            <textarea asp-for="Project.References"
+                                                      class="form-control"
+                                                      id="Verweise"
+                                                      placeholder="Externe Quellen oder weiterführende Informationen eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.References" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Medien -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Medien</strong></label>
+                                            <textarea asp-for="Project.Media"
+                                                      class="form-control"
+                                                      id="Medien"
+                                                      placeholder="Links zu Bildern, Videos oder anderen multimedialen Inhalten eingeben">
+                                            </textarea>
+                                            <span asp-validation-for="Project.Media" class="text-danger"></span>
+                                        </div>
+                                        <!-- DownloadLink -->
+                                        <div class="form-group mb-3">
+                                            <label class="form-label"><strong>Link zum Herunterladen</strong></label>
+                                            <textarea asp-for="Project.DownloadURL"
+                                                      class="form-control"
+                                                      placeholder="Link zum Herunterladen der Datei.">
+                                            </textarea>
+                                            <span asp-validation-for="Project.DownloadURL" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End 1.5. Weiterführende Informationen -->
+
+                        </div>
+                        <!-- End Main Accordion -->
+               
+
+                        <!-- Speichern -->
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn saveBtn text-light w-50 btn-success mb-4">
+                                <i class="fas fa-save"></i> Speichern
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Function to delete an image
+    function deleteImage(url) {
+        if (confirm("Are you sure you want to delete this image?")) {
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Mark this as an AJAX request
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload(); // Reload the page to update the images
+                    } else {
+                        response.text().then(text => console.error("Failed to delete the image:", text));
+                        alert("Failed to delete the image.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An error occurred while deleting the image.");
+                });
+        }
+    }
+    // Function to delete a video
+    function deleteVideo(url) {
+        if (confirm("Are you sure you want to delete this video?")) {
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Mark this as an AJAX request
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload(); // Reload the page to update the video section
+                    } else {
+                        response.text().then(text => console.error("Failed to delete the video:", text));
+                        alert("Failed to delete the video.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An error occurred while deleting the video.");
+                });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const radioButtons = document.querySelectorAll('input[name="mainImageId"]');
+
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function () {
+                const thumbnails = document.querySelectorAll('.img-thumbnail');
+                thumbnails.forEach(img => img.classList.remove('border-primary'));
+                if (radio.checked) {
+                    radio.closest('.position-relative')
+                        .querySelector('.img-thumbnail')
+                        .classList.add('border-primary');
+                }
+            });
+        });
+    });
+
+    function updateCharacterCounter() {
+        const textarea = document.getElementById("KurzeBeschreibung");
+        const charCounter = document.getElementById("charCounter");
+        const minCharWarning = document.getElementById("minCharWarning");
+        const currentLength = textarea.value.length;
+        // Update the character counter
+        charCounter.textContent = `${currentLength}/1200`;
+        // Check if the input meets the minimum character requirement
+        if (currentLength < 100) {
+            charCounter.style.color = "red"; // Make counter red if below min.
+            minCharWarning.style.display = "block"; // Show warning message
+        } else {
+            charCounter.style.color = "gray"; // Reset counter color
+            minCharWarning.style.display = "none"; // Hide warning message
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // For KurzeBeschreibung
+        ClassicEditor
+            .create(document.querySelector('#KurzeBeschreibung'), {
+                toolbar: [
+                    'bold', 'italic', 'underline', 'strikethrough', '|',
+                    'fontColor', 'fontBackgroundColor', '|',
+                    'link', 'blockQuote', 'bulletedList', 'numberedList', '|',
+                    'insertTable', 'undo', 'redo'
+                ]
+            })
+            .then(editor => {
+                editor.model.document.on('change:data', () => {
+                    const currentLength = editor.getData().length;
+                    const charCounter = document.getElementById("charCounter");
+                    const minCharWarning = document.getElementById("minCharWarning");
+                    charCounter.textContent = `${currentLength}/1200`;
+                    if (currentLength < 100) {
+                        charCounter.style.color = "red";
+                        minCharWarning.style.display = "block";
+                    } else {
+                        charCounter.style.color = "gray";
+                        minCharWarning.style.display = "none";
+                    }
+                });
+            })
+            .catch(error => {
+                console.error(error);
+            });
+
+        function previewExternalImage(url) {
+            const previewContainer = document.getElementById('externalImagePreviewContainer');
+            const previewImage = document.getElementById('externalImagePreview');
+
+            if (url && (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.webp'))) {
+                previewImage.src = url;
+                previewContainer.style.display = 'block';
+            } else {
+                previewContainer.style.display = 'none';
+                previewImage.src = '';
+            }
+        }
+
+        const fieldsToInitialize = [
+            '#langeBeschreibung',
+            '#DidacticDesign',
+            '#Ablauf',
+            '#DidacticApproach',
+            '#Methoden',
+            '#Applikationen',
+            '#Konzeption',
+            '#Evaluation',
+            '#Forschung',
+            '#Tipps',
+            '#OpenField',
+            '#Dokumente',
+            '#Verweise',
+            '#Medien',
+            '#Material',
+            '#Erfolgsmessung'
+        ];
+
+        fieldsToInitialize.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                ClassicEditor
+                    .create(element, {
+                        toolbar: [
+                            'bold', 'italic', 'underline', 'strikethrough', '|',
+                            'fontColor', 'fontBackgroundColor', '|',
+                            'link', 'blockQuote', 'bulletedList', 'numberedList', '|',
+                            'insertTable', 'undo', 'redo'
+                        ]
+                    })
+                    .catch(error => {
+                        console.error(`Error initializing editor for ${selector}:`, error);
+                    });
+            }
+        });
+    });
+</script>

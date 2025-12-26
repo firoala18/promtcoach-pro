@@ -1,0 +1,48 @@
+﻿@model IEnumerable<ProjectsWebApp.Models.Category>
+
+@{
+    ViewData["Title"] = "Kategorien bearbeiten";
+}
+
+<div class="mt-5">
+    <div class="row">
+        <div class="col-12">
+
+            <h3 class="text-center mb-4">@ViewData["Title"]</h3>
+            <div class="d-flex justify-content-end mb-3">
+                <a href="@Url.Action("Create", "Category", new { area = "Admin" })" class="btn btn-primary addBtn">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+
+            <table class="table table-bordered table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Kategorie</th>
+                      
+                        <th style="width: 150px;">Aktionen</th> <!-- Adjusted width for the Actions column -->
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in Model.OrderBy(u => u.DisplayOrder))
+                    {
+                        <tr>
+                            <td>@category.Name</td>
+                        
+                            <td>
+                                <div class="d-flex justify-content-between">
+                                    <a href="@Url.Action("Edit", "Category", new { id = category.Id, area = "Admin" })" class="btn btn-warning rounded-5 mx-1">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a href="@Url.Action("Delete", "Category", new { id = category.Id, area = "Admin" })" class="btn btn-danger rounded-5 mx-1">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

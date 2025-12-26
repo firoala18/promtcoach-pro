@@ -1,0 +1,148 @@
+@model List<(string Title, string Url)>
+
+<style>
+    .breadcrumb-wrapper {
+        background: transparent;
+        border-radius: 0;
+        padding: 0.5rem 0;
+        margin-bottom: 1rem;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .breadcrumb-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+
+    .breadcrumb-nav {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .breadcrumb-list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        gap: 0.25rem;
+    }
+
+    .breadcrumb-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+
+    .breadcrumb-item a {
+        color: #64748b;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .breadcrumb-item a:hover {
+        color: #89ba17;
+        background: rgba(137, 186, 23, 0.1);
+    }
+
+    .breadcrumb-item a i {
+        font-size: 0.75rem;
+    }
+
+    .breadcrumb-separator {
+        color: #cbd5e1;
+        font-size: 0.75rem;
+        margin: 0 0.125rem;
+        user-select: none;
+    }
+
+    .breadcrumb-item.active {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .breadcrumb-item.active span {
+        padding: 0.25rem 0.5rem;
+        background: rgba(137, 186, 23, 0.15);
+        border-radius: 6px;
+        color: #4d7c0f;
+    }
+
+    /* Responsive: hide middle items on small screens */
+    @@media (max-width: 576px) {
+        .breadcrumb-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 0.75rem;
+        }
+
+        .breadcrumb-item {
+            font-size: 0.8rem;
+        }
+
+        .breadcrumb-list {
+            gap: 0.125rem;
+        }
+    }
+</style>
+
+@if (Model != null && Model.Any())
+{
+    <div class="breadcrumb-wrapper">
+      @*   <div class="breadcrumb-icon">
+            <i class="bi bi-signpost-split"></i>
+        </div> *@
+        <nav class="breadcrumb-nav" aria-label="Brotkrumen-Navigation">
+            <ol class="breadcrumb-list">
+                @for (int i = 0; i < Model.Count; i++)
+                {
+                    var crumb = Model[i];
+                    bool isFirst = i == 0;
+                    bool isLast = i == Model.Count - 1;
+
+                    @if (i > 0)
+                    {
+                        <li class="breadcrumb-separator" aria-hidden="true">
+                            <i class="bi bi-chevron-right"></i>
+                        </li>
+                    }
+
+                    <li class="breadcrumb-item @(isLast ? "active" : "")" @(isLast ? "aria-current=\"page\"" : "")>
+                        @if (!string.IsNullOrEmpty(crumb.Url) && !isLast)
+                        {
+                            <a href="@crumb.Url">
+                                @if (isFirst)
+                                {
+                                    <i class="bi bi-house-door"></i>
+                                }
+                                @crumb.Title
+                            </a>
+                        }
+                        else
+                        {
+                            <span>@crumb.Title</span>
+                        }
+                    </li>
+                }
+            </ol>
+        </nav>
+    </div>
+}

@@ -1,0 +1,168 @@
+﻿@{
+    bool isVK = ViewBag.IsVK ?? false;
+    ViewData["Title"] = isVK ? "XR Lab Verwalten" : "Projekte Verwalten";
+}
+
+
+<style>
+    .table-responsive-lg {
+        width: 100%;
+    }
+
+    .table {
+        width: 100% !important; /* Ensure both tables take full width */
+        table-layout: auto;
+    }
+
+
+    .project-toggle.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+        border-color: #0d6efd !important;
+    }
+
+    #btnMainProjects.active {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+
+</style>
+
+<div class="mt-5 pb-6">
+    <div class="d-flex justify-content-between mb-3">
+        <h3>@ViewData["Title"]</h3>
+        <a href="@Url.Action("Upsert", "Project", new { area = "Admin", isVK = isVK })" class="btn btn-primary">
+            <i class="fas fa-plus"></i> @(isVK ? "Neues XR Lab-Projekt" : "Neues Projekt")
+        </a>
+
+    </div>
+
+    @*   <!-- Toggle Buttons -->
+    <div class="mb-4 text-center">
+    <button id="btnVrProjects" class="btn btn-outline-primary project-toggle">Virtuelles Klassenzimmer</button>
+    <button id="btnMainProjects" class="btn btn-outline-success me-2 project-toggle active">Projekte</button>
+    </div> *@
+
+
+
+    <!-- Main Projects Table -->
+    @if (!isVK)
+    {
+        <!-- Main Projects Table -->
+        <div class="table-responsive-lg">
+            <table id="tblMainProjects" class="table table-bordered table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Bild</th>
+                        <th>Name des Projekts</th>
+                        <th>Verlauf</th>
+                        <th>Veröffentlichen</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <!-- VR Projects Table -->
+        <div class="table-responsive-lg">
+            <table id="tblVrProjects" class="table table-bordered table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Bild</th>
+                        <th>Name des Projekts</th>
+                        <th>Verlauf</th>
+                        <th>Status</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    }
+
+    @section Scripts {
+        <script>
+            $(document).ready(function () {
+                const isVK = @((ViewBag.IsVK ?? false).ToString().ToLower());
+
+                const targetTableId = isVK ? '#tblVrProjects' : '#tblMainProjects';
+                const ajaxUrl = isVK ? '/admin/project/getall?type=vr' : '/admin/project/getall?type=main';
+
+                $(targetTableId).DataTable({
+                    ajax: {
+                        url: ajaxUrl,
+                        type: 'GET'
+                    },
+                    columns: getColumnDefs()
+                });
+
+                // Enable toggle switches
+                $(document).on("change", ".toggle-status", function () {
+                    let projectId = $(this).data("id");
+                    let newStatus = $(this).prop("checked");
+
+                    $.ajax({
+                        type: "POST",
+                        url: "/admin/project/toggleStatus",
+                        data: { id: projectId, isEnabled: newStatus },
+                        success: function () {
+                            Swal.fire({
+                                title: "Erfolg",
+                                text: "Projektstatus erfolgreich aktualisiert!",
+                                icon: "success",
+                                timer: 1000,
+                                showConfirmButton: false
+                            });
+                        },
+                        error: function () {
+                            Swal.fire({
+                                title: "Fehler",
+                                text: "Aktualisierung des Status fehlgeschlagen.",
+                                icon: "error"
+                            });
+                        }
+                    });
+                });
+
+                function getColumnDefs() {
+                    return [
+                        {
+                            data: 'mainImageUrl',
+                            render: function (data) {
+                                return `<img src="${data}" class="project-image" style="width: 100px; height: 60px; object-fit: cover;">`;
+                            }
+                        },
+                        { data: 'title' },
+                        { data: 'displayOrder', defaultContent: "N/A" },
+                        {
+                            data: 'isEnabled', render: function (data, type, row) {
+                                let checked = data ? "checked" : "";
+                                return `
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input toggle-status" type="checkbox" ${checked} data-id="${row.id}">
+                                                        </div>`;
+                            }
+                        },
+                        {
+                            data: 'id',
+                            render: function (data) {
+                                return `
+                                                        <div class="d-flex justify-content-center">
+                                                               <a href="/admin/project/upsert?id=${data}&isVK=${isVK}" class="btn btn-warning mx-1">
+                                                                 <i class="bi bi-pencil-square"></i>
+                                                               </a>
+
+                                                            <a href="/admin/project/delete?id=${data}" class="btn btn-danger mx-1 delete-project">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </a>
+                                                        </div>`;
+                            }
+                        }
+                    ];
+                }
+            });
+        </script>
+    }

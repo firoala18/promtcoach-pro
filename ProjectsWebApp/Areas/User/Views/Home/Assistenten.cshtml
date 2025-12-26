@@ -1,0 +1,1197 @@
+@model IEnumerable<ProjectsWebApp.Models.Assistant>
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "KI-Assistenten";
+}
+
+<style>
+    :root {
+        --accent: #3acc59;
+        --accent2: #00b36c;
+        --accentRing: #80d9b0;
+    }
+
+    .asst-hero {
+        border: 1px solid #eef1f4;
+        border-radius: 16px;
+        background: linear-gradient(135deg,#f8fffb,#f2fbf6);
+        padding: 1.25rem 1.25rem;
+        box-shadow: 0 12px 28px rgba(16,24,40,.06);
+        margin-bottom: 1rem;
+    }
+
+    .asst-hero h1 {
+        font-size: 1.6rem;
+        letter-spacing: .2px;
+        margin: 0;
+    }
+
+    .asst-hero p {
+        margin: 0;
+        color: #6b7280;
+    }
+
+    .btn-accent {
+        background: linear-gradient(135deg,var(--accent),var(--accent2));
+        color: #fff;
+        border: 0;
+        border-radius: .75rem;
+        padding: .55rem 1rem;
+        font-weight: 700;
+        letter-spacing: .2px;
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        box-shadow: 0 10px 24px rgba(58,204,89,.35), inset 0 0 0 1px rgba(255,255,255,.15);
+    }
+
+    .btn-accent:hover {
+        filter: brightness(1.04);
+        color: #fff;
+        box-shadow: 0 14px 28px rgba(58,204,89,.45);
+    }
+
+    .asst-grid .asst-card {
+        border: 1px solid #eef1f4;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(16,24,40,.06);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        background: #fff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .asst-grid .asst-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px rgba(16,24,40,.12);
+        border-color: #dff4e7;
+    }
+
+    .asst-card .card-body {
+        padding: 0.85rem 1rem 0.65rem;
+    }
+
+    .asst-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(58,204,89,.15);
+    }
+
+    .asst-share-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        border: 1px solid var(--accent);
+        background: linear-gradient(135deg,#ecfdf3,#d1fae5);
+        color: #16a34a;
+        box-shadow: 0 0 0 2px rgba(128,217,176,.5);
+        font-size: .9rem;
+    }
+
+    .asst-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .asst-desc {
+        color: black;
+        font-size: .95rem;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .asst-desc * {
+        margin: 0 !important;
+    }
+
+    .asst-meta {
+        color: #6b7280;
+        font-size: .95rem;
+    }
+
+    .asst-meta .meta-line {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .asst-meta .meta-key {
+        font-weight: 600;
+        color: #111827;
+        margin-right: .25rem;
+    }
+
+    .card-body-fixed {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .desc-clamp {
+        --lines: 3;
+        line-height: 1.35rem;
+        min-height: calc(var(--lines) * 1.35rem);
+        max-height: calc(var(--lines) * 1.35rem);
+        display: -webkit-box;
+        -webkit-line-clamp: var(--lines);
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .asst-item {
+        display: flex;
+    }
+
+    .asst-item .asst-card {
+        flex: 1 1 auto;
+    }
+
+    .asst-actions .btn {
+        border-radius: .65rem;
+    }
+
+    .btn-outline-soft {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #111827;
+    }
+
+    .btn-outline-soft:hover {
+        background: #f8fafc;
+        border-color: #dbe1ea;
+        color: #111827;
+    }
+
+    .btn-danger-soft {
+        background: #fff5f5;
+        color: #991d30;
+        border: 1px solid #f3c5c5;
+    }
+
+    .btn-danger-soft:hover {
+        background: #ffe9e9;
+        color: #7f1527;
+        border-color: #ecaaaa;
+    }
+
+    .asst-footer {
+        margin-top: auto;
+        padding: .55rem .75rem .65rem;
+        border-top: 1px solid #f1f5f9;
+        min-height: 2.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+    }
+
+    .asst-footer-left {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-width: 0;
+    }
+
+    .asst-share-groups-btn {
+        border-radius: .65rem;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        color: #111827;
+        font-weight: 500;
+        padding: .35rem .8rem;
+    }
+
+        .asst-share-groups-btn i {
+            margin-right: .25rem;
+        }
+
+        .asst-share-groups-btn:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #111827;
+        }
+
+    .asst-toolbar {
+        border: 1px solid #eef1f4;
+        border-radius: 14px;
+        background: #fff;
+        padding: .6rem;
+        margin: .5rem 0 1rem;
+        box-shadow: 0 10px 24px rgba(16,24,40,.06);
+    }
+
+    .asst-toolbar .form-control,
+    .asst-toolbar .form-select {
+        border-color: #e5e7eb;
+    }
+
+    .asst-toolbar .form-control:focus,
+    .asst-toolbar .form-select:focus {
+        box-shadow: 0 0 0 .25rem rgba(58,204,89,.15);
+        border-color: #80d9b0;
+    }
+
+    .asst-count {
+        color: #6b7280;
+        font-weight: 600;
+        margin-right: 13px;
+    }
+
+    /* Smart search UI */
+    .smart-search {
+        position: relative;
+        display: block;
+    }
+
+    .smart-input {
+        height: 44px;
+        padding-left: 2.25rem;
+        padding-right: 7.25rem;
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+    }
+
+    .smart-input:focus {
+        outline: 0;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 .2rem rgba(58,204,89,.15);
+    }
+
+    .smart-icon {
+        position: absolute;
+        left: .65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+        color: #6b7280;
+        pointer-events: none;
+    }
+
+    .btn-clear {
+        position: absolute;
+        right: 6rem;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 0 .25rem;
+        line-height: 1;
+        border: 0;
+        background: transparent;
+        color: #2563eb;
+        text-decoration: none;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .btn-clear:hover {
+        text-decoration: underline;
+    }
+
+    .btn-smart-submit {
+        position: absolute;
+        right: .4rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 1px solid var(--accent);
+        background: #fff;
+        color: #0f172a;
+        padding: .3rem .7rem;
+        border-radius: .5rem;
+        font-weight: 600;
+        box-shadow: 0 1px 0 rgba(16,24,40,.04);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .btn-smart-submit:hover {
+        background: #f8fffb;
+        border-color: var(--accent2);
+    }
+
+    .smart-search.has-value .btn-clear,
+    .smart-search.has-value .btn-smart-submit {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* --- SORT / GROUP / MINE CONTAINER ------------------------------------ */
+
+    /* Desktop default: all three in one row, auto width */
+    .sort-filter-shell {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-start;
+        gap: .6rem;
+        border-radius: 16px;
+        padding: .6rem .85rem;
+        background: white;
+        /* border: 1px solid #d7f0e4; */
+        /* box-shadow: 0 12px 28px rgba(16,24,40,.07); */
+        width:92%;
+    }
+
+    .sort-filter-shell > * {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    .sort-filter-shell form {
+        margin: 0;
+    }
+
+    /* override inline style from Razor (min-width / max-width) */
+    .sort-filter-shell .select-wrapper {
+        position: relative;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .sort-filter-shell .select-wrapper i {
+        position: absolute;
+        left: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        pointer-events: none;
+        font-size: 1.1rem;
+    }
+
+    .sort-filter-shell .sort-select {
+        border-radius: 999px;
+        padding-left: 2.4rem;
+        padding-right: 1.25rem;
+        height: 44px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+        font-weight: 600;
+        color: #0f172a;
+        width: auto;          /* pill-sized on desktop */
+        max-width: 100%;
+        background: #fff;
+    }
+
+    .sort-filter-shell .sort-select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.2rem rgba(58, 204, 89, 0.15);
+    }
+
+    .toggle-pill {
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        padding: 0.45rem 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .toggle-pill:hover {
+        border-color: #cbd5f5;
+        color: #111827;
+    }
+
+    .toggle-pill.active {
+        background: linear-gradient(135deg,var(--accent),var(--accent2));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 12px 24px rgba(58, 204, 89, 0.32),
+                    inset 0 0 0 1px rgba(255,255,255,0.18);
+    }
+
+    .toggle-pill.active:hover {
+        filter: brightness(1.05);
+    }
+
+    .pill-finalized {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        border-radius: 999px;
+        padding: .2rem .55rem;
+        font-weight: 700;
+        font-size: .78rem;
+        color: #065f46;
+        background: linear-gradient(135deg,#e7fbe9,#d3f7db);
+        border: 1px solid #b7ecc3;
+        box-shadow: 0 1px 0 rgba(15,23,42,.04);
+        white-space: nowrap;
+    }
+    .pill-finalized i { color: #10b981; }
+
+    /* Alphabet pills */
+    .alpha-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: .4rem;
+        margin-top: .25rem;
+    }
+
+    .alpha-nav .pill {
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #111827;
+        border-radius: 999px;
+        padding: .25rem .5rem;
+        line-height: 1;
+        font-weight: 600;
+        font-size: .9rem;
+        min-height: auto;
+    }
+
+    .alpha-nav .pill.active {
+        border-color: var(--accent);
+        color: #0f172a;
+        box-shadow: 0 0 0 .16rem rgba(58,204,89,.12);
+    }
+
+    /* Single-letter alphabet buttons - perfect circles */
+    .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) {
+        width: 32px;
+        height: 32px;
+        min-height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1 / 1;
+    }
+
+    /* --- RESPONSIVE DESIGN FOR IPADS AND TABLETS --- */
+
+    /* For iPad Pro (1024px) and similar large tablets in landscape */
+    @@media (max-width: 1199.98px) and (min-width: 992px) {
+        .asst-grid .asst-card .card-body {
+            padding: 0.75rem 0.85rem 0.55rem;
+        }
+        
+        .asst-name {
+            font-size: 1rem;
+        }
+        
+        .asst-desc {
+            font-size: .9rem;
+        }
+        
+        .asst-footer {
+            padding: .5rem .65rem .55rem;
+        }
+
+        .sort-filter-shell {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .6rem;
+            padding: .7rem 1rem;
+            width:125%;
+        }
+
+        .sort-filter-shell > * {
+            min-width: 0;
+        }
+
+        .sort-filter-shell .select-wrapper,
+        .sort-filter-shell form {
+            width: 100%;
+        }
+
+        .sort-filter-shell .sort-select {
+            width: 100%;
+        }
+
+         .toggle-pill {
+            justify-self: start;
+            padding: .38rem .65rem;
+            font-size: .88rem;
+            min-width: 0;
+        }
+
+        .toggle-pill i {
+            font-size: 1rem;
+        }
+    }
+
+    /* For standard iPad (768px) and similar tablets in portrait */
+    @@media (max-width: 991.98px) and (min-width: 768px) {
+        .asst-hero {
+            padding: 1rem 1rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .asst-hero h1 {
+            font-size: 1.5rem;
+        }
+        
+        .asst-toolbar .row {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .asst-toolbar .col-md-6,
+        .asst-toolbar .col-md-4,
+        .asst-toolbar .col-md-2 {
+            width: 100%;
+        }
+        
+        .sort-filter-shell {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: .5rem;
+            padding: .55rem .75rem;
+        }
+
+        .sort-filter-shell > * {
+            min-width: 0;
+        }
+
+        .sort-filter-shell .sort-select {
+            width: 100%;
+        }
+
+        .toggle-pill {
+            width: 100%;
+            justify-content: center;
+            padding: .4rem .65rem;
+            font-size: .9rem;
+        }
+
+        .asst-grid {
+            gap: .75rem;
+        }
+        
+        .asst-card .card-body {
+            padding: 0.75rem 0.85rem 0.55rem;
+        }
+        
+        .asst-name {
+            font-size: 1rem;
+        }
+        
+        .asst-desc {
+            font-size: .9rem;
+        }
+        
+        .asst-avatar {
+            width: 44px;
+            height: 44px;
+        }
+        
+        .alpha-nav {
+            gap: .3rem;
+        }
+
+        .alpha-nav .pill {
+            font-size: .85rem;
+            padding: .2rem .4rem;
+        }
+
+        .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) {
+            width: 30px;
+            height: 30px;
+            min-height: 30px;
+        }
+    }
+
+    /* For smaller tablets and large phones */
+    @@media (max-width: 767.98px) {
+        .sort-filter-shell {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sort-filter-shell > * {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+
+        .sort-filter-shell .sort-select,
+        .toggle-pill {
+            width: 100%;
+        }
+        
+        .alpha-nav {
+            gap: .25rem;
+        }
+
+        .alpha-nav .pill {
+            font-size: .8rem;
+            padding: .15rem .35rem;
+        }
+
+        .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) {
+            width: 28px;
+            height: 28px;
+            min-height: 28px;
+        }
+
+        .smart-input {
+            padding-right: 6rem;
+        }
+        
+        .btn-clear {
+            right: 5rem;
+        }
+    }
+
+    /* For very small screens */
+    @@media (max-width: 575.98px) {
+        .asst-hero {
+            padding: .85rem;
+        }
+        
+        .asst-hero h1 {
+            font-size: 1.4rem;
+        }
+        
+        .btn-accent {
+            padding: .5rem .85rem;
+            font-size: .9rem;
+        }
+        
+        .asst-toolbar {
+            padding: .5rem;
+        }
+        
+        .smart-input {
+            height: 42px;
+            padding-left: 2rem;
+            padding-right: 5.5rem;
+        }
+        
+        .btn-smart-submit {
+            padding: .25rem .6rem;
+            font-size: .9rem;
+        }
+        
+        .btn-clear {
+            right: 4.5rem;
+        }
+
+        .alpha-nav {
+            gap: .2rem;
+        }
+
+        .alpha-nav .pill {
+            font-size: .75rem;
+            padding: .1rem .3rem;
+        }
+
+        .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) {
+            width: 24px;
+            height: 24px;
+            min-height: 24px;
+        }
+    }
+
+    /* Scrollable groups list inside the modal */
+    #assistantGroupsList {
+        max-height: 320px;
+        overflow-y: auto;
+        padding-right: .25rem; /* keep content away from scrollbar */
+    }
+</style>
+
+<div class="asst-hero d-flex align-items-center justify-content-between">
+    <div>
+        <h1>KI-Assistenten</h1>
+        <p>Deine gespeicherten Assistenten. Starte die Unterhaltung.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a asp-area="User" asp-controller="Home" asp-action="PromptAssistent" class="btn btn-accent">
+            <i class="bi bi-plus-circle"></i><span>Assistent</span>
+        </a>
+    </div>
+</div>
+
+<div class="modal fade" id="assistantGroupsModal" tabindex="-1" aria-labelledby="assistantGroupsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assistantGroupsModalLabel">Assistent in Gruppen veröffentlichen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assistantGroupsForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="agAssistantId" />
+                    <div class="mb-2">
+                        <strong id="agAssistantName"></strong>
+                    </div>
+                    <div id="assistantGroupsList">
+                        @if (ViewBag.AllGroups is List<string> pg && pg.Count > 0)
+                        {
+                            foreach (var g in pg)
+                            {
+                                if (string.IsNullOrWhiteSpace(g)) continue;
+                                var norm = g.Trim();
+                                var inputId = $"ag_group_{norm.GetHashCode()}";
+                                <div class="form-check mb-1" data-group="@norm">
+                                    <input class="form-check-input ag-group-checkbox" type="checkbox" value="@norm" id="@inputId" name="groups" />
+                                    <label class="form-check-label" for="@inputId">@norm</label>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted small mb-0">Keine Gruppen verfügbar.</p>
+                        }
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="submit" form="assistantGroupsForm" class="btn btn-dark">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="asst-toolbar">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-6 col-lg-6">
+            <!-- Smart search field -->
+            <div class="smart-search">
+                <i class="bi bi-search smart-icon" aria-hidden="true"></i>
+                <input id="asstSearch" type="text" class="form-control smart-input" placeholder="Assistenten suchen… (Name, Beschreibung)" autocomplete="off" />
+                <button type="button" class="btn btn-link btn-clear" title="Eingabe löschen" aria-label="Eingabe löschen">
+                    <i class="bi bi-x"></i>
+                </button>
+                <button type="button" id="btnUserSearch" class="btn btn-smart-submit">Suchen</button>
+            </div>
+        </div>
+        <div class="col-12 col-md-4 col-lg-4">
+            <div class="sort-filter-shell">
+                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                {
+                    var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string> { "Ohne Gruppe" };
+                    var selectedGroup = ViewBag.SelectedGroup as string;
+                    <form asp-area="User" asp-controller="Home" asp-action="Assistenten" method="get" class="mb-0">
+                        <div class="select-wrapper" style="min-width:200px;max-width:260px">
+                            <i class="bi bi-people"></i>
+                            <select name="group" class="form-select sort-select" onchange="this.form.submit()" title="Nach Gruppen filtern">
+                                <option value="">Alle Gruppen</option>
+                                @foreach (var g in groups)
+                                {
+                                    var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
+                                    if (isSel)
+                                    {
+                                        <option value="@g" selected="selected">@g</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string>();
+                    var selectedGroup = ViewBag.SelectedGroup as string;
+                    <form asp-area="User" asp-controller="Home" asp-action="Assistenten" method="get" class="mb-0">
+                        <div class="select-wrapper" style="min-width:200px;max-width:260px">
+                            <i class="bi bi-people"></i>
+                            <select name="group" class="form-select sort-select" onchange="this.form.submit()" title="Nach Gruppen filtern">
+                                @foreach (var g in groups)
+                                {
+                                    var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
+                                    if (isSel)
+                                    {
+                                        <option value="@g" selected="selected">@g</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </form>
+                }
+                <button type="button" id="mineToggle" class="toggle-pill" aria-pressed="false">
+                    <i class="bi bi-person"></i>
+                    <span>Meine Assistenten</span>
+                </button>
+            </div>
+        </div>
+        <div class="col-12 col-md-2 col-lg-2 text-md-end">
+            <span class="asst-count d-inline-flex align-items-center justify-content-end w-100">Gesamt: <span id="asstCount">0</span></span>
+        </div>
+    </div>
+</div>
+
+<div id="alphaNav" class="alpha-nav mb-4">
+    <button type="button" class="pill active" data-alpha="all">Alle</button>
+    <button type="button" class="pill" data-alpha="0-9">0–9</button>
+    <button type="button" class="pill" data-alpha="A">A</button>
+    <button type="button" class="pill" data-alpha="B">B</button>
+    <button type="button" class="pill" data-alpha="C">C</button>
+    <button type="button" class="pill" data-alpha="D">D</button>
+    <button type="button" class="pill" data-alpha="E">E</button>
+    <button type="button" class="pill" data-alpha="F">F</button>
+    <button type="button" class="pill" data-alpha="G">G</button>
+    <button type="button" class="pill" data-alpha="H">H</button>
+    <button type="button" class="pill" data-alpha="I">I</button>
+    <button type="button" class="pill" data-alpha="J">J</button>
+    <button type="button" class="pill" data-alpha="K">K</button>
+    <button type="button" class="pill" data-alpha="L">L</button>
+    <button type="button" class="pill" data-alpha="M">M</button>
+    <button type="button" class="pill" data-alpha="N">N</button>
+    <button type="button" class="pill" data-alpha="O">O</button>
+    <button type="button" class="pill" data-alpha="P">P</button>
+    <button type="button" class="pill" data-alpha="Q">Q</button>
+    <button type="button" class="pill" data-alpha="R">R</button>
+    <button type="button" class="pill" data-alpha="S">S</button>
+    <button type="button" class="pill" data-alpha="T">T</button>
+    <button type="button" class="pill" data-alpha="U">U</button>
+    <button type="button" class="pill" data-alpha="V">V</button>
+    <button type="button" class="pill" data-alpha="W">W</button>
+    <button type="button" class="pill" data-alpha="X">X</button>
+    <button type="button" class="pill" data-alpha="Y">Y</button>
+    <button type="button" class="pill" data-alpha="Z">Z</button>
+</div>
+
+@{
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var sharedIds = ViewBag.SharedAssistantIds as HashSet<int> ?? new HashSet<int>();
+    bool canMultiGroupPublish = (ViewBag.CanPublishToMultipleGroups as bool?) ?? false;
+    bool isAdminUser = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+    bool isDozentUser = User.IsInRole("Dozent");
+}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3 asst-grid" id="asstGrid" data-current="@currentUserId">
+    @foreach (var a in Model)
+    {
+        <div class="col asst-item" data-id="@a.Id" data-name="@a.Name" data-desc="@a.Description" data-owner="@a.CreatedByUserId">
+            <div class="asst-card card h-100">
+                <div class="card-body d-flex flex-column card-body-fixed">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center">
+                            @{
+                                var av = a.AvatarUrl;
+                                if (!string.IsNullOrWhiteSpace(av))
+                                {
+                                    if (av.StartsWith("~/")) { av = Url.Content(av); }
+                                    else if (av.StartsWith("/") && !av.StartsWith("//")) { av = Url.Content("~" + av); }
+                                }
+                            }
+                            <img src="@av" alt="@a.Name" class="asst-avatar me-2" />
+                            <div>
+                                <p class="asst-name">@a.Name</p>
+                            </div>
+                        </div>
+                        @if (sharedIds.Contains(a.Id))
+                        {
+                            <span class="asst-share-indicator" title="Assistent ist extern freigegeben">
+                                <i class="bi bi-share-fill"></i>
+                            </span>
+                        }
+                    </div>
+                    <div class="asst-desc desc-clamp" title="@a.Description">@Html.Raw(a.Description)</div>
+                </div>
+                <div class="asst-footer">
+                    <div class="asst-footer-left">
+                        <span class="asst-badges"><span class="pill-finalized d-none"><i class="bi bi-check-circle-fill"></i><span>Abgegeben</span></span></span>
+                        @if (canMultiGroupPublish && (isAdminUser || (isDozentUser && string.Equals(a.CreatedByUserId, currentUserId, StringComparison.Ordinal))))
+                        {
+                            <button type="button"
+                                    class="btn btn-sm asst-share-groups-btn"
+                                    data-id="@a.Id"
+                                    data-name="@a.Name">
+                                <i class="bi bi-people-fill"></i>
+                                <span>Gruppen</span>
+                            </button>
+                        }
+                    </div>
+                    <a asp-area="User" asp-controller="Home" asp-action="AssistantChat" asp-route-id="@a.Id" class="btn btn-accent btn-sm">
+                        <i class="bi bi-chat-dots"></i><span>Starten</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div id="asstEmpty" class="text-center text-muted py-5" style="display:none">
+    <div class="mb-2"><i class="bi bi-robot" style="font-size:2rem;color:#9ca3af"></i></div>
+    <div>Keine Assistenten gefunden. Suchbegriff anpassen oder neuen Assistent erstellen.</div>
+    <div class="mt-3">
+        <a asp-area="User" asp-controller="Home" asp-action="PromptAssistent" class="btn btn-accent btn-sm">
+            <i class="bi bi-plus-circle"></i> Neuen Assistent erstellen
+        </a>
+    </div>
+</div>
+
+<script>
+    (function(){
+      const grid  = document.getElementById('asstGrid');
+      const items = () => Array.from(grid?.querySelectorAll('.asst-item') || []);
+      const inp   = document.getElementById('asstSearch');
+      const sort  = document.getElementById('asstSort');
+      const mineBtn = document.getElementById('mineToggle');
+      const sortIcon = document.getElementById('sortIcon');
+      const cnt   = document.getElementById('asstCount');
+      const empty = document.getElementById('asstEmpty');
+      const alphaNav = document.getElementById('alphaNav');
+      let alpha = 'all';
+      let mineOnly = false;
+      const currentUserId = grid?.getAttribute('data-current') || '';
+
+      // smart search controls
+      const smartWrap = document.querySelector('.smart-search');
+      const btnClear  = smartWrap?.querySelector('.btn-clear');
+      const btnSubmit = document.getElementById('btnUserSearch');
+
+      function syncSortIcon(){
+        if (!sortIcon || !sort) return;
+        const asc = (sort.value || 'name-asc') === 'name-asc';
+        sortIcon.className = asc ? 'bi bi-sort-alpha-down' : 'bi bi-sort-alpha-down-alt';
+      }
+
+      function updateCount(){
+        const visible = items().filter(it => it.style.display !== 'none').length;
+        if (cnt) cnt.textContent = String(visible);
+        if (empty) empty.style.display = visible ? 'none' : '';
+      }
+
+      function applyFilter(){
+        const q = (inp?.value || '').trim().toLowerCase();
+        items().forEach(it => {
+          const name = (it.dataset.name || '').toLowerCase();
+          const desc = (it.dataset.desc || '').toLowerCase();
+          const first = (it.dataset.name || '').trim().charAt(0).toUpperCase();
+          const passAlpha = (alpha === 'all') ? true : (alpha === '0-9' ? /[0-9]/.test(first) : first === alpha);
+          const owner = it.dataset.owner || '';
+          const passMine = !mineOnly || (owner && owner === currentUserId);
+          const show = passAlpha && passMine && (!q || name.includes(q) || desc.includes(q));
+          it.style.display = show ? '' : 'none';
+        });
+        updateCount();
+      }
+
+      function applySort(){
+        if (!grid) return;
+        const mode = sort?.value || 'name-asc';
+        const arr = items();
+        arr.sort((a,b)=>{
+          const an=(a.dataset.name||'').toLowerCase();
+          const bn=(b.dataset.name||'').toLowerCase();
+          if (mode==='name-desc') return an<bn?1:an>bn?-1:0;
+          return an>bn?1:an<bn?-1:0;
+        });
+        arr.forEach(el => grid.appendChild(el));
+        syncSortIcon();
+      }
+
+      function refreshFinalizedBadges(){
+        const me = currentUserId;
+        items().forEach(it => {
+          const id = it.getAttribute('data-id');
+          const owner = it.dataset.owner || '';
+          const badge = it.querySelector('.pill-finalized');
+          if (!badge || !id) return;
+          let show = false;
+          if (owner && owner === me){
+            try { show = localStorage.getItem('assistant:finalized:' + id) === '1'; } catch { show = false; }
+          }
+          badge.classList.toggle('d-none', !show);
+        });
+      }
+
+      // show/hide × and Suchen depending on value
+      function syncSmartUI(){
+        const has = (inp?.value || '').trim().length > 0;
+        smartWrap?.classList.toggle('has-value', has);
+      }
+
+      // events
+      inp?.addEventListener('input', function(){
+        syncSmartUI();
+        // live filter while typing
+        applyFilter();
+        // if user cleared the field, show all immediately
+        if ((inp.value || '').trim().length === 0) {
+          applySort();
+          applyFilter();
+        }
+      });
+
+      sort?.addEventListener('change', function(){
+        applySort();
+        applyFilter();
+      });
+
+      mineBtn?.addEventListener('click', function(){
+        mineOnly = !mineOnly;
+        this.classList.toggle('active', mineOnly);
+        this.setAttribute('aria-pressed', mineOnly ? 'true' : 'false');
+        const icon = this.querySelector('i');
+        if (icon) {
+          icon.className = mineOnly ? 'bi bi-person-check-fill' : 'bi bi-person';
+        }
+        applySort();
+        applyFilter();
+        refreshFinalizedBadges();
+      });
+
+      // Suchen button just triggers filter (no form submit here)
+      btnSubmit?.addEventListener('click', function(e){
+        e.preventDefault();
+        applySort();
+        applyFilter();
+      });
+
+      // Clear button: empty, focus, and show all
+      btnClear?.addEventListener('click', function(e){
+        e.preventDefault();
+        inp.value = '';
+        inp.focus();
+        syncSmartUI();
+        applySort();
+        applyFilter();
+      });
+
+      // ESC clears too
+      inp?.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') {
+          inp.value = '';
+          syncSmartUI();
+          applySort();
+          applyFilter();
+        }
+      });
+
+      // initial
+      applySort();
+      applyFilter();
+      syncSmartUI();
+      syncSortIcon();
+      refreshFinalizedBadges();
+
+      // alphabet filter events
+      alphaNav?.addEventListener('click', function(e){
+        const btn = e.target.closest('.pill');
+        if (!btn) return;
+        alpha = btn.getAttribute('data-alpha') || 'all';
+        alphaNav.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p === btn));
+        applySort();
+        applyFilter();
+        refreshFinalizedBadges();
+      });
+    })();
+</script>
+
+<script>
+    (function () {
+        var modalEl = document.getElementById('assistantGroupsModal');
+        if (!modalEl) return;
+
+        var modalInstance = null;
+        function getModal() {
+            try {
+                if (!modalInstance && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    modalInstance = new bootstrap.Modal(modalEl);
+                }
+            } catch { }
+            return modalInstance;
+        }
+
+        var form = document.getElementById('assistantGroupsForm');
+        var idInput = document.getElementById('agAssistantId');
+        var nameEl = document.getElementById('agAssistantName');
+
+        function groupCheckboxes() {
+            return Array.from(document.querySelectorAll('#assistantGroupsList .ag-group-checkbox'));
+        }
+
+        var getUrl = '@Url.Action("GetAssistantGroups", "Home", new { area = "User" })';
+        var postUrl = '@Url.Action("UpdateAssistantGroups", "Home", new { area = "User" })';
+
+        var buttons = document.querySelectorAll('.asst-share-groups-btn');
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var asstId = btn.getAttribute('data-id');
+                var asstName = btn.getAttribute('data-name') || '';
+                if (!asstId) return;
+
+                if (idInput) idInput.value = asstId;
+                if (nameEl) nameEl.textContent = asstName;
+
+                groupCheckboxes().forEach(function (cb) {
+                    cb.checked = false;
+                    var row = cb.closest('.form-check');
+                    if (row) row.style.display = '';
+                });
+
+                fetch(getUrl + '?id=' + encodeURIComponent(asstId), {
+                    credentials: 'same-origin'
+                })
+                    .then(function (resp) {
+                        if (!resp.ok) throw new Error('Request failed');
+                        return resp.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.ok) return;
+                        var allowed = data.allowedGroups || [];
+                        var assigned = data.assignedGroups || [];
+                        var allowedSet = {};
+                        allowed.forEach(function (g) { allowedSet[g] = true; });
+
+                        groupCheckboxes().forEach(function (cb) {
+                            var g = cb.value;
+                            var row = cb.closest('.form-check');
+                            if (!row) return;
+                            if (allowed.length > 0 && !allowedSet[g]) {
+                                row.style.display = 'none';
+                                cb.checked = false;
+                            } else {
+                                row.style.display = '';
+                                cb.checked = assigned.indexOf(g) >= 0;
+                            }
+                        });
+                    })
+                    .catch(function () {
+                        // ignore, modal will still open with default state
+                    });
+
+                var m = getModal();
+                if (m) m.show();
+            });
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var fd = new FormData(form);
+                fetch(postUrl, {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin'
+                })
+                    .then(function (resp) {
+                        if (resp.ok) {
+                            window.location.reload();
+                        }
+                    })
+                    .catch(function () { });
+            });
+        }
+    })();
+</script>

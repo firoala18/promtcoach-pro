@@ -1,0 +1,477 @@
+@{
+    ViewData["Title"] = "KIBar-Managment";
+}
+
+
+<style>
+    /* Card & table look aligned with Admin/FilterCategory */
+    .card {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        transition: box-shadow .25s ease, transform .25s;
+        margin-bottom: 3rem;
+    }
+
+        .card:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            transform: translateY(-2px);
+        }
+
+    .card-header {
+        background: #f1f1f1;
+        border-bottom: 1px solid #e4e4e4;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+    }
+
+    .table {
+        margin-bottom: 0;
+        background: #fff;
+    }
+
+        .table thead th {
+            border-bottom: 2px solid #e4e4e4;
+            color: #333;
+        }
+
+        .table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .table td, .table th {
+            vertical-align: middle;
+            color: #333;
+        }
+
+    /* .btn {
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-weight: 500;
+        transition: transform .2s, box-shadow .2s;
+    } */
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+    .btn-outline-light {
+        border-color: #ccc;
+        color: #333;
+    }
+
+        .btn-outline-light:hover {
+            background: #e6e6e6;
+            color: #333;
+        }
+
+    .category-toolbar {
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+        .category-toolbar .btn {
+            margin: 0 .5rem;
+            background: #f1f1f1;
+            border: 1px solid #e4e4e4;
+            color: #333;
+        }
+
+            .category-toolbar .btn:hover {
+                background: #e6e6e6;
+            }
+
+    .card-header .category-toolbar {
+        width: 100%;
+    }
+
+    .card-toolbar-header {
+        justify-content: center;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+        margin-left: 1rem;
+        margin-top: .5rem;
+        margin-bottom: .5rem;
+    }
+
+    .kibar-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem 1rem .75rem;
+        border-bottom: 1px solid #e4e4e4;
+        flex-wrap: wrap;
+    }
+
+    .kibar-search {
+        width: min(420px, 100%);
+    }
+
+    .kibar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .kibar-item {
+        border: 1px solid #e4e4e4;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(0,0,0,.08);
+        overflow: hidden;
+        transition: box-shadow .2s ease, transform .2s ease;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+    }
+
+    .kibar-item:hover {
+        box-shadow: 0 14px 30px rgba(0,0,0,.12);
+        transform: translateY(-2px);
+    }
+
+    .kibar-item-media {
+        height: 140px;
+        background: linear-gradient(135deg, rgba(137,186,23,.15), rgba(0,0,0,.02));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: 1px solid #eef2f7;
+    }
+
+    .kibar-item-media img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        padding: .75rem;
+    }
+
+    .kibar-item-body {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        flex: 1;
+    }
+
+    .kibar-item-title {
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0;
+        color: #0f172a;
+        line-height: 1.25;
+    }
+
+    .kibar-item-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+    }
+
+    .kibar-item-meta .text-muted.small {
+        white-space: nowrap;
+        text-align: right;
+        flex: 0 0 auto;
+    }
+
+    .kibar-open-btn {
+        background: #89ba17;
+        color: #fff;
+        border: 1px solid #6e980f;
+        border-radius: 10px;
+        font-weight: 700;
+        box-shadow: 0 8px 18px rgba(137,186,23,.25);
+        padding: 0;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        white-space: nowrap;
+    }
+
+        .kibar-open-btn i {
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+
+        .kibar-open-btn:hover {
+            background: #7ea914;
+            color: #fff;
+            border-color: #5f830d;
+        }
+
+    .kibar-order {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        padding: .2rem .6rem;
+        font-size: .8rem;
+        white-space: nowrap;
+    }
+
+    .kibar-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+    }
+
+    .kibar-tags .badge {
+        background: rgba(137, 186, 23, 0.14);
+        color: #3b5f0a;
+        border: 1px solid rgba(137, 186, 23, 0.22);
+        font-weight: 600;
+    }
+
+    .kibar-item-desc {
+        color: #475569;
+        font-size: .9rem;
+        line-height: 1.35;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .kibar-item-toggles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .35rem .75rem;
+        padding-top: .25rem;
+    }
+
+    .kibar-item-toggles .form-check {
+        margin: 0;
+        min-height: 0;
+    }
+
+    .kibar-item-actions {
+        padding: .75rem 1rem 1rem;
+        border-top: 1px solid #eef2f7;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .kibar-item-actions .kibar-action-buttons {
+        gap: .75rem !important;
+    }
+
+    .kibar-item-actions .kibar-action-buttons .btn {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .kibar-item-actions .kibar-action-buttons .btn i {
+            font-size: 1.05rem;
+            line-height: 1;
+        }
+
+    .kibar-item-actions .btn {
+        min-height: initial;
+    }
+
+    .kibar-empty {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .kibar-pagination-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1rem 1.25rem;
+    }
+
+    .kibar-pagination-wrap .pagination {
+        margin: 0;
+    }
+</style>
+
+
+<div class="mt-5">
+    @if (TempData["success"] != null)
+    {
+        <div class="alert alert-success">@TempData["success"]</div>
+    }
+    @if (TempData["error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["error"]</div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="mb-0">KIBar-Inhalte verwalten</h2>
+    </div>
+
+    <div class="card shadow-lg rounded-3">
+        <div class="card-header">
+            <h4 class="mb-0">Übersicht</h4>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="@Url.Action("Upsert", "MakerSpaceProject", new { area = "Admin" })" class="btn btn-sm btn-dark">
+                    <i class="bi bi-plus-lg me-1"></i> KIBar-Inhalt
+                </a>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="kibar-toolbar">
+                <div class="input-group input-group-sm kibar-search">
+                    <span class="input-group-text bg-light border-0">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input id="kibarSearch" type="search" class="form-control bg-light border-0" placeholder="Suchen..." />
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="kibarPageSize" class="form-select form-select-sm bg-light border-0" style="width:auto">
+                        <option value="8">8</option>
+                        <option value="12" selected>12</option>
+                        <option value="24">24</option>
+                        <option value="48">48</option>
+                    </select>
+                    <div id="kibarCount" class="text-muted small"></div>
+                </div>
+            </div>
+
+            <div id="kibarCards" class="kibar-grid"></div>
+            <div id="kibarCardsEmpty" class="kibar-empty d-none">Keine Daten verfügbar</div>
+
+            <nav id="kibarPaginationWrap" class="kibar-pagination-wrap d-none" aria-label="Seiten-Navigation">
+                <ul id="kibarPagination" class="pagination pagination-sm"></ul>
+            </nav>
+
+            <div class="table-responsive d-none">
+                <table id="tblMakerSpace" class="table table-hover table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Verlauf</th>
+                            <th>Bild</th>
+                            <th>Titel</th>
+
+                         @*    <th>Tags</th>
+
+                            <th>Link</th> *@
+                            <th>Tipp</th>
+                            <th>Forschung</th>
+                            <th>Lehre</th>
+                            <th>Lernen</th>
+                            <th>Tutorial</th>
+							<th>IT-Recht</th>
+                            <th>Beiträge</th>
+                            @* <th>Netzwerk</th>
+                            <th>Herunterladen</th> *@
+
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <form asp-antiforgery="true"></form>  @* rendert verstecktes Input‑Feld *@
+            </div>
+        </div>
+
+        <div class="card-header card-toolbar-header">
+            <div class="category-toolbar mb-0 w-100 text-center">
+                <a asp-area="Admin" asp-controller="MakerSpaceProject" asp-action="Export" class="btn btn-outline-light">
+                    <i class="bi bi-download me-1"></i> ZIP exportieren
+                </a>
+
+                <button id="importZipBtn" type="button" class="btn btn-outline-light">
+                    <i class="bi bi-upload me-1"></i> ZIP importieren
+                </button>
+                <form id="importZipForm"
+                      asp-area="Admin"
+                      asp-controller="MakerSpaceProject"
+                      asp-action="Import"
+                      method="post"
+                      enctype="multipart/form-data"
+                      class="d-none">
+                    @Html.AntiForgeryToken()
+                    <input type="file" name="file" id="zipFileInput" accept=".zip,application/zip" />
+                </form>
+
+                <form asp-area="Admin"
+                      asp-controller="MakerSpaceProject"
+                      asp-action="DeleteAll"
+                      method="post"
+                      class="d-inline"
+                      id="deleteAllForm"
+                      onsubmit="return confirm('Wirklich alle KIBar-Projekte und ihre Bilder löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Alle löschen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        window.BASE_PATH = '@(Context.Request.PathBase.Value ?? "/")';
+        if (!window.BASE_PATH.endsWith('/')) window.BASE_PATH += '/';
+        window.UPSERT_BASE = '@Url.Action("Upsert", "MakerSpaceProject", new { area = "Admin" })';
+        // e.g. "/apps/promptcoach/" in production, "/" locally
+    </script>
+
+    <script src="~/js/KIBarJS.js" asp-append-version="true"></script>
+
+    <script>
+        document.getElementById('importZipBtn')?.addEventListener('click', function () {
+            const input = document.getElementById('zipFileInput');
+            if (input) input.click();
+        });
+
+        document.getElementById('zipFileInput')?.addEventListener('change', function (e) {
+            const input = e.target;
+            if (!input.files || input.files.length === 0) return;
+
+            const submitImport = function () {
+                const form = document.getElementById('importZipForm');
+                if (form) form.submit();
+            };
+
+            if (window.Swal && Swal.fire) {
+                Swal.fire({
+                    title: 'Import starten?',
+                    text: 'Alle vorhandenen KIBar-Inhalte werden durch die ZIP-Datei ersetzt.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ja, importieren',
+                    cancelButtonText: 'Abbrechen'
+                }).then(function (r) {
+                    if (r.isConfirmed) submitImport();
+                    else input.value = '';
+                });
+            } else if (confirm('Alle vorhandenen KIBar-Inhalte werden durch die ZIP-Datei ersetzt. Import starten?')) {
+                submitImport();
+            } else {
+                input.value = '';
+            }
+        });
+    </script>
+}

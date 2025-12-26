@@ -1,0 +1,2190 @@
+@using Microsoft.AspNetCore.Identity
+@using ProjectsWebApp.Utility
+@model ProjectsWebApp.Models.Assistant
+@inject UserManager<IdentityUser> UserManager
+@{
+    ViewData["Title"] = Model.Name;
+    var currentUser = await UserManager.GetUserAsync(User);
+    bool canSeeSystemPrompt =
+        User.IsInRole(SD.Role_Admin) ||
+        User.IsInRole(SD.Role_Dozent) ||
+        User.IsInRole("Coach") ||
+        (currentUser != null && Model.CreatedByUserId == currentUser.Id);
+    bool canEditSystemPrompt =
+        User.IsInRole(SD.Role_Admin) ||
+        User.IsInRole(SD.Role_Dozent) ||
+        User.IsInRole("Coach") ||
+        (currentUser != null && Model.CreatedByUserId == currentUser.Id);
+}
+
+@{
+    string? avatarSrc = Model.AvatarUrl;
+    if (!string.IsNullOrWhiteSpace(avatarSrc))
+    {
+        if (avatarSrc.StartsWith("~/")) { avatarSrc = Url.Content(avatarSrc); }
+        else if (avatarSrc.StartsWith("/") && !avatarSrc.StartsWith("//")) { avatarSrc = Url.Content("~" + avatarSrc); }
+    }
+}
+
+<style>
+    :root {
+        --accent: #3acc59;
+        --card: #ffffff;
+        --border: #e8ecf3;
+        --bg: #f8fafc;
+        --text: #111827;
+        --muted: #667085;
+        --avatar: 32px; /* avatar size (normal) */
+        --gap: .6rem; /* gap between avatar and bubble content */
+        --pad-x: .8rem; /* base bubble x padding */
+    }
+
+    .chat-shell {
+        position: relative;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 14px 34px rgba(16,24,40,.08);
+        overflow: hidden;
+    }
+
+    /* ---------- Header ---------- */
+    .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        gap: .6rem;
+        background: linear-gradient(180deg,#fff,#f8fafc);
+        border-bottom: 1px solid var(--border);
+        flex-wrap: nowrap;
+    }
+
+        .chat-header .left {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .chat-header .right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 0 0 auto;
+        }
+
+    .btn-back {
+        margin-left: 2px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        background: #878686;
+        color: #fff;
+        border-radius: 50%;
+        padding: 0;
+        box-sizing: border-box;
+        box-shadow: 0 2px 6px rgba(16,24,40,.06);
+        transition: transform .12s ease,box-shadow .12s ease,border-color .12s ease,background-color .12s ease;
+        flex: 0 0 auto;
+    }
+
+        .btn-back:hover {
+            background: #6E6E6E;
+            border-color: #dfe6f0;
+            box-shadow: 0 4px 12px rgba(16,24,40,.10);
+            text-decoration: none;
+        }
+
+        .btn-back:active {
+            transform: translateY(1px);
+        }
+
+        .btn-back:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(58,204,89,.25);
+        }
+
+    .hdr-sep {
+        width: 1px;
+        height: 24px;
+        align-self: center;
+        background: linear-gradient(to bottom,transparent,var(--border),transparent);
+        margin: 0 10px;
+        border-radius: 1px;
+        flex: 0 0 auto;
+    }
+
+    .chat-header .chat-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 0;
+        box-shadow: 0 0 0 2px #fff,0 0 0 3px var(--border);
+        flex: 0 0 auto;
+    }
+
+    .chat-header .titles {
+        display: flex;
+        flex-direction: column;
+        gap: .15rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        line-height: 1.15;
+    }
+
+        .chat-header .titles .name {
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-header .titles .desc {
+            color: var(--muted);
+        }
+
+    .status-pill {
+        background: var(--accent);
+        color: #fff;
+        border-radius: 999px;
+        padding: .3rem .65rem;
+        font-weight: 600;
+        font-size: .82rem;
+    }
+
+        .status-pill:hover{
+            border: 1px solid black;
+        }
+    /* ---------- Details / sections ---------- */
+    .sys-prompt-box {
+        margin: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0;
+        overflow: hidden;
+    }
+
+        .sys-prompt-box > summary.sys-title {
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px 12px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 700;
+            color: var(--text);
+            background: linear-gradient(180deg,#fff,#f8fafc);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sys-prompt-box > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sys-prompt-box .chevron {
+            transition: transform .18s ease;
+        }
+
+        .sys-prompt-box[open] .chevron {
+            transform: rotate(0);
+        }
+
+        .sys-prompt-box:not([open]) .chevron {
+            transform: rotate(180deg);
+        }
+
+        .sys-prompt-box .sys-lines {
+            padding: 12px 14px 14px;
+            white-space: normal;
+            color: #1f2937;
+            font-size: .94rem;
+            overflow: visible;
+            transition: opacity .2s ease;
+        }
+
+    #sysPromptLines {
+        white-space: pre-wrap;
+    }
+
+    .sys-prompt-box[open] .sys-lines {
+        max-height: none;
+        opacity: 1;
+    }
+
+    .sys-prompt-box:not([open]) .sys-lines {
+        max-height: 0;
+        opacity: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-top: 0;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 .25rem 0;
+    }
+
+        .section-title .bi {
+            color: var(--accent);
+        }
+
+    .kv-row {
+        display: flex;
+        flex-direction: column;
+        gap: .15rem;
+        margin-bottom: .6rem;
+    }
+    @@media (min-width:576px) {
+        .kv-row {
+            flex-direction: row;
+            align-items: baseline;
+        }
+    }
+
+    .kv-label {
+        min-width: 160px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .kv-value {
+        color: #0f172a;
+    }
+
+    .muted {
+        color: dimgray;
+    }
+
+    .para {
+        margin: .15rem 0 .35rem;
+        white-space: pre-wrap;
+        line-height: 1.4;
+    }
+
+    .sys-prompt-box .sys-lines .para {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        text-indent: 0 !important;
+        white-space: normal !important;
+    }
+
+    #ownerReadonly .kv-label {
+        color: #0f172a;
+    }
+
+    /* ---------- Chat area ---------- */
+    .chat-body {
+        height: 65vh;
+        overflow: auto;
+        padding: 14px 16px;
+        background: var(--bg);
+    }
+
+    /* Each row is a grid: [avatar][full-width bubble spanning both columns] */
+    .msg-row {
+        display: grid;
+        grid-template-columns: var(--avatar) minmax(0,1fr);
+        align-items: start;
+        gap: var(--gap);
+        margin-bottom: 12px;
+        position: relative;
+    }
+
+        .msg-row.me {
+            grid-template-columns: minmax(0,1fr);
+        }
+    /* no avatar column for me */
+
+    .msg-avatar {
+        grid-column: 1;
+        grid-row: 1;
+        width: var(--avatar);
+        height: var(--avatar);
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border);
+        z-index: 2; /* sit above the bubble background */
+    }
+
+    .bubble {
+        grid-column: 1 / -1; /* span the entire row */
+        width: 100%;
+        max-width: none; /* full width */
+        padding: .6rem var(--pad-x);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 6px 16px rgba(16,24,40,.05);
+        font-size: .96rem;
+        line-height: 1.5;
+        background: #ffffff;
+        color: #111;
+    }
+
+        /* Indent ASSISTANT text so it doesn't sit under the avatar */
+        .bubble.assistant {
+            padding-left: calc(var(--pad-x) + var(--avatar) + var(--gap));
+        }
+
+    /* User message: no avatar column, still full width */
+    .msg-row.me .bubble {
+        grid-column: 1 / -1;
+    }
+
+    .bubble.me {
+        background: #e8f7ee;
+        border-color: #c1efcf;
+        color: #083f1c;
+    }
+
+    .msg-row.assistant-thinking .bubble.assistant {
+        position: relative;
+        background: linear-gradient(135deg, #ffffff 0%, #f5fbff 45%, #eef9f2 100%);
+        border-color: rgba(58, 204, 89, 0.28);
+        box-shadow: 0 14px 26px rgba(58, 204, 89, 0.16);
+        overflow: hidden;
+    }
+
+        .msg-row.assistant-thinking .bubble.assistant::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.75) 45%, transparent 100%);
+            transform: translateX(-140%);
+            animation: bubbleShimmer 1.9s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+    .thinking-indicator {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        font-weight: 600;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: #14532d;
+    }
+
+        .thinking-indicator .thinking-dots {
+            display: flex;
+            gap: .35rem;
+        }
+
+        .thinking-indicator .thinking-dot {
+            width: .55rem;
+            height: .55rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #3acc59 0%, #119f45 100%);
+            animation: dotPulse 1.2s ease-in-out infinite;
+            opacity: .8;
+        }
+
+            .thinking-indicator .thinking-dot:nth-child(2) { animation-delay: .18s; }
+            .thinking-indicator .thinking-dot:nth-child(3) { animation-delay: .36s; }
+
+        .thinking-indicator .thinking-text {
+            font-size: .8rem;
+            letter-spacing: .22em;
+            color: #1d4d28;
+        }
+
+    .assistant-error {
+        color: #b91c1c;
+        font-weight: 600;
+    }
+
+    .assistant-muted {
+        color: #64748b;
+        font-style: italic;
+    }
+
+    @@keyframes bubbleShimmer {
+        0% {
+            transform: translateX(-140%);
+            opacity: .2;
+        }
+        50% {
+            transform: translateX(0%);
+            opacity: .7;
+        }
+        100% {
+            transform: translateX(140%);
+            opacity: 0;
+        }
+    }
+
+    @@keyframes dotPulse {
+        0%, 70%, 100% {
+            transform: scale(0.55);
+            opacity: .35;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .bubble code {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: .1rem .3rem;
+        font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+
+    .bubble h1, .bubble h2, .bubble h3, .bubble h4, .bubble h5, .bubble h6 {
+        margin: .25rem 0 .35rem;
+        font-weight: 700;
+    }
+
+    .bubble ul, .bubble ol {
+        padding-left: 1.25rem;
+        margin: .25rem 0 .5rem;
+    }
+
+    .bubble p {
+        margin: 0 0 .55rem;
+    }
+
+    .chat-inputbar {
+        display: flex;
+        gap: .5rem;
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        background: linear-gradient(180deg,#ffffff,#f8fafc);
+        position: sticky;
+        bottom: 0;
+    }
+
+    .chat-input {
+        border-radius: 12px;
+    }
+
+    .btn-accent {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: .5rem .9rem;
+        font-weight: 700;
+    }
+
+        .btn-accent:hover {
+            filter: brightness(0.98);
+            border: 1px solid black;
+        }
+
+    .scroll-bottom-btn {
+        position: absolute;
+        right: 18px;
+        bottom: 84px;
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        background: #111827;
+        color: #fff;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        box-shadow: 0 10px 24px rgba(16,24,40,.2);
+    }
+
+        .scroll-bottom-btn.show {
+            display: flex;
+        }
+
+    /* -------- compact overrides -------- */
+    .chat-shell.compact .chat-header {
+        padding: 8px 12px;
+        gap: .5rem;
+    }
+
+    .chat-shell.compact .hdr-sep {
+        margin: 0 6px;
+    }
+
+    .chat-shell.compact .chat-header .chat-avatar {
+        width: 36px;
+        height: 36px;
+    }
+
+    .chat-shell.compact .chat-header .titles {
+        line-height: 1.1;
+    }
+
+    .chat-shell.compact .sys-prompt-box {
+        margin: 8px 12px;
+    }
+
+        .chat-shell.compact .sys-prompt-box > summary.sys-title {
+            padding: 8px 10px;
+        }
+
+        .chat-shell.compact .sys-prompt-box .sys-lines {
+            padding: 8px 10px 10px;
+            line-height: 1.35;
+            font-size: .92rem;
+            border-top: 0;
+        }
+
+    .chat-shell.compact .sys-lines > * {
+        margin-top: 0 !important;
+    }
+
+    .chat-shell.compact .sys-lines .para + .section-title,
+    .chat-shell.compact .sys-lines > .section-title.mt-1,
+    .chat-shell.compact .sys-lines > .section-title.mt-2,
+    .chat-shell.compact .sys-lines > .section-title.mt-3,
+    .chat-shell.compact .sys-lines > .section-title.mt-4 {
+        margin-top: 1.5rem !important;
+    }
+
+    .chat-shell.compact .sys-lines > *:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    .chat-shell.compact .section-title {
+        margin: 0 0 .2rem 0;
+    }
+
+    .chat-shell.compact .para {
+        margin: .05rem 0 .2rem;
+        line-height: 1.33;
+    }
+
+    .chat-shell.compact .sys-lines .mt-2 {
+        margin-top: .25rem !important;
+    }
+
+    .chat-shell.compact .sys-lines .mb-2 {
+        margin-bottom: .25rem !important;
+    }
+
+    .chat-shell.compact .sys-lines .mb-0 {
+        margin-bottom: 0 !important;
+    }
+
+    .chat-shell.compact .kv-row {
+        gap: .1rem;
+        margin-bottom: .3rem;
+    }
+
+    .chat-shell.compact .kv-label {
+        min-width: 140px;
+    }
+
+    .chat-shell.compact .chat-body {
+        padding: 10px 12px;
+    }
+
+    .chat-shell.compact .msg-row {
+        gap: .5rem;
+        grid-template-columns: var(--avatar) minmax(0,1fr);
+    }
+
+        .chat-shell.compact .msg-row.me {
+            grid-template-columns: minmax(0,1fr);
+        }
+
+    .chat-shell.compact .msg-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .chat-shell.compact .bubble {
+        width: 100%;
+        max-width: none;
+        padding: .5rem var(--pad-x);
+    }
+
+        .chat-shell.compact .bubble.assistant {
+            padding-left: calc(var(--pad-x) + var(--avatar) + var(--gap));
+        }
+
+    .chat-shell.compact .chat-inputbar {
+        padding: 8px 12px;
+        gap: .4rem;
+    }
+
+    .chat-shell.compact .scroll-bottom-btn {
+        bottom: 72px;
+    }
+
+    /* CKEditor consistency */
+    .ck-editor__editable_inline, .ck-editor__editable {
+        background: #fff !important;
+        color: #000 !important;
+        caret-color: #000 !important;
+    }
+
+        .ck-editor__editable div {
+            margin-bottom: .25rem !important;
+            line-height: 1.4;
+        }
+
+    .ck-editor__editable_inline {
+        min-height: 300px;
+        resize: vertical;
+        overflow: auto;
+    }
+
+    /* Fancy CKEditor card styling (match Prompt-Entwicklung look) */
+    .ck.ck-editor {
+        border: 1px solid #e8ecf3 !important;
+        border-radius: 14px !important;
+        box-shadow: 0 10px 24px rgba(16, 24, 40, .06) !important;
+        overflow: hidden;
+    }
+
+    .ck.ck-editor__top .ck-toolbar {
+        border: 0 !important;
+        background: linear-gradient(180deg, #ffffff, #f8fafc) !important;
+        padding: 6px 8px !important;
+    }
+
+    .ck.ck-toolbar .ck-toolbar__items {
+        gap: 4px;
+    }
+
+    .ck.ck-button {
+        border-radius: 10px !important;
+    }
+
+    .ck.ck-editor__main {
+        background: #fff;
+    }
+
+    .ck.ck-content {
+        min-height: 140px;
+        padding: 14px !important;
+        font-size: .98rem;
+        line-height: 1.55;
+    }
+
+    /* Compact variant for small inline editors (Goals/Beschreibung/Reflektion) */
+    .ck.ck-editor.ck-compact .ck-content {
+        min-height: 64px;
+    }
+
+    /* Share Button Styling */
+    .btn-share {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        max-width: 36px !important;
+        max-height: 36px !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 2px solid black;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(16,24,40,.06);
+        aspect-ratio: 1 / 1 !important;
+    }
+
+    .btn-share.inactive {
+        background: #fff;
+        border-color: var(--border);
+        color: #64748b;
+    }
+
+    .btn-share.inactive:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16,24,40,.1);
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color:white;
+    }
+
+    .btn-share.active {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-share.active:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+
+        filter: brightness(1.05);
+    }
+
+    /* Knowledge Base delete/download button circular styling */
+    .kb-delete-btn,
+    .kb-delete-form + .btn,
+    .kb-delete-form ~ .btn {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        border-radius: 50% !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Share Modal Styling */
+    .share-modal-header {
+        border-bottom: 0;
+        padding: 1.5rem 1.5rem 0.5rem;
+    }
+    
+    .share-modal-body {
+        padding: 1.5rem;
+    }
+    
+    .share-modal-footer {
+        border-top: 0;
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    .share-option-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 0.75rem;
+        background: #fff;
+        position: relative;
+    }
+
+    .share-option-card:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+    }
+
+    /* Selected state using :has */
+    .share-option-card:has(.share-option-input:checked) {
+        border-color: var(--accent);
+        background: #f0fdf4;
+        box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .share-option-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .share-option-card:has(.share-option-input:checked) .share-option-icon {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .share-option-info {
+        flex: 1;
+    }
+
+    .share-option-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.1rem;
+        display: block;
+    }
+
+    .share-option-desc {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: block;
+        line-height: 1.3;
+    }
+    
+    .share-option-input {
+        appearance: none;
+        width: 1.2em;
+        height: 1.2em;
+        border: 2px solid #cbd5e1;
+        border-radius: 50%;
+        margin: 0;
+        display: grid;
+        place-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .share-option-input::before {
+        content: "";
+        width: 0.65em;
+        height: 0.65em;
+        border-radius: 50%;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em var(--accent);
+    }
+
+    .share-option-input:checked {
+        border-color: var(--accent);
+    }
+
+    .share-option-input:checked::before {
+        transform: scale(1);
+    }
+
+    /* -------- Mobile & Tablet Responsive Styles -------- */
+    @@media (max-width: 991px) {
+        .chat-body {
+            height: 55vh;
+        }
+        .chat-header {
+            padding: 10px 12px;
+            flex-wrap: wrap;
+        }
+        .chat-header .titles .name {
+            font-size: 0.95rem;
+        }
+        .chat-header .titles .desc {
+            font-size: 0.8rem;
+        }
+        .status-pill {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    }
+
+    @@media (max-width: 767px) {
+        .chat-shell {
+            border-radius: 12px;
+            margin: 0 -5px;
+        }
+        .chat-body {
+            height: 50vh;
+            padding: 10px;
+        }
+        .chat-header {
+            padding: 8px 10px;
+            gap: 0.4rem;
+        }
+        .chat-header .chat-avatar {
+            width: 36px;
+            height: 36px;
+        }
+        .chat-header .left {
+            gap: 0.4rem;
+        }
+        .chat-header .right {
+            gap: 0.6rem;
+        }
+        .hdr-sep {
+            margin: 0 6px;
+            height: 20px;
+        }
+        .btn-back {
+            width: 32px;
+            height: 32px;
+        }
+        .btn-share {
+            width: 32px;
+            height: 32px;
+        }
+        .bubble {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.6rem;
+        }
+        .bubble.assistant {
+            padding-left: calc(0.6rem + var(--avatar) + var(--gap));
+        }
+        .chat-inputbar {
+            padding: 8px 10px;
+        }
+        .chat-input {
+            font-size: 16px !important; /* Prevent iOS zoom */
+        }
+        .sys-prompt-box {
+            margin: 8px 10px;
+        }
+        .sys-prompt-box .sys-lines {
+            font-size: 0.88rem;
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .chat-shell {
+            border-radius: 8px;
+        }
+        .chat-body {
+            height: 45vh;
+            padding: 8px;
+        }
+        .chat-header .titles .name {
+            font-size: 0.85rem;
+        }
+        .chat-header .titles .desc {
+            display: none;
+        }
+        .msg-row {
+            grid-template-columns: 24px minmax(0,1fr);
+            gap: 0.4rem;
+        }
+        .msg-avatar {
+            width: 24px;
+            height: 24px;
+        }
+        .bubble {
+            font-size: 0.85rem;
+            border-radius: 10px;
+        }
+        .bubble.assistant {
+            padding-left: calc(0.5rem + 24px + 0.4rem);
+        }
+        .scroll-bottom-btn {
+            width: 32px;
+            height: 32px;
+            min-height: 32px;
+            bottom: 70px;
+            right: 12px;
+        }
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="zurueck-container">
+        <a asp-area="User" asp-controller="Home" asp-action="Assistenten" class="btn-zurueck">
+            <i class="bi bi-arrow-left"></i>
+            <span>Zurück</span>
+        </a>
+    </div>
+
+    <div class="chat-shell compact">
+    <div class="chat-header">
+        <div class="left">
+            @{
+                var canChangeAvatar = canEditSystemPrompt; // same permissions as edit
+            }
+            @if (canChangeAvatar)
+            {
+                <img id="chatAvatar" src="@avatarSrc" alt="@Model.Name" class="chat-avatar" style="cursor:pointer" title="Avatar ändern" />
+            }
+            else
+            {
+                <img src="@avatarSrc" alt="@Model.Name" class="chat-avatar" />
+            }
+
+            <div class="titles">
+                <div class="name">
+                    @Model.Name
+                    <span class="muted">&nbsp;&middot;&nbsp;ID @Model.Id</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="right">
+            @* <span class="status-pill">KI-Assistent</span> *@
+            @{
+                var isOwnerOnly = (currentUser != null && Model.CreatedByUserId == currentUser.Id);
+                var canDownloadPdf = canSeeSystemPrompt;
+                var canShareAssistant = (ViewBag.CanShareAssistant as bool?) ?? false;
+                var assistantIsShared = (ViewBag.AssistantIsShared as bool?) ?? false;
+            }
+            @if (canShareAssistant)
+            {
+                @if (assistantIsShared)
+                {
+                    <button id="assistantShareBtn" type="button" class="btn-share active" title="Assistent ist extern freigegeben">
+                        <i class="bi bi-share-fill fs-6"></i>
+                    </button>
+                }
+                else
+                {
+                    <button id="assistantShareBtn" type="button" class="btn-share inactive" title="Extern teilen">
+                        <i class="bi bi-share-fill fs-6"></i>
+                    </button>
+                }
+            }
+            @if (canDownloadPdf)
+            {
+                <button id="assistantPdfBtn" type="button" class="btn-share inactive" title="Assistent-Daten als PDF herunterladen">
+                    <i class="bi bi-file-earmark-pdf fs-6"></i>
+                </button>
+            }
+            @if (isOwnerOnly)
+            {
+                <button id="finalizeBtn" type="button" class="btn btn-outline-danger btn-sm" title="Abgeben (Bearbeitung beenden)">Abgeben</button>
+            }
+        </div>
+    </div>
+
+    <details id="goalsBox" class="sys-prompt-box">
+        <summary class="sys-title">
+            <span>Ziele &amp; Beschreibung</span>
+            <span class="d-flex align-items-center gap-2">
+                @if (canEditSystemPrompt)
+                {
+                    <button type="button" id="goalsEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Ziele &amp; Beschreibung bearbeiten">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
+            </span>
+        </summary>
+        <div id="goalsReadonly" class="sys-lines">
+            @{
+                var _g = Model.Goals ?? string.Empty;
+                _g = System.Text.RegularExpressions.Regex.Replace(_g, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _g = System.Text.RegularExpressions.Regex.Replace(_g, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _g = System.Text.RegularExpressions.Regex.Replace(_g, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+                _g = _g.Trim();
+                var _d = Model.Description ?? string.Empty;
+                _d = System.Text.RegularExpressions.Regex.Replace(_d, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _d = System.Text.RegularExpressions.Regex.Replace(_d, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _d = System.Text.RegularExpressions.Regex.Replace(_d, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+                _d = _d.Trim();
+            }
+            @if (!string.IsNullOrWhiteSpace(_g))
+            {
+                <div class="section-title"><span>Ziele</span></div>
+                <p class="para">@_g</p>
+            }
+            @if (!string.IsNullOrWhiteSpace(_d))
+            {
+                <div class="section-title mt-4"><span>Beschreibung</span></div>
+                <p class="para mb-0">@_d</p>
+            }
+            @if (string.IsNullOrWhiteSpace(_g) && string.IsNullOrWhiteSpace(_d))
+            {
+                <div class="muted">Keine Angaben.</div>
+            }
+        </div>
+        @if (canEditSystemPrompt)
+        {
+            <div id="goalsEditBox" class="p-2 d-none">
+                <form id="goalsForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantAbout" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label class="form-label">Ziele</label>
+                        <textarea id="goalsTextarea" name="goals" class="form-control" rows="5">@Model.Goals</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Beschreibung</label>
+                        <textarea id="descTextarea" name="description" class="form-control" rows="5">@Model.Description</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                        <button type="button" id="goalsCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        }
+    </details>
+
+    @if (canSeeSystemPrompt)
+    {
+        <details id="sysPrompt" class="sys-prompt-box">
+            <summary class="sys-title">
+                <span>System-Prompt</span>
+                <span class="d-flex align-items-center gap-2">
+                    @if (canEditSystemPrompt)
+                    {
+                        <button type="button" id="sysPromptEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="System-Prompt bearbeiten">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    }
+                    <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
+                </span>
+            </summary>
+            <div id="sysPromptLines" class="sys-lines"></div>
+            @if (canEditSystemPrompt)
+            {
+                var _sysClean = Model.SystemPrompt ?? string.Empty;
+                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+                _sysClean = System.Net.WebUtility.HtmlDecode(_sysClean);
+                _sysClean = _sysClean.Trim();
+                <div id="sysPromptEditBox" class="p-2 d-none">
+                    <form id="sysPromptForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantSystemPrompt" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <textarea id="sysPromptTextarea" name="systemPrompt" rows="10" class="form-control mb-2">@_sysClean</textarea>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                            <button type="button" id="sysPromptCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                        </div>
+                    </form>
+                </div>
+            }
+        </details>
+    }
+
+    <details id="reflBox" class="sys-prompt-box">
+        <summary class="sys-title">
+            <span>Reflektion</span>
+            <span class="d-flex align-items-center gap-2">
+                @if (canEditSystemPrompt)
+                {
+                    <button type="button" id="reflEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Reflektion bearbeiten">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
+            </span>
+        </summary>
+        <div id="reflReadonly" class="sys-lines">
+            @{
+                var _r = Model.Reflektion ?? string.Empty;
+                _r = System.Text.RegularExpressions.Regex.Replace(_r, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _r = System.Text.RegularExpressions.Regex.Replace(_r, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                _r = System.Text.RegularExpressions.Regex.Replace(_r, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+                _r = _r.Trim();
+            }
+            @if (!string.IsNullOrWhiteSpace(_r))
+            {
+                <p class="para mb-0">@_r</p>
+            }
+            else
+            {
+                <div class="muted">Keine Reflektion hinterlegt.</div>
+            }
+        </div>
+        @if (canEditSystemPrompt)
+        {
+            <div id="reflEditBox" class="p-2 d-none">
+                <form id="reflForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantReflektion" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label class="form-label">Reflektion</label>
+                        <textarea id="reflTextarea" name="reflektion" class="form-control" rows="5">@Model.Reflektion</textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                        <button type="button" id="reflCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        }
+    </details>
+
+    @if (currentUser != null && Model.CreatedByUserId == currentUser.Id)
+    {
+        <details id="kbBox" class="sys-prompt-box">
+            <summary class="sys-title">
+                <span>Wissensbasis</span>
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
+                </span>
+            </summary>
+            <div class="sys-lines">
+                <div class="mb-2 text-muted">Gespeicherte Embeddings: @(ViewBag.EmbCount ?? 0)</div>
+                <form asp-area="User" asp-controller="Home" asp-action="UploadAssistantEmbedding" method="post" enctype="multipart/form-data" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="input-group">
+                        <input type="file" name="txtFile" accept=".txt,text/plain" class="form-control" />
+                        <button type="submit" class="btn btn-secondary">Hochladen &amp; Einbetten</button>
+                    </div>
+                </form>
+
+                @{
+                    var list = ViewBag.Embeddings as IEnumerable<ProjectsWebApp.Models.AssistantEmbedding>;
+                }
+                @if (list == null || !list.Any())
+                {
+                    <div class="text-muted">Keine Wissensdateien vorhanden.</div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var e in list)
+                        {
+                            var shortName = string.IsNullOrWhiteSpace(e.SourceFileName) ? $"Text #{e.Id}" : e.SourceFileName;
+                            <div class="kb-item">
+                                <div class="d-flex align-items-start justify-content-between">
+                                    <div class="me-2">
+                                        <div class="kb-title">@shortName</div>
+                                        <div class="kb-meta small">Hochgeladen: @e.UploadedAtUtc.ToLocalTime().ToString("g")</div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 ms-2">
+                                        <a asp-area="User" asp-controller="Home" asp-action="DownloadAssistantEmbedding" asp-route-id="@Model.Id" asp-route-embId="@e.Id" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form asp-area="User" asp-controller="Home" asp-action="DeleteAssistantEmbedding" method="post" class="kb-delete-form" data-name="@shortName">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@Model.Id" />
+                                            <input type="hidden" name="embId" value="@e.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger kb-delete-btn"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </details>
+    }
+
+    <details id="ownerBox" class="sys-prompt-box">
+        <summary class="sys-title">
+                <span>Assistent-Besitzer &amp; Lizenz</span>
+            <span class="d-flex align-items-center gap-2">
+                @if (canEditSystemPrompt)
+                {
+                    <button type="button" id="ownerEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Owner &amp; Lizenz bearbeiten">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                }
+                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
+            </span>
+        </summary>
+        <div id="ownerReadonly" class="sys-lines">
+            <div class="kv-row">
+                <div class="kv-label">Assistent-ID</div>
+                <div class="kv-value">@Model.Id</div>
+            </div>
+            <div class="kv-row">
+                <div class="kv-label">Assistent-Name</div>
+                <div class="kv-value">@Model.Name</div>
+            </div>
+            <div class="kv-row">
+                    <div class="kv-label">Assistent-Besitzer</div>
+                <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.AuthorName) ? "–" : Model.AuthorName)</div>
+            </div>
+            <div class="kv-row mb-0">
+                <div class="kv-label">Lizenz</div>
+                <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.Licenses) ? "–" : Model.Licenses)</div>
+            </div>
+        </div>
+        @if (canEditSystemPrompt)
+        {
+            <div id="ownerEditBox" class="p-2 d-none">
+                <form id="ownerForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantOwnerLicense" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-2">
+                        <label class="form-label">Assistent-Name</label>
+                        <input id="ownerAssistantName" name="name" class="form-control" value="@Model.Name" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Autor</label>
+                        <input id="ownerAuthorName" name="authorName" class="form-control" value="@Model.AuthorName" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Lizenzen</label>
+                        @{ var lic2 = Model.Licenses ?? string.Empty; }
+                        <select id="ownerLicenses" name="licenses" class="form-select" required>
+                            @if (string.IsNullOrEmpty(lic2))
+                            {
+                                <option value="" selected>Bitte wählen …</option>;
+                            }
+                            else
+                            {
+                                <option value="">Bitte wählen …</option>;
+                            }
+                            @{
+                                var licenseOptions2 = new[] {
+                                    "Attribution_CC_BY",
+                                    "Attribution_ShareAlike_CC_BY_SA",
+                                    "Public_Domain_Dedication_CC0",
+                                    "Copyright",
+                                    "MIT"
+                                };
+                                foreach (var opt in licenseOptions2)
+                                {
+                                    if (string.Equals(lic2, opt, StringComparison.Ordinal))
+                                    {
+                                        <option value="@opt" selected>@opt</option>;
+                                    }
+                                    else
+                                    {
+                                        <option value="@opt">@opt</option>;
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                        <button type="button" id="ownerCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                    </div>
+                </form>
+            </div>
+        }
+    </details>
+
+    <div id="chatBox" class="chat-body">
+        @* Chat messages will be rendered here via JS *@
+    </div>
+
+    <form id="chatForm" class="chat-inputbar" onsubmit="return false;">
+        <input id="chatInput" class="form-control chat-input" placeholder="Nachricht schreiben…" autocomplete="off" />
+        <button id="sendBtn" class="btn btn-accent"><i class="bi bi-send"></i></button>
+    </form>
+
+    <button id="scrollBtn" class="scroll-bottom-btn" type="button"><i class="bi bi-arrow-down"></i></button>
+    @if (canEditSystemPrompt)
+    {
+        <input type="file" id="chatAvatarFile" class="d-none" accept="image/*" />
+    }
+
+    <div class="modal fade" id="assistantShareModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header share-modal-header">
+                    <h5 class="modal-title fw-bold">Assistent teilen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body share-modal-body">
+                    <form id="assistantShareForm" asp-area="User" asp-controller="Home" asp-action="CreateAssistantShareLink" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold mb-3">Sichtbarkeit</label>
+                            
+                            <label class="share-option-card">
+                                <input class="share-option-input" type="radio" name="assistantShareVisibility" id="assistantShareVisPrivate" value="private" checked />
+                                <div class="share-option-icon">
+                                    <i class="bi bi-lock"></i>
+                                </div>
+                                <div class="share-option-info">
+                                    <span class="share-option-title">Nur ich (Privat)</span>
+                                    <span class="share-option-desc">Der Assistent ist nur für Sie sichtbar.</span>
+                                </div>
+                            </label>
+
+                            <label class="share-option-card">
+                                <input class="share-option-input" type="radio" name="assistantShareVisibility" id="assistantShareVisLink" value="link" />
+                                <div class="share-option-icon">
+                                    <i class="bi bi-globe"></i>
+                                </div>
+                                <div class="share-option-info">
+                                    <span class="share-option-title">Jeder mit dem Link</span>
+                                    <span class="share-option-desc">Jeder, der den Link hat, kann den Assistenten nutzen.</span>
+                                </div>
+                            </label>
+                        </div>
+
+                       @*  <div class="mb-4">
+                            <label class="form-label fw-bold">Gruppe zuweisen (Optional)</label>
+                            <select id="assistantShareGroup" name="groupName" class="form-select form-select-lg bg-light border-0">
+                                @if (ViewBag.ShareGroups is IEnumerable<string> shareGroups)
+                                {
+                                    foreach (var g in shareGroups)
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                }
+                            </select>
+                        </div> *@
+
+                        @{
+                            var shareGroupsList = (ViewBag.ShareGroups as IEnumerable<string>)
+                                ?.Where(s => !string.IsNullOrWhiteSpace(s))
+                                .Select(s => s.Trim())
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .ToList() ?? new List<string>();
+                        }
+                        @if (shareGroupsList.Count == 1)
+                        {
+                            <input type="hidden" id="assistantShareGroup" name="groupName" value="@shareGroupsList[0]" />
+                        }
+                        else if (shareGroupsList.Count > 1)
+                        {
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Gruppe</label>
+                                <select id="assistantShareGroup" name="groupName" class="form-select form-select-lg bg-light border-0">
+                                    @foreach (var g in shareGroupsList)
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">Freigabelink</label>
+                            <div class="input-group input-group-lg">
+                                <input id="assistantShareResult" type="text" class="form-control bg-light border-0" readonly placeholder="Link wird generiert..." />
+                                <button type="button" id="assistantShareGenerate" class="btn btn-outline-secondary border-0 bg-light text-dark fw-medium">
+                                    <i class="bi bi-magic me-2"></i>Generieren
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="assistantShareError" class="text-danger small d-none mt-2"></div>
+                    <div id="assistantShareToast" class="alert alert-success small position-fixed bottom-0 end-0 m-3 d-none" role="alert" style="z-index:1080;">
+                        Link wurde in die Zwischenablage kopiert.
+                    </div>
+                </div>
+                <div class="modal-footer share-modal-footer">
+                    <button type="button" class="btn btn-light btn-lg border-0" data-bs-dismiss="modal">Schließen</button>
+                    <button type="button" id="assistantShareSubmit" class="btn btn-accent btn-lg px-4">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ... -->
+
+    </div>
+
+</div>
+
+    <script>
+        (function(){
+            const btn = document.getElementById('assistantShareBtn');
+            const modalEl = document.getElementById('assistantShareModal');
+            if (!btn || !modalEl) return;
+            const form = document.getElementById('assistantShareForm');
+            const groupSelect = document.getElementById('assistantShareGroup');
+            const resultInput = document.getElementById('assistantShareResult');
+            const errorEl = document.getElementById('assistantShareError');
+            const toastEl = document.getElementById('assistantShareToast');
+            const generateBtn = document.getElementById('assistantShareGenerate');
+            const submitBtn = document.getElementById('assistantShareSubmit');
+            const visPrivate = document.getElementById('assistantShareVisPrivate');
+            const visLink = document.getElementById('assistantShareVisLink');
+            const stateUrl = '@Url.Action("GetAssistantShareState", "Home", new { area = "User", id = Model.Id })';
+            const deactivateUrl = '@Url.Action("DeactivateAssistantShareLink", "Home", new { area = "User", id = Model.Id })';
+            const tokenInput = form ? form.querySelector('input[name="__RequestVerificationToken"]') : null;
+            let modal = null;
+
+            btn.addEventListener('click', function(){
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    if (!modal) modal = new bootstrap.Modal(modalEl);
+                    if (errorEl) {
+                        errorEl.textContent = '';
+                        errorEl.classList.add('d-none');
+                    }
+                    if (resultInput) resultInput.value = '';
+                    if (visPrivate) visPrivate.checked = true;
+                    if (visLink) visLink.checked = false;
+                    modal.show();
+                    if (groupSelect) {
+                        refreshShareState();
+                    }
+                }
+            });
+
+            async function refreshShareState(){
+                if (!groupSelect || !stateUrl) return;
+                const group = (groupSelect.value || '').trim();
+                if (!group) return;
+                if (errorEl) {
+                    errorEl.textContent = '';
+                    errorEl.classList.add('d-none');
+                }
+                if (resultInput) resultInput.value = '';
+                try {
+                    const url = stateUrl + '?groupName=' + encodeURIComponent(group);
+                    const resp = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await resp.json();
+                    if (!data.ok) {
+                        if (errorEl) {
+                            errorEl.textContent = data.error || 'Freigabestatus konnte nicht geladen werden.';
+                            errorEl.classList.remove('d-none');
+                        }
+                        return;
+                    }
+                    if (visPrivate) visPrivate.checked = !data.isActive;
+                    if (visLink) visLink.checked = !!data.isActive;
+                    if (resultInput && data.isActive && data.url) {
+                        resultInput.value = data.url;
+                    }
+                } catch (e) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Freigabestatus konnte nicht geladen werden.';
+                        errorEl.classList.remove('d-none');
+                    }
+                }
+            }
+
+            if (groupSelect) {
+                groupSelect.addEventListener('change', function(){
+                    if (resultInput) resultInput.value = '';
+                    if (visPrivate) visPrivate.checked = true;
+                    if (visLink) visLink.checked = false;
+                    refreshShareState();
+                });
+            }
+
+            if (generateBtn && form && groupSelect && resultInput) {
+                generateBtn.addEventListener('click', async function(){
+                    const group = (groupSelect.value || '').trim();
+                    if (!group) return;
+                    const wantLink = visLink && visLink.checked;
+                    if (!wantLink) return; // nur im Modus "Jeder mit dem Link" generieren
+
+                    const fd = new FormData(form);
+                    try {
+                        const resp = await fetch(form.action, {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: fd
+                        });
+                        const data = await resp.json();
+                        if (!data.ok) {
+                            if (errorEl) {
+                                errorEl.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+                                errorEl.classList.remove('d-none');
+                            }
+                            resultInput.value = '';
+                            return;
+                        }
+                        if (errorEl) {
+                            errorEl.textContent = '';
+                            errorEl.classList.add('d-none');
+                        }
+                        const url = data.url || '';
+                        resultInput.value = url;
+
+                        if (url) {
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(url).catch(function(){});
+                            } else {
+                                const ta = document.createElement('textarea');
+                                ta.value = url;
+                                document.body.appendChild(ta);
+                                ta.select();
+                                try { document.execCommand('copy'); } catch {}
+                                document.body.removeChild(ta);
+                            }
+                            if (toastEl) {
+                                toastEl.classList.remove('d-none');
+                                setTimeout(function(){ toastEl.classList.add('d-none'); }, 2200);
+                            }
+                            if (btn) {
+                                btn.className = 'btn-share active';
+                                btn.title = 'Assistent ist extern freigegeben';
+                                // Icon remains consistent
+                            }
+                        }
+                    } catch (e) {
+                        if (errorEl) {
+                            errorEl.textContent = 'Fehler beim Erzeugen des Links.';
+                            errorEl.classList.remove('d-none');
+                        }
+                    }
+                });
+            }
+
+            if (submitBtn && form && groupSelect && resultInput) {
+                submitBtn.addEventListener('click', async function(){
+                    const group = (groupSelect.value || '').trim();
+                    if (!group) return;
+                    const wantLink = visLink && visLink.checked;
+                    if (wantLink) {
+                        const fd = new FormData(form);
+                        try {
+                            const resp = await fetch(form.action, {
+                                method: 'POST',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                body: fd
+                            });
+                            const data = await resp.json();
+                            if (!data.ok) {
+                                if (errorEl) {
+                                    errorEl.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+                                    errorEl.classList.remove('d-none');
+                                }
+                                resultInput.value = '';
+                                return;
+                            }
+                            if (errorEl) {
+                                errorEl.textContent = '';
+                                errorEl.classList.add('d-none');
+                            }
+                            resultInput.value = data.url || '';
+                            if (btn && resultInput.value) {
+                                btn.className = 'btn-share active';
+                                btn.title = 'Assistent ist extern freigegeben';
+                                // Icon remains consistent
+                            }
+                            if (modal) modal.hide();
+                        } catch (e) {
+                            if (errorEl) {
+                                errorEl.textContent = 'Fehler beim Erzeugen des Links.';
+                                errorEl.classList.remove('d-none');
+                            }
+                        }
+                    } else {
+                        if (!deactivateUrl) return;
+                        const fd = new FormData();
+                        if (tokenInput && tokenInput.value) {
+                            fd.append('__RequestVerificationToken', tokenInput.value);
+                        }
+                        fd.append('groupName', group);
+                        try {
+                            const resp = await fetch(deactivateUrl, {
+                                method: 'POST',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                body: fd
+                            });
+                            const data = await resp.json();
+                            if (!data.ok) {
+                                if (errorEl) {
+                                    errorEl.textContent = data.error || 'Freigabelink konnte nicht deaktiviert werden.';
+                                    errorEl.classList.remove('d-none');
+                                }
+                                return;
+                            }
+                            if (errorEl) {
+                                errorEl.textContent = '';
+                                errorEl.classList.add('d-none');
+                            }
+                            resultInput.value = '';
+                            if (btn) {
+                                btn.className = 'btn-share inactive';
+                                btn.title = 'Extern teilen';
+                                // Icon remains consistent
+                            }
+                            if (modal) modal.hide();
+                        } catch (e) {
+                            if (errorEl) {
+                                errorEl.textContent = 'Freigabelink konnte nicht deaktiviert werden.';
+                                errorEl.classList.remove('d-none');
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+
+    document.addEventListener('DOMContentLoaded', function(){
+      // --- Chat wiring ---
+      const chat = document.getElementById('chatBox');
+      const input = document.getElementById('chatInput');
+      const send  = document.getElementById('sendBtn');
+      const scrollBtn = document.getElementById('scrollBtn');
+      const apiUrl = '@Url.Action("AssistantReply", "Home", new { area = "User", id = Model.Id })';
+      const assistantAvatar = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(avatarSrc ?? ""));
+      const messages = [];
+
+      function appendUser(text){
+        if (!chat) return;
+        const row = document.createElement('div');
+        row.className = 'msg-row me';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble me';
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        chat.appendChild(row);
+        if (scrollBtn) scrollBtn.classList.add('show');
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function createAssistantThinkingRow(){
+        if (!chat) return null;
+        const row = document.createElement('div');
+        row.className = 'msg-row assistant-thinking';
+        if (assistantAvatar){
+          const img = document.createElement('img');
+          img.src = assistantAvatar;
+          img.alt = '';
+          img.className = 'msg-avatar';
+          row.appendChild(img);
+        }
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble assistant';
+        bubble.innerHTML = `
+          <div class="thinking-indicator">
+            <div class="thinking-dots">
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+              <span class="thinking-dot"></span>
+            </div>
+            <span class="thinking-text">DENKT</span>
+          </div>`;
+        row.appendChild(bubble);
+        chat.appendChild(row);
+        if (scrollBtn) scrollBtn.classList.add('show');
+        chat.scrollTop = chat.scrollHeight;
+        return { row, bubble };
+      }
+
+      function simulateStreaming(row, targetEl, fullText){
+        if (!targetEl) return;
+        const tokens = fullText.split(/(\s+)/g);
+        let idx = 0;
+        let assembled = '';
+        targetEl.textContent = '';
+        const step = () => {
+          if (idx >= tokens.length){
+            // final render with decoration and stop shimmer
+            targetEl.innerHTML = renderMarkdown(fullText);
+            if (row) row.classList.remove('assistant-thinking');
+            return;
+          }
+          assembled += tokens[idx++] || '';
+          targetEl.textContent = assembled;
+          const last = tokens[idx-1] || '';
+          const delay = Math.min(60, Math.max(8, last.replace(/\s+/g,'').length * 10));
+          setTimeout(step, delay);
+        };
+        step();
+      }
+
+      async function sendCurrent(){
+        if (!input || !chat) return;
+        const text = (input.value || '').trim();
+        if (!text) return;
+        appendUser(text);
+        messages.push({ role: 'user', content: text });
+        input.value = '';
+        const thinking = createAssistantThinkingRow();
+        try{
+          const resp = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages })
+          });
+          if (!resp.ok) return;
+          const data = await resp.json().catch(()=>null);
+          const reply = (data && data.reply) ? String(data.reply) : '';
+          if (reply){
+            messages.push({ role: 'assistant', content: reply });
+            if (thinking && thinking.bubble){
+              simulateStreaming(thinking.row, thinking.bubble, reply);
+            }
+          }
+        }catch{}
+      }
+
+      if (send){
+        send.addEventListener('click', function(ev){
+          ev.preventDefault();
+          sendCurrent();
+        });
+      }
+      if (input){
+        input.addEventListener('keydown', function(ev){
+          if (ev.key === 'Enter' && !ev.shiftKey){
+            ev.preventDefault();
+            sendCurrent();
+          }
+        });
+      }
+
+      // --- Assistant meta / editors wiring ---
+      const goalsEditBtn = document.getElementById('goalsEditBtn');
+      const goalsEditBox = document.getElementById('goalsEditBox');
+      const goalsReadonly = document.getElementById('goalsReadonly');
+      const goalsCancelBtn = document.getElementById('goalsCancelBtn');
+      const goalsForm = document.getElementById('goalsForm');
+      const cleanHtml = (html)=>{
+        try{
+          let s = String(html || '');
+          s = s.replace(/<\s*br\s*\/?\s*>/gi, '\n')
+               .replace(/<\/(p|li|div|h[1-6])>/gi, '\n')
+               .replace(/<\s*li\s*>/gi, '• ');
+          return new DOMParser().parseFromString(s, 'text/html').body.textContent || '';
+        }catch{
+          return String(html || '');
+        }
+      };
+
+      const renderMarkdown = (text) => {
+        const safe = cleanHtml(text || '');
+        let html = safe
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/\n/g, '<br>');
+        return html;
+      };
+      function ensureChatEditors(){
+        try{
+          if (window.ClassicEditor){
+            const gTa = document.getElementById('goalsTextarea');
+            const dTa = document.getElementById('descTextarea');
+            if (gTa && !window.__chatGoalsEd){
+              window.ClassicEditor.create(gTa)
+                .then(ed=>{ window.__chatGoalsEd=ed; try{ ed.ui.view.element?.classList?.add('ck-compact'); }catch{} })
+                .catch(()=>{});
+            }
+            if (dTa && !window.__chatDescEd){
+              window.ClassicEditor.create(dTa)
+                .then(ed=>{ window.__chatDescEd=ed; try{ ed.ui.view.element?.classList?.add('ck-compact'); }catch{} })
+                .catch(()=>{});
+            }
+          }
+        }catch{}
+      }
+      function destroyChatEditors(){
+        try{ if (window.__chatGoalsEd){ try{window.__chatGoalsEd.updateSourceElement?.();}catch{}; window.__chatGoalsEd.destroy(); window.__chatGoalsEd=null; } }catch{}
+        try{ if (window.__chatDescEd){ try{window.__chatDescEd.updateSourceElement?.();}catch{}; window.__chatDescEd.destroy(); window.__chatDescEd=null; } }catch{}
+      }
+
+      function ensureReflEditor(){
+        try{
+          if (window.ClassicEditor){
+            const rTa = document.getElementById('reflTextarea');
+            if (rTa && !window.__chatReflEd){
+              window.ClassicEditor.create(rTa)
+                .then(ed=>{ window.__chatReflEd=ed; try{ ed.ui.view.element?.classList?.add('ck-compact'); }catch{} })
+                .catch(()=>{});
+            }
+          }
+        }catch{}
+      }
+      function destroyReflEditor(){
+        try{
+          if (window.__chatReflEd){
+            try{ window.__chatReflEd.updateSourceElement?.(); }catch{}
+            window.__chatReflEd.destroy();
+            window.__chatReflEd = null;
+          }
+        }catch{}
+      }
+
+      function toggleGoalsEdit(on){
+        if (!goalsEditBox || !goalsReadonly) return;
+        goalsEditBox.classList.toggle('d-none', !on);
+        goalsReadonly.classList.toggle('d-none', !!on);
+        if (on) {
+          const goalsBox = document.getElementById('goalsBox');
+          if (goalsBox) goalsBox.open = true;
+          ensureChatEditors();
+        } else {
+          destroyChatEditors();
+        }
+      }
+      if (goalsEditBtn) goalsEditBtn.addEventListener('click', ()=> toggleGoalsEdit(true));
+      if (goalsCancelBtn) goalsCancelBtn.addEventListener('click', ()=> toggleGoalsEdit(false));
+      if (goalsForm){
+        goalsForm.addEventListener('submit', async function(ev){
+          ev.preventDefault();
+          try{ if (window.__chatGoalsEd){ document.getElementById('goalsTextarea').value = window.__chatGoalsEd.getData(); } }catch{}
+          try{ if (window.__chatDescEd){ document.getElementById('descTextarea').value = window.__chatDescEd.getData(); } }catch{}
+          const fd = new FormData(goalsForm);
+          const res = await fetch(goalsForm.action, { method:'POST', body: fd, headers:{ 'Accept':'application/json' }});
+          if (!res.ok) return alert('Speichern fehlgeschlagen.');
+          const data = await res.json(); if (!data?.ok) return alert('Speichern fehlgeschlagen.');
+          const g = (document.getElementById('goalsTextarea')?.value || '').trim();
+          const d = (document.getElementById('descTextarea')?.value || '').trim();
+          const wrap = goalsReadonly; if (wrap){
+            let html = '';
+            if (g){ html += '<div class="section-title"><span>Ziele</span></div><p class="para"></p>'; }
+            if (d){ html += '<div class="section-title mt-4"><span>Beschreibung</span></div><p class="para mb-0"></p>'; }
+            if (!g && !d){ html = '<div class="muted">Keine Angaben.</div>'; }
+            wrap.innerHTML = html;
+            const paras = wrap.querySelectorAll('p.para');
+            let i = 0; if (g && paras[i]) { paras[i++].textContent = cleanHtml(g); }
+            if (d && paras[i]) { paras[i].textContent = cleanHtml(d); }
+          }
+          toggleGoalsEdit(false);
+          destroyChatEditors();
+        });
+      }
+
+      // System-Prompt edit toggle and save
+      const sysEditBtn = document.getElementById('sysPromptEditBtn');
+      const sysEditBox = document.getElementById('sysPromptEditBox');
+      const sysCancelBtn = document.getElementById('sysPromptCancelBtn');
+      const sysReadonly = document.getElementById('sysPromptLines');
+      const sysForm = document.getElementById('sysPromptForm');
+
+      // Initial System-Prompt rendering (HTML cleaned)
+      if (sysReadonly){
+        const rawSys = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SystemPrompt ?? ""));
+        if (rawSys){
+          const cleanSys = cleanHtml(rawSys);
+          const lines = cleanSys.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+          sysReadonly.innerHTML = lines.map(l => `<div>${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('');
+          try { window.__sysPromptCleanText = cleanSys; } catch {}
+        }
+      }
+      function toggleSysEdit(on){
+        if (!sysEditBox || !sysReadonly) return;
+        sysEditBox.classList.toggle('d-none', !on);
+        sysReadonly.classList.toggle('d-none', !!on);
+        if (on) {
+          const sysPromptBox = document.getElementById('sysPrompt');
+          if (sysPromptBox) sysPromptBox.open = true;
+        }
+      }
+      if (sysEditBtn) sysEditBtn.addEventListener('click', ()=> toggleSysEdit(true));
+      if (sysCancelBtn) sysCancelBtn.addEventListener('click', ()=> toggleSysEdit(false));
+      if (sysForm){
+        sysForm.addEventListener('submit', async function(ev){
+          ev.preventDefault();
+          const fd = new FormData(sysForm);
+          const res = await fetch(sysForm.action, { method:'POST', body: fd, headers:{ 'Accept':'application/json' }});
+          if (!res.ok) return alert('Speichern fehlgeschlagen.');
+          const data = await res.json(); if (!data?.ok) return alert('Speichern fehlgeschlagen.');
+          const val = (document.getElementById('sysPromptTextarea')?.value || '').trim();
+          try{
+            let s = val.replace(/<\s*br\s*\/??\s*>/gi,'\n').replace(/<\/(p|li|div|h[1-6])>/gi,'\n').replace(/<\s*li\s*>/gi,'• ');
+            const text = new DOMParser().parseFromString(s,'text/html').body.textContent || '';
+            const lines = text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+            sysReadonly.innerHTML = lines.map(l=>`<div>${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`).join('');
+            try { window.__sysPromptCleanText = text; } catch {}
+          }catch{
+            sysReadonly.textContent = val;
+            try { window.__sysPromptCleanText = val; } catch {}
+          }
+          toggleSysEdit(false);
+        });
+      }
+
+      const ownerEditBtn = document.getElementById('ownerEditBtn');
+      const ownerEditBox = document.getElementById('ownerEditBox');
+      const ownerReadonly = document.getElementById('ownerReadonly');
+      const ownerCancelBtn = document.getElementById('ownerCancelBtn');
+      const ownerForm = document.getElementById('ownerForm');
+
+      function toggleOwnerEdit(on){
+        if (!ownerEditBox || !ownerReadonly) return;
+        ownerEditBox.classList.toggle('d-none', !on);
+        ownerReadonly.classList.toggle('d-none', !!on);
+        if (on) {
+          const ownerBox = document.getElementById('ownerBox');
+          if (ownerBox) ownerBox.open = true;
+        }
+      }
+      if (ownerEditBtn) ownerEditBtn.addEventListener('click', ()=> toggleOwnerEdit(true));
+      if (ownerCancelBtn) ownerCancelBtn.addEventListener('click', ()=> toggleOwnerEdit(false));
+      if (ownerForm){
+        ownerForm.addEventListener('submit', async function(ev){
+          ev.preventDefault();
+          const fd = new FormData(ownerForm);
+          const res = await fetch(ownerForm.action, { method:'POST', body: fd, headers:{ 'Accept':'application/json' }});
+          if (!res.ok) return alert('Speichern fehlgeschlagen.');
+          const data = await res.json(); if (!data?.ok) return alert('Speichern fehlgeschlagen.');
+          const asstName = (document.getElementById('ownerAssistantName')?.value || '').trim();
+          const ownerName = (document.getElementById('ownerAuthorName')?.value || '').trim();
+          const lic = (document.getElementById('ownerLicenses')?.value || '').trim();
+          const ownerTarget = ownerReadonly?.querySelectorAll('.text-body')[0];
+          const licTarget = ownerReadonly?.querySelectorAll('.text-body')[1];
+          const asstNameTarget = ownerReadonly?.querySelectorAll('.kv-row .kv-value')[1];
+          if (ownerTarget) ownerTarget.textContent = ownerName || '–';
+          if (licTarget) licTarget.textContent = lic || '–';
+          if (asstNameTarget) asstNameTarget.textContent = asstName || '–';
+          toggleOwnerEdit(false);
+        });
+      }
+
+      // Reflektion edit wiring
+      const reflEditBtn = document.getElementById('reflEditBtn');
+      const reflEditBox = document.getElementById('reflEditBox');
+      const reflReadonly = document.getElementById('reflReadonly');
+      const reflCancelBtn = document.getElementById('reflCancelBtn');
+      const reflForm = document.getElementById('reflForm');
+      function toggleReflEdit(on){
+        if (!reflEditBox || !reflReadonly) return;
+        reflEditBox.classList.toggle('d-none', !on);
+        reflReadonly.classList.toggle('d-none', !!on);
+        if (on) {
+          const reflBox = document.getElementById('reflBox');
+          if (reflBox) reflBox.open = true;
+          ensureReflEditor();
+        } else {
+          destroyReflEditor();
+        }
+      }
+      if (reflEditBtn) reflEditBtn.addEventListener('click', ()=> toggleReflEdit(true));
+      if (reflCancelBtn) reflCancelBtn.addEventListener('click', ()=> toggleReflEdit(false));
+      if (reflForm){
+        reflForm.addEventListener('submit', async function(ev){
+          ev.preventDefault();
+          try{ if (window.__chatReflEd){ document.getElementById('reflTextarea').value = window.__chatReflEd.getData(); } }catch{}
+          const fd = new FormData(reflForm);
+          const res = await fetch(reflForm.action, { method:'POST', body: fd, headers:{ 'Accept':'application/json' }});
+          if (!res.ok) { alert('Speichern fehlgeschlagen.'); return; }
+          const data = await res.json().catch(()=>null);
+          if (!data?.ok) { alert('Speichern fehlgeschlagen.'); return; }
+          const raw = (document.getElementById('reflTextarea')?.value || '').trim();
+          const txt = cleanHtml(raw);
+          const container = reflReadonly.querySelector('.para') || reflReadonly.querySelector('.muted');
+          if (container){
+            if (txt){
+              container.classList.remove('muted');
+              container.classList.add('para');
+              container.textContent = txt;
+            } else {
+              container.classList.remove('para');
+              container.classList.add('muted');
+              container.textContent = 'Keine Reflektion hinterlegt.';
+            }
+          }
+          toggleReflEdit(false);
+        });
+      }
+
+      // PDF export for assistant data (only button rendered for allowed roles)
+      const pdfBtn = document.getElementById('assistantPdfBtn');
+      if (pdfBtn){
+        pdfBtn.addEventListener('click', () => {
+          try {
+            if (!window.jspdf) { alert('PDF-Export ist derzeit nicht verfügbar.'); return; }
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p','mm','a4');
+            const margin = 15;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const maxWidth = pageWidth - 2 * margin;
+            let y = margin;
+
+            const asstId = @Model.Id;
+            const asstName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Name ?? ""));
+            const ownerName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AuthorName ?? ""));
+            const licenseVal = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Licenses ?? ""));
+            const goalsHtml = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Goals ?? ""));
+            const descHtml = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Description ?? ""));
+            const reflHtml = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Reflektion ?? ""));
+            const sysText = (window.__sysPromptCleanText || '').trim();
+
+            const norm = (html) => cleanHtml ? cleanHtml(html || '') : String(html || '');
+
+            const goalsCurrent = (document.getElementById('goalsTextarea')?.value || goalsHtml || '').trim();
+            const descCurrent  = (document.getElementById('descTextarea')?.value  || descHtml  || '').trim();
+            const reflCurrent  = (document.getElementById('reflTextarea')?.value  || reflHtml  || '').trim();
+
+            const asstNameCurrent = (document.getElementById('ownerAssistantName')?.value || asstName || '').trim();
+            const ownerCurrent    = (document.getElementById('ownerAuthorName')?.value    || ownerName || '').trim();
+
+            const title = asstNameCurrent || 'KI-Assistent';
+            const owner = ownerCurrent || '–';
+            const lic   = licenseVal || '–';
+
+            // Cover / Meta page
+            pdf.setFont('helvetica','bold').setFontSize(18);
+            pdf.setTextColor(0, 90, 170);
+            pdf.text(title, margin, y); y += 10;
+
+            pdf.setFont('helvetica','normal').setFontSize(11);
+            pdf.setTextColor(40, 40, 40);
+            const metaLines = [
+              `ID: ${asstId}`,
+              `Owner/Autor: ${owner}`,
+              `Lizenzen: ${lic}`
+            ];
+            metaLines.forEach(line => {
+              if (y > 280) { pdf.addPage(); y = margin; }
+              pdf.text(line, margin, y); y += 6;
+            });
+            y += 4;
+
+            const addSection = (heading, text) => {
+              text = (text || '').trim();
+              if (!text) return;
+              if (y > 260) { pdf.addPage(); y = margin; }
+              pdf.setFont('helvetica','bold').setFontSize(13);
+              pdf.text(heading, margin, y); y += 7;
+              pdf.setFont('helvetica','normal').setFontSize(11);
+              const lines = pdf.splitTextToSize(text, maxWidth);
+              lines.forEach(line => {
+                if (y > 280) { pdf.addPage(); y = margin; }
+                pdf.text(line, margin, y); y += 6;
+              });
+              y += 4;
+            };
+
+            addSection('Ziele', norm(goalsCurrent));
+            addSection('Beschreibung', norm(descCurrent));
+            addSection('System-Prompt', sysText);
+            addSection('Reflektion', norm(reflCurrent));
+
+            // Final page: Erklärung zur Freigabe unter Open-Source-Lizenz
+            pdf.addPage();
+            y = margin;
+            pdf.setFont('helvetica','bold').setFontSize(16);
+            pdf.setTextColor(0, 90, 170);
+            pdf.text('Erklärung zur Freigabe unter Open-Source-Lizenz', margin, y); y += 10;
+
+            pdf.setFont('helvetica','normal').setFontSize(11);
+            pdf.setTextColor(40, 40, 40);
+            const expl1 = 'Ich / Wir, die unterzeichnende(n) Autor:in(nen), erkläre(n) hiermit, dass der Assistent für das Lernmodul sowie das daraus erstellte Lernmodul von mir / uns erstellt wurde und frei von Rechten Dritter ist.';
+            const expl2 = 'Ich / Wir stelle(n) diese Werke hiermit unter die unten genannte Lizenz. Damit werden die Werke der Allgemeinheit zur freien Nutzung, Verbreitung, Bearbeitung und Veröffentlichung zugänglich gemacht. Eine Nutzung ist ohne Einschränkungen gemäß der Lizenzbestimmung erlaubt.';
+            [expl1, expl2].forEach(p => {
+              const lines = pdf.splitTextToSize(p, maxWidth);
+              lines.forEach(line => {
+                if (y > 280) { pdf.addPage(); y = margin; }
+                pdf.text(line, margin, y); y += 6;
+              });
+              y += 4;
+            });
+
+            const titleLine = `Titel des Werks: ${title}`;
+            const licLine = `Lizenzbestimmung: ${lic}`;
+            [titleLine, licLine].forEach(l => {
+              if (y > 280) { pdf.addPage(); y = margin; }
+              pdf.text(l, margin, y); y += 6;
+            });
+
+            y += 10;
+            pdf.setFont('helvetica','bold').setFontSize(11);
+            pdf.text('Autor:in / Autor:innen:', margin, y); y += 7;
+            pdf.setFont('helvetica','normal');
+
+            const authorDisplay = (owner && owner !== '–') ? owner : 'Name';
+
+            if (y > 280) { pdf.addPage(); y = margin; }
+            pdf.text(`• ${authorDisplay}`, margin, y); y += 10;
+
+            // Zusätzliche Kontaktdaten-Felder für die Freigabe
+            if (y > 260) { pdf.addPage(); y = margin; }
+            pdf.setFont('helvetica','bold');
+            pdf.text('Kontaktdaten der Autor:in / Autor:innen:', margin, y); y += 7;
+            pdf.setFont('helvetica','normal');
+
+            const contactLines = [
+              'Anschrift (Ort, Straße): ____________________________________________',
+              'E-Mail-Adresse: _________________________________________________',
+              'Telefonnummer: _________________________________________________'
+            ];
+            contactLines.forEach(line => {
+              if (y > 280) { pdf.addPage(); y = margin; }
+              pdf.text(line, margin, y); y += 6;
+            });
+            y += 6;
+
+            // Signature area for the owner
+            if (y > 260) { pdf.addPage(); y = margin; }
+            pdf.text('Ort, Datum, Unterschrift', margin, y); y += 6;
+            // Leave space for handwritten name/signature; do not print the name again on the line
+            y += 12;
+
+            // Page numbers
+            const totalPages = pdf.getNumberOfPages();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            for (let p = 1; p <= totalPages; p++) {
+              pdf.setPage(p);
+              pdf.setFontSize(8);
+              pdf.text(`Seite ${p} / ${totalPages}`, margin + maxWidth, pageHeight - 10, { align: 'right' });
+            }
+
+            const safeName = (title || 'assistant').replace(/[^a-z0-9_-]+/gi,'-').replace(/-+/g,'-');
+            pdf.save(`assistant-${asstId}-${safeName}.pdf`);
+          } catch (e) {
+            console.error(e);
+            alert('PDF-Export fehlgeschlagen.');
+          }
+        });
+      }
+    });
+</script>

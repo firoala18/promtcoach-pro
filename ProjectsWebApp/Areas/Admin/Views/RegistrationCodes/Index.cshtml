@@ -1,0 +1,308 @@
+@model IEnumerable<ProjectsWebApp.Models.RegistrationCode>
+@{
+    ViewData["Title"] = "Einladungscodes-Management";
+    var ownerMap = ViewBag.OwnerEmailsByGroup as IDictionary<string, List<string>>
+                   ?? new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+}
+
+<style>
+    .btn-black {
+        background: #000;
+        color: #fff;
+        border: 1px solid #000;
+    }
+
+        .btn-black:hover {
+            background: #333;
+            border-color: #333;
+            color: #fff;
+        }
+
+    .rc-card {
+        border-radius: 1rem;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        box-shadow: 0 .5rem 1.25rem rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+        height: 260px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rc-card .card-body {
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    .rc-card .card-footer {
+        margin-top: auto;
+    }
+
+    .rc-code {
+        font-weight: 700;
+        letter-spacing: .02em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .rc-meta {
+        color: #6b7280;
+        font-size: .85rem;
+    }
+
+    .rc-dl dt {
+        color: #6b7280;
+        font-weight: 600;
+    }
+
+    .rc-dl dd {
+        margin-bottom: .75rem;
+    }
+
+    .rc-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .rc-search {
+        position: relative;
+        flex: 1 1 320px;
+        max-width: 520px;
+    }
+
+        .rc-search i {
+            position: absolute;
+            left: .9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+
+        .rc-search input {
+            padding-left: 2.5rem;
+            border-radius: .9rem;
+        }
+
+    .rc-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    @@media (max-width: 420px) {
+        .rc-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .rc-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: .25rem .6rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        border: 1px solid rgba(99,102,241,.25);
+        color: #111827;
+        font-size: .8rem;
+        margin: 0 .25rem .25rem 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rc-chip-more {
+        background: #f3f4f6;
+        border: 1px solid rgba(107,114,128,.35);
+        color: #4b5563;
+    }
+
+    .rc-note {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .rc-section-label {
+        color: #6b7280;
+        font-weight: 600;
+        font-size: .85rem;
+        margin-bottom: .25rem;
+    }
+
+    .rc-btn-icon {
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: .75rem;
+    }
+
+    .rc-actions {
+        display: flex;
+        gap: 1.25rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h2 class="mb-0">Einladungscodes bearbeiten</h2>
+
+    <a asp-action="Upsert" class="btn btn-black">
+        <i class="bi bi-plus-lg"></i> Code hinzufügen
+    </a>
+</div>
+
+<div class="rc-toolbar mb-3">
+    <div class="rc-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="rcSearch" type="search" class="form-control" placeholder="Codes durchsuchen …" autocomplete="off" />
+    </div>
+</div>
+
+@if (TempData["success"] != null)
+{
+    <div class="alert alert-success">@TempData["success"]</div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info mb-0">Keine Einladungscodes vorhanden.</div>
+}
+else
+{
+    <div id="rcGrid" class="rc-grid">
+        @foreach (var c in Model)
+        {
+            var groupName = string.IsNullOrWhiteSpace(c.Group) ? "Ohne Gruppe" : c.Group.Trim();
+            ownerMap.TryGetValue(groupName, out var owners);
+            var ownerText = owners != null && owners.Count > 0 ? string.Join(" ", owners) : string.Empty;
+            var searchText = $"{c.Id} {c.Code} {groupName} {ownerText} {c.Note}".ToLowerInvariant();
+            <div class="rc-item" data-search="@searchText">
+                <div class="card rc-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div>
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <div class="rc-code">@c.Code</div>
+                                    <button type="button" class="btn btn-sm btn-light border rc-btn-icon rc-copy" data-copy="@c.Code" title="Code kopieren">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </div>
+                                <div class="rc-meta">ID #@c.Id · @groupName</div>
+                            </div>
+                            <form asp-action="Toggle" method="post" class="d-inline">
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button type="submit" class="btn btn-sm @(c.IsActive ? "btn-success" : "btn-secondary")">
+                                    @(c.IsActive ? "Aktiv" : "Inaktiv")
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="rc-section-label">Besitzer</div>
+                            <div>
+                                @if (owners != null && owners.Count > 0)
+                                {
+                                    foreach (var mail in owners.Take(3))
+                                    {
+                                        <span class="rc-chip">@mail</span>
+                                    }
+
+                                    if (owners.Count > 3)
+                                    {
+                                        var remaining = owners.Count - 3;
+                                        var remainingText = string.Join("\n", owners.Skip(3));
+                                        <span class="rc-chip rc-chip-more" title="@remainingText">+@remaining …</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">(kein Besitzer)</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(c.Note))
+                        {
+                            <div class="mt-3">
+                                <div class="rc-section-label">Notiz</div>
+                                <div class="rc-note">@c.Note</div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="card-footer bg-transparent border-0 pt-0">
+                        <div class="rc-actions">
+                            <a asp-action="Upsert" asp-route-id="@c.Id" class="btn btn-sm btn-warning rc-btn-icon" title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline"
+                                  onsubmit="return confirm('Code wirklich löschen?');">
+                                <button type="submit" class="btn btn-sm btn-danger rc-btn-icon" title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div id="rcEmpty" class="alert alert-info mt-3 d-none">Keine Einladungscodes gefunden.</div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const search = document.getElementById('rcSearch');
+            const items = Array.from(document.querySelectorAll('.rc-item'));
+            const empty = document.getElementById('rcEmpty');
+
+            const norm = (s) => (s || '').toString().toLowerCase().trim();
+            const refresh = () => {
+                const q = norm(search?.value);
+                let shown = 0;
+                items.forEach(el => {
+                    const hay = el.getAttribute('data-search') || '';
+                    const ok = !q || hay.includes(q);
+                    el.classList.toggle('d-none', !ok);
+                    if (ok) shown++;
+                });
+                if (empty) empty.classList.toggle('d-none', shown !== 0);
+            };
+
+            if (search) {
+                search.addEventListener('input', refresh);
+            }
+
+            document.querySelectorAll('.rc-copy').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const text = btn.getAttribute('data-copy') || '';
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        btn.classList.remove('btn-light');
+                        btn.classList.add('btn-success');
+                        setTimeout(() => {
+                            btn.classList.add('btn-light');
+                            btn.classList.remove('btn-success');
+                        }, 900);
+                    } catch {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        ta.remove();
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,66 @@
+﻿@model ProjectsWebApp.Models.PromptTemplate
+@{
+    var isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "Neue Vorlage" : "Vorlage bearbeiten";
+    // if we deserialized FilterJson on GET, it's in ViewBag.FilterList
+    var commaList = ViewBag.FilterList as string ?? "";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Upsert" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="MetaHash" />
+
+    <div class="mb-3">
+        <label asp-for="Akronym" class="form-label">Akronym</label>
+        <input asp-for="Akronym" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label">Titel</label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Thema" class="form-label">Thema</label>
+        <input asp-for="Thema" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Ziele" class="form-label">Ziele</label>
+        <input asp-for="Ziele" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Filter-Kriterien</label>
+        <input type="text"
+               name="FilterList"
+               class="form-control"
+               placeholder="z. B. KI, Algorithmen, Lehrer:innen"
+               value="@commaList" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Beschreibung" class="form-label">Beschreibung</label>
+        <textarea asp-for="Beschreibung" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Schluesselbegriffe" class="form-label">Schlüsselbegriffe</label>
+        <input asp-for="Schluesselbegriffe" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="PromptType" class="form-label">Typ</label>
+        <select asp-for="PromptType" class="form-control">
+            <option value="Text">Text</option>
+            <option value="Bild">Bild</option>
+            <option value="Video">Video</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label asp-for="PromptHtml" class="form-label">Prompt-HTML</label>
+        <textarea asp-for="PromptHtml" class="form-control" rows="6"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        @(isNew ? "Anlegen" : "Speichern")
+    </button>
+    <a asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+</form>

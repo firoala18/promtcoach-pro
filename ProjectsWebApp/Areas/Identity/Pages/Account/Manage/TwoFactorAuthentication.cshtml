@@ -1,0 +1,435 @@
+@page
+@model TwoFactorAuthenticationModel
+@using Microsoft.AspNetCore.Http.Features
+@{
+    ViewData["Title"] = "Zwei-Faktor-Authentifizierung";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .tfa-container {
+        max-width: 600px;
+    }
+
+    .status-card {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .status-card.enabled {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border-color: #86efac;
+    }
+
+    .status-card.disabled {
+        background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+        border-color: #fde047;
+    }
+
+    .status-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .status-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .status-icon.enabled {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: #fff;
+    }
+
+    .status-icon.disabled {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #fff;
+    }
+
+    .status-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .status-subtitle {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .alert-card {
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .alert-card.danger {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+    }
+
+    .alert-card.danger i {
+        color: #dc2626;
+    }
+
+    .alert-card.warning {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+    }
+
+    .alert-card.warning i {
+        color: #d97706;
+    }
+
+    .alert-card-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+    }
+
+    .alert-card-content strong {
+        display: block;
+        font-size: 0.875rem;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .alert-card-content p {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .alert-card-content a {
+        color: #89ba17;
+        font-weight: 600;
+    }
+
+    .action-section {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .action-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .action-section-title i {
+        color: #89ba17;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.5rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-action-primary {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        color: #fff;
+    }
+
+    .btn-action-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .btn-action-secondary {
+        background: #fff;
+        color: #374151;
+        border: 2px solid #e5e7eb;
+    }
+
+    .btn-action-secondary:hover {
+        border-color: #89ba17;
+        color: #89ba17;
+        background: #f9fafb;
+    }
+
+    .btn-action-danger {
+        background: #fff;
+        color: #dc2626;
+        border: 2px solid #fecaca;
+    }
+
+    .btn-action-danger:hover {
+        background: #fef2f2;
+        border-color: #dc2626;
+    }
+
+    .recovery-codes-info {
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .recovery-codes-info h6 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #166534;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .recovery-codes-info p {
+        font-size: 0.8rem;
+        color: #15803d;
+        margin: 0;
+    }
+
+    .privacy-alert {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        padding: 1.25rem;
+    }
+
+    .privacy-alert h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #dc2626;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .privacy-alert p {
+        font-size: 0.8rem;
+        color: #7f1d1d;
+        margin: 0;
+    }
+</style>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-shield-lock"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Erhöhen Sie die Sicherheit Ihres Kontos mit 2FA</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="tfa-container">
+    @{
+        var consentFeature = HttpContext.Features.Get<ITrackingConsentFeature>();
+    }
+
+    @if (!(consentFeature?.CanTrack ?? true))
+    {
+        <div class="privacy-alert">
+            <h6><i class="bi bi-exclamation-triangle-fill"></i> Datenschutzbestimmungen nicht akzeptiert</h6>
+            <p>Sie müssen die Cookie- und Datenschutzbestimmungen akzeptieren, um die Zwei-Faktor-Authentifizierung zu verwenden.</p>
+        </div>
+    }
+    else
+    {
+        @if (Model.Is2faEnabled)
+        {
+            <!-- 2FA Enabled Status -->
+            <div class="status-card enabled">
+                <div class="status-header">
+                    <div class="status-icon enabled">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="status-title">2FA ist aktiviert</h3>
+                        <p class="status-subtitle">Ihr Konto ist durch Zwei-Faktor-Authentifizierung geschützt</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recovery Codes Warnings -->
+            @if (Model.RecoveryCodesLeft == 0)
+            {
+                <div class="alert-card danger">
+                    <i class="bi bi-exclamation-octagon-fill alert-card-icon"></i>
+                    <div class="alert-card-content">
+                        <strong>Keine Wiederherstellungscodes mehr verfügbar</strong>
+                        <p>Bitte <a asp-page="./GenerateRecoveryCodes">generieren Sie neue Codes</a>, um sich bei Verlust Ihres Authentifikators wieder anmelden zu können.</p>
+                    </div>
+                </div>
+            }
+            else if (Model.RecoveryCodesLeft == 1)
+            {
+                <div class="alert-card danger">
+                    <i class="bi bi-exclamation-triangle-fill alert-card-icon"></i>
+                    <div class="alert-card-content">
+                        <strong>Noch 1 Wiederherstellungscode übrig</strong>
+                        <p>Sie sollten <a asp-page="./GenerateRecoveryCodes">neue Codes generieren</a>, um sicherzustellen, dass Sie Zugriff auf Ihr Konto behalten.</p>
+                    </div>
+                </div>
+            }
+            else if (Model.RecoveryCodesLeft <= 3)
+            {
+                <div class="alert-card warning">
+                    <i class="bi bi-exclamation-triangle-fill alert-card-icon"></i>
+                    <div class="alert-card-content">
+                        <strong>Noch @Model.RecoveryCodesLeft Wiederherstellungscodes übrig</strong>
+                        <p>Sie sollten bald <a asp-page="./GenerateRecoveryCodes">neue Codes generieren</a>.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="recovery-codes-info">
+                    <h6><i class="bi bi-key-fill"></i> Wiederherstellungscodes</h6>
+                    <p>Sie haben noch @Model.RecoveryCodesLeft Wiederherstellungscodes verfügbar.</p>
+                </div>
+            }
+
+            <!-- Actions for enabled 2FA -->
+            <div class="action-section">
+                <div class="action-section-title">
+                    <i class="bi bi-gear"></i>
+                    Verwaltung
+                </div>
+                <div class="action-buttons">
+                    <a asp-page="./Disable2fa" class="btn-action btn-action-danger">
+                        <i class="bi bi-shield-x"></i>
+                        2FA deaktivieren
+                    </a>
+                    <a asp-page="./GenerateRecoveryCodes" class="btn-action btn-action-secondary">
+                        <i class="bi bi-arrow-repeat"></i>
+                        Wiederherstellungscodes neu generieren
+                    </a>
+                    @if (Model.IsMachineRemembered)
+                    {
+                        <form method="post" asp-page-handler="ForgetBrowser" class="m-0">
+                            <button type="submit" class="btn-action btn-action-secondary w-100">
+                                <i class="bi bi-laptop"></i>
+                                Diesen Browser vergessen
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- 2FA Disabled Status -->
+            <div class="status-card disabled">
+                <div class="status-header">
+                    <div class="status-icon disabled">
+                        <i class="bi bi-shield-exclamation"></i>
+                    </div>
+                    <div>
+                        <h3 class="status-title">2FA ist deaktiviert</h3>
+                        <p class="status-subtitle">Aktivieren Sie 2FA für zusätzliche Kontosicherheit</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Setup Section -->
+            <div class="action-section">
+                <div class="action-section-title">
+                    <i class="bi bi-phone"></i>
+                    Authenticator-App einrichten
+                </div>
+                <div class="action-buttons">
+                    @if (!Model.HasAuthenticator)
+                    {
+                        <a asp-page="./EnableAuthenticator" class="btn-action btn-action-primary">
+                            <i class="bi bi-plus-circle"></i>
+                            Authenticator-App hinzufügen
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-page="./EnableAuthenticator" class="btn-action btn-action-primary">
+                            <i class="bi bi-gear"></i>
+                            Authenticator-App einrichten
+                        </a>
+                        <a asp-page="./ResetAuthenticator" class="btn-action btn-action-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Authenticator-App zurücksetzen
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

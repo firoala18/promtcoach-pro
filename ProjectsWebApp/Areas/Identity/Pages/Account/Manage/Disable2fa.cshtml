@@ -1,0 +1,236 @@
+@page
+@model Disable2faModel
+@{
+    ViewData["Title"] = "2FA deaktivieren";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .disable-container {
+        max-width: 500px;
+    }
+
+    .warning-card {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .warning-card i {
+        color: #d97706;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .warning-card-content {
+        flex: 1;
+    }
+
+    .warning-card-content strong {
+        display: block;
+        color: #92400e;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .warning-card-content p {
+        font-size: 0.8rem;
+        color: #a16207;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .warning-card-content a {
+        color: #89ba17;
+        font-weight: 600;
+    }
+
+    .form-section {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .form-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-section-title i {
+        color: #dc2626;
+    }
+
+    .form-floating-modern {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .form-floating-modern .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem 1rem 0.5rem;
+        height: auto;
+        font-size: 1.25rem;
+        font-family: monospace;
+        text-align: center;
+        letter-spacing: 0.5em;
+        transition: all 0.2s ease;
+        background: #fff;
+    }
+
+    .form-floating-modern .form-control:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+
+    .form-floating-modern label {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        pointer-events: none;
+    }
+
+    .btn-disable {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        border: none;
+        color: #fff;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .btn-disable:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
+        color: #fff;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        transition: color 0.2s ease;
+    }
+
+    .btn-back:hover {
+        color: #89ba17;
+    }
+</style>
+
+<a asp-page="./TwoFactorAuthentication" class="btn-back">
+    <i class="bi bi-arrow-left"></i>
+    Zurück zur 2FA-Übersicht
+</a>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-shield-x"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Deaktivieren Sie die Zwei-Faktor-Authentifizierung</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="disable-container">
+    <div class="warning-card">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div class="warning-card-content">
+            <strong>Wichtiger Hinweis</strong>
+            <p>
+                Mit dieser Aktion wird 2FA deaktiviert. Ihre bisher verwendeten Schlüssel bleiben jedoch erhalten.
+                Wenn Sie den Schlüssel in Ihrer Authenticator-App ändern möchten,
+                <a asp-page="./ResetAuthenticator">setzen Sie Ihren Authenticator-Schlüssel zurück</a>.
+            </p>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <div class="form-section-title">
+            <i class="bi bi-shield-lock"></i>
+            Bestätigung erforderlich
+        </div>
+
+        <form method="post">
+            <div class="form-floating-modern">
+                <input asp-for="Input.Code"
+                       class="form-control"
+                       autocomplete="off"
+                       maxlength="6"
+                       placeholder=" " />
+                <label asp-for="Input.Code">Verifizierungscode</label>
+                <span asp-validation-for="Input.Code" class="text-danger small"></span>
+            </div>
+            <button type="submit" class="btn-disable">
+                <i class="bi bi-shield-x"></i>
+                2FA deaktivieren
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

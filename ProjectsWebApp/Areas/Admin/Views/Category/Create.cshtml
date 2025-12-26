@@ -1,0 +1,41 @@
+﻿@model ProjectsWebApp.Models.Category
+
+@{
+    ViewData["Title"] = "neue Kategorie hinzufügen";
+}
+
+<div class="mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-secondary bg-gradient text-white">
+                    <h3 class="text-center">@ViewData["Title"]</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div class="form-group mb-3">
+                            <label class="form-label">Art der Kategorie</label>
+                            <input asp-for="Name" class="form-control" placeholder="Art der Ketegorie eingeben" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label">Reihenfolge im Filter</label>
+                            <input asp-for="DisplayOrder" class="form-control" placeholder="Reihenfolge im Filter eingeben" />
+                            <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-warning w-50">
+                                <i class="fas fa-save"></i> Speichern
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary px-4">
+                                <i class="fas fa-times"></i> Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

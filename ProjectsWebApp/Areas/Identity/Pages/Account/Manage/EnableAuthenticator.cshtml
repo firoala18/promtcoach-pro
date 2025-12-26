@@ -1,0 +1,303 @@
+@page
+@model EnableAuthenticatorModel
+@{
+    ViewData["Title"] = "Authenticator-App einrichten";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .setup-container {
+        max-width: 600px;
+    }
+
+    .setup-step {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+        position: relative;
+    }
+
+    .step-number {
+        position: absolute;
+        top: -12px;
+        left: 1.5rem;
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .step-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.75rem;
+        padding-top: 0.5rem;
+    }
+
+    .step-content {
+        font-size: 0.9375rem;
+        color: #6b7280;
+        line-height: 1.6;
+    }
+
+    .qr-container {
+        background: #fff;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    .qr-code {
+        max-width: 200px;
+        width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto 1rem;
+        border-radius: 8px;
+    }
+
+    .manual-key {
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-family: monospace;
+        font-size: 0.875rem;
+        color: #374151;
+        word-break: break-all;
+        margin-top: 0.75rem;
+    }
+
+    .manual-key-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .form-floating-modern {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .form-floating-modern .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem 1rem 0.5rem;
+        height: auto;
+        font-size: 1.25rem;
+        font-family: monospace;
+        text-align: center;
+        letter-spacing: 0.5em;
+        transition: all 0.2s ease;
+        background: #fff;
+    }
+
+    .form-floating-modern .form-control:focus {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 3px rgba(137, 186, 23, 0.15);
+    }
+
+    .form-floating-modern label {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        pointer-events: none;
+    }
+
+    .btn-verify {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border: none;
+        color: #fff;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .btn-verify:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        transition: color 0.2s ease;
+    }
+
+    .btn-back:hover {
+        color: #89ba17;
+    }
+
+    .app-icons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    .app-icon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        text-decoration: none;
+        color: #374151;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .app-icon:hover {
+        border-color: #89ba17;
+        color: #89ba17;
+    }
+
+    .app-icon i {
+        font-size: 1.5rem;
+    }
+</style>
+
+<a asp-page="./TwoFactorAuthentication" class="btn-back">
+    <i class="bi bi-arrow-left"></i>
+    Zurück zur 2FA-Übersicht
+</a>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-phone"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Verbinden Sie eine Authenticator-App mit Ihrem Konto</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="setup-container">
+    <div class="setup-step">
+        <div class="step-number">1</div>
+        <h3 class="step-title">Authenticator-App installieren</h3>
+        <p class="step-content">
+            Laden Sie eine Authenticator-App auf Ihr Smartphone herunter, falls Sie noch keine haben.
+        </p>
+        <div class="app-icons">
+            <div class="app-icon">
+                <i class="bi bi-google"></i>
+                <span>Google Authenticator</span>
+            </div>
+            <div class="app-icon">
+                <i class="bi bi-microsoft"></i>
+                <span>Microsoft Authenticator</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="setup-step">
+        <div class="step-number">2</div>
+        <h3 class="step-title">QR-Code scannen</h3>
+        <p class="step-content">
+            Scannen Sie den folgenden QR-Code mit Ihrer Authenticator-App.
+        </p>
+        <div class="qr-container">
+            <img src="@Model.QrCodeImageUrl" alt="QR-Code zur Einrichtung" class="qr-code" />
+            <div class="manual-key-label">Oder manuell eingeben:</div>
+            <div class="manual-key">@Model.SharedKey</div>
+        </div>
+    </div>
+
+    <div class="setup-step">
+        <div class="step-number">3</div>
+        <h3 class="step-title">Code verifizieren</h3>
+        <p class="step-content">
+            Geben Sie den 6-stelligen Code aus Ihrer App ein, um die Einrichtung abzuschließen.
+        </p>
+        <form method="post" class="mt-3">
+            <div class="form-floating-modern">
+                <input asp-for="Input.Code"
+                       class="form-control"
+                       autocomplete="off"
+                       maxlength="6"
+                       placeholder=" " />
+                <label asp-for="Input.Code">Verifizierungscode</label>
+                <span asp-validation-for="Input.Code" class="text-danger small"></span>
+            </div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+            <button type="submit" class="btn-verify">
+                <i class="bi bi-check2-circle"></i>
+                Verifizieren und aktivieren
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

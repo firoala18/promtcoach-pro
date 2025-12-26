@@ -1,0 +1,24 @@
+﻿@model UebersichtContent
+
+@{
+    ViewData["Title"] = "Übersicht";
+}
+
+<div class="mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 uebersicht-content">
+            <!-- Added class here -->
+            @Html.Raw(Model.ContentHtml)
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.uebersicht-content a').forEach(function (link) {
+                link.setAttribute('target', '_blank');
+            });
+        });
+    </script>
+}

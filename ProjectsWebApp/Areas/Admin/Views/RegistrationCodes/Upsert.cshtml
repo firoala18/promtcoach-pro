@@ -1,0 +1,74 @@
+@model ProjectsWebApp.Models.RegistrationCode
+@{
+    var isNew = Model.Id == 0;
+    var isDozent = User.IsInRole("Dozent");
+    var ownedGroups = (ViewBag.OwnedGroups as List<string>) ?? new List<string>();
+    ViewData["Title"] = isNew ? "Einladungscode-Managment" : "Einladungscode-Managment";
+}
+
+<h2>@(@Model.Id == 0 ? "Einladungscode hinzufügen" : "Einladungscode bearbeiten") </h2>
+
+<form asp-action="Upsert" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    @if (!isNew)
+    {
+        <input type="hidden" asp-for="Id" />
+    }
+
+    <div class="mb-3">
+        <label asp-for="Code" class="form-label mt-3"><strong>Code</strong></label>
+        <input asp-for="Code" class="form-control" />
+        <span asp-validation-for="Code" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Group" class="form-label mt-3"><strong>Gruppe @(isDozent ? "(Pflicht)" : "(optional)")</strong></label>
+        @if (isDozent && !isNew)
+        {
+            <input asp-for="Group" class="form-control" />
+            <input type="hidden" asp-for="Group" />
+            @* <div class="form-text">Als Dozent kann die Gruppe eines bestehenden Codes nicht geändert werden.</div> *@
+        }
+        else
+        {
+            <input asp-for="Group" class="form-control" placeholder="z. B. Gruppe A, Kurs 2025/WS" />
+            @if (isDozent && ownedGroups.Any())
+            {
+                <div class="form-text">Eigene Gruppen: @string.Join(", ", ownedGroups)</div>
+            }
+        }
+        <span asp-validation-for="Group" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="IsActive" class="form-check-input" id="isActive" />
+        <label class="form-check-label" for="isActive"><strong>Aktiv</strong></label>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Note" class="form-label mt-3"><strong>Notiz (optional)</strong></label>
+        <textarea asp-for="Note" class="form-control" id="noteTextarea" rows="1" style="resize: none; overflow: hidden; min-height: 38px;"></textarea>
+    </div>
+    <script>
+        (function() {
+            const textarea = document.getElementById('noteTextarea');
+            if (!textarea) return;
+
+            function autoResize() {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.max(38, textarea.scrollHeight) + 'px';
+            }
+
+            textarea.addEventListener('input', autoResize);
+            // Initial resize on page load
+            autoResize();
+        })();
+    </script>
+    <div class="d-flex justify-content-end mt-4">
+    <button type="submit" class="btn " style="background:black; color:white">
+        <i class="bi bi-check-lg me-1"></i> Speichern
+    </button>
+    <a asp-action="Index" class="btn btn-secondary ms-2">Abbrechen</a>
+    </div>
+</form>

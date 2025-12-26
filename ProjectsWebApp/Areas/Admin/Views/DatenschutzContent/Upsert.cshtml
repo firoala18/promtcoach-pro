@@ -1,0 +1,93 @@
+﻿@model DatenschutzContent
+
+@{
+    ViewData["Title"] = "Datenschutz-Managment";
+}
+
+<div class="mt-5">
+    <h2>@(Model.Id == 0 ? "Datenschutz Inhalt hinzufügen" : "Datenschutz Inhalt bearbeiten")</h2>
+    <form asp-controller="DatenschutzContent" asp-action="Upsert" method="post">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="form-group mt-3">
+            <label for="SectionType"><strong>Feld Typ</strong></label>
+            <select class="form-control" asp-for="SectionType" required>
+                <option value="Text">Text (Editor)</option>
+                <option value="Accordion">Accordion</option>
+            </select>
+            <span asp-validation-for="SectionType" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="Title"><strong>Title</strong></label>
+            <input type="text" class="form-control" asp-for="Title" required />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="ContentHtml"><strong>Inhalt</strong></label>
+            <textarea asp-for="ContentHtml" class="form-control" id="Content" rows="10"></textarea>
+            <span asp-validation-for="ContentHtml" class="text-danger"></span>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2 flex-wrap mb-3">
+            <a asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+            <button type="submit" class="btn  me-2" style="color:white;background:black;"> <i class="bi bi-check-lg me-1"></i> Speichern</button>
+
+            <div/>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+
+            function uploadImage(file, $editor) {
+                var data = new FormData();
+                data.append('file', file);
+
+                $.ajax({
+                    url: '@Url.Action("UploadImage", "FileUpload", new { area = "Admin" })',
+                    type: 'POST',
+                    data: data,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response && response.url) {
+                            $editor.summernote('insertImage', response.url);
+                        }
+                    },
+                    error: function () {
+                        alert('Das Bild konnte nicht hochgeladen werden.');
+                    }
+                });
+            }
+
+            $('#Content').summernote({
+                height: 350,
+                minHeight: 250,
+                tabsize: 2,
+                placeholder: 'Inhalt eingeben...',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture', 'table', 'hr']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                callbacks: {
+                    onImageUpload: function (files) {
+                        var $editor = $(this);
+                        for (var i = 0; i < files.length; i++) {
+                            uploadImage(files[i], $editor);
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

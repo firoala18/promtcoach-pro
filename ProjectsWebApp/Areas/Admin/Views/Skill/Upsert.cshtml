@@ -1,0 +1,116 @@
+﻿@model Skill
+
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Neue Skill hinzufügen" : "Skill bearbeiten";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .skill-upsert-container {
+        width: 100%;
+        margin: 2rem 0;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-section-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-control,
+    textarea {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+
+    textarea {
+        min-height: 150px;
+    }
+
+    .btn-submit-skill {
+        background: linear-gradient(135deg, #90bc14 0%, #76a614 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.8rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: transform 0.2s ease;
+    }
+
+        .btn-submit-skill:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(144, 188, 20, 0.3);
+        }
+
+    /* Back button uses global .btn-zurueck from site.css */
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+
+<div class="skill-upsert-container">
+    <h2 class="form-section-title">@ViewData["Title"]</h2>
+
+    <form asp-action="Upsert" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" required />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DisplayOrder" class="form-label"></label>
+            <input asp-for="DisplayOrder" class="form-control" type="number" min="1" />
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-submit-skill">
+                <i class="bi bi-save2 me-1"></i> Speichern
+            </button>
+            <a asp-action="Index" class="btn-zurueck">
+                <i class="bi bi-arrow-left"></i>
+                <span>Zurück</span>
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        ClassicEditor.create(document.querySelector('textarea[name="Description"]'), {
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']
+        }).catch(error => {
+            console.error(error);
+        });
+    </script>
+}

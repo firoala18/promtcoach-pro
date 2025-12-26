@@ -1,0 +1,1 @@
+sudo chown -R alaammar-hk:alaammar-hk /var/www/apps/promptcoach/promptcoach-buw

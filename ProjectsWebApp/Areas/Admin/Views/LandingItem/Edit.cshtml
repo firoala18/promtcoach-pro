@@ -1,0 +1,357 @@
+﻿@using ProjectsWebApp.Models.ViewModels
+@using ProjectsWebApp.Models
+@model EditLandingPageVM
+
+@{
+    ViewData["Title"] = "Prompt-Engineering";
+
+    // Offizielle Prompt-Routen (Werte = PromptType-Namen)
+    var routeTypeOptions = new[]
+    {
+        PromptType.Text,
+        PromptType.Bild,
+        PromptType.Video,
+        PromptType.Sound,
+        PromptType.Bildung,    // Domäne
+        PromptType.Beruf,      // KI-Agent
+        PromptType.Eigenfilter,// Szenarien
+        PromptType.Framework,
+        PromptType.Meta
+    };
+
+    Func<PromptType, string> routeTypeLabel = pt => pt switch
+    {
+        PromptType.Bildung    => "Domäne",
+        PromptType.Beruf      => "KI-Agent",
+        PromptType.Eigenfilter=> "Szenarien",
+        _                     => pt.ToString()
+    };
+}
+
+
+
+<div class="py-4">
+    <h2 class="mb-4">
+        <i class="bi bi-pencil-square me-2"></i>
+       Seite zum Prompt-Engineering bearbeiten
+    </h2>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="d-flex justify-content-end mt-4 mb-3">
+        <button type="submit" class="btn " style="background:black; color:white">
+            <i class="bi bi-check-lg me-1"></i> Speichern
+        </button>
+        <a asp-action="Index" class="btn btn-secondary ms-2">Abbrechen</a>
+    </div>
+
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <!-- Hero‑Bereich -->
+        <div class="card mb-5">
+            <div class="card-header bg-dark text-white">
+                <h2 class="h5 mb-0">Hero‑Bereich modifizieren</h2>
+            </div>
+            <div class="card-body">
+                <input type="hidden" asp-for="Hero.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Titel</label>
+                    <input asp-for="Hero.Title" class="form-control" />
+                    <span asp-validation-for="Hero.Title" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Lead‑Text</label>
+                    <textarea asp-for="Hero.Lead" class="form-control ckeditor" rows="3"></textarea>
+                    <span asp-validation-for="Hero.Lead" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Hintergrundbild</label>
+                    <input asp-for="Hero.BackgroundUrl" class="form-control" />
+                    <div class="form-text">
+                        Aktuell:
+                        <a href="@Model.Hero.BackgroundUrl" target="_blank">@Model.Hero.BackgroundUrl</a>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Neues Hintergrundbild hochladen</label>
+                    <input type="file" name="HeroBackgroundFile" class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Playground‑Modi -->
+        <div class="card mb-5">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Prompt-Arten – Übersicht & Auswahl modifizieren</h2>
+                <button type="button" class="btn btn-sm btn-light" id="addModeBtn">
+                    <i class="bi bi-plus-circle me-1"></i> Modus hinzufügen
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="modesContainer">
+                    @for (int i = 0; i < Model.Modes.Count; i++)
+                    {
+                        <div class="mode-entry border rounded p-3 mb-3">
+                            <input type="hidden" asp-for="Modes[i].Id" />
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Titel</label>
+                                    <input asp-for="Modes[i].Title" class="form-control" />
+                                    <span asp-validation-for="Modes[i].Title" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Route‑Typ</label>
+                                    <select asp-for="Modes[i].RouteType" class="form-select">
+                                        @foreach (var pt in routeTypeOptions)
+                                        {
+                                            var value = pt.ToString();
+                                            var label = routeTypeLabel(pt);
+                                            <option value="@value">@label</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Modes[i].RouteType" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Icon‑Klasse</label>
+                                    <input asp-for="Modes[i].IconClass" class="form-control" />
+                                    <span asp-validation-for="Modes[i].IconClass" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Reihenfolge</label>
+                                    <input asp-for="Modes[i].SortOrder" type="number" class="form-control" />
+                                    <span asp-validation-for="Modes[i].SortOrder" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Bild‑URL</label>
+                                <input asp-for="Modes[i].ImageUrl" class="form-control" />
+                                @if (!string.IsNullOrEmpty(Model.Modes[i].ImageUrl))
+                                {
+                                    <div class="form-text">
+                                        Aktuell:
+                                        <a href="@Model.Modes[i].ImageUrl" target="_blank">@Model.Modes[i].ImageUrl</a>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Neues Bild hochladen</label>
+                                <input type="file" name="ModeImageFiles" class="form-control" />
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-danger remove-mode-btn">
+                                <i class="bi bi-trash me-1"></i> Entfernen
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Funktionen -->
+        <div class="card mb-5">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Info-Karten modifizieren</h2>
+               @*  <button type="button" class="btn btn-sm btn-light" id="addFeatureBtn">
+                    <i class="bi bi-plus-circle me-1"></i> Feature hinzufügen
+                </button> *@
+            </div>
+            <div class="card-body">
+                <div id="featuresContainer">
+                    @for (int i = 0; i < Model.Features.Count; i++)
+                    {
+                        <div class="feature-entry border rounded p-3 mb-3">
+                            <input type="hidden" asp-for="Features[i].Id" />
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Titel</label>
+                                    <input asp-for="Features[i].Title" class="form-control" />
+                                    <span asp-validation-for="Features[i].Title" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Icon‑Klasse</label>
+                                    <input asp-for="Features[i].IconClass" class="form-control" />
+                                    <span asp-validation-for="Features[i].IconClass" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Beschreibung</label>
+                                <textarea asp-for="Features[i].Description" class="form-control ckeditor" rows="3"></textarea>
+                                <span asp-validation-for="Features[i].Description" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Reihenfolge</label>
+                                <input asp-for="Features[i].SortOrder" type="number" class="form-control" />
+                                <span asp-validation-for="Features[i].SortOrder" class="text-danger"></span>
+                            </div>
+
+                          @*   <button type="button" class="btn btn-sm btn-danger remove-feature-btn">
+                                <i class="bi bi-trash me-1"></i> Entfernen
+                            </button> *@
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+     @*    <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-dark me-2">
+                <i class="bi bi-save me-1"></i> Änderungen speichern
+            </button>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-1"></i> Abbrechen
+            </a>
+        </div> *@
+
+        <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn " style="background:black; color:white">
+                <i class="bi bi-check-lg me-1"></i> Speichern
+            </button>
+            <a asp-action="Index" class="btn btn-secondary ms-2">Abbrechen</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <!-- CKEditor 5 (Classic) -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/40.3.1/classic/ckeditor.js"></script>
+
+    <script>
+        // Initialisiert CKEditor für alle (neu) vorhandenen Textareas mit Klasse .ckeditor
+        function initializeCkeditors() {
+            document.querySelectorAll('textarea.ckeditor').forEach(el => {
+                if (!el.classList.contains('ck-editor__editable')) {
+                    ClassicEditor.create(el).catch(err => console.error(err));
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initializeCkeditors);
+
+        // Add‑/Remove‑Logik (unverändert, nur Beschriftungen wurden oben übersetzt)
+        const addModeBtn = document.getElementById('addModeBtn');
+        if (addModeBtn) addModeBtn.addEventListener('click', () => {
+            const container = document.getElementById('modesContainer');
+            const index = container.children.length;
+
+            const template = `
+            <div class="mode-entry border rounded p-3 mb-3">
+                <input type="hidden" name="Modes[${index}].Id" value="0" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Titel</label>
+                        <input name="Modes[${index}].Title" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Route‑Typ</label>
+                        <select name="Modes[${index}].RouteType" class="form-select">
+@foreach (var pt in routeTypeOptions)
+{
+    var value = pt.ToString();
+    var label = routeTypeLabel(pt);
+@:$"<option value=\"{value}\">{label}</option>"
+}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Icon‑Klasse</label>
+                        <input name="Modes[${index}].IconClass" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Reihenfolge</label>
+                        <input name="Modes[${index}].SortOrder" type="number" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Bild‑URL</label>
+                    <input name="Modes[${index}].ImageUrl" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Neues Bild hochladen</label>
+                    <input type="file" name="ModeImageFiles" class="form-control" />
+                </div>
+
+                <button type="button" class="btn btn-sm btn-danger remove-mode-btn">
+                    <i class="bi bi-trash me-1"></i> Entfernen
+                </button>
+            </div>`;
+            container.insertAdjacentHTML('beforeend', template);
+            attachRemoveListeners();
+        });
+
+        const addFeatureBtn = document.getElementById('addFeatureBtn');
+        if (addFeatureBtn) addFeatureBtn.addEventListener('click', () => {
+            const container = document.getElementById('featuresContainer');
+            const index = container.children.length;
+
+            const template = `
+            <div class="feature-entry border rounded p-3 mb-3">
+                <input type="hidden" name="Features[${index}].Id" value="0" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Titel</label>
+                        <input name="Features[${index}].Title" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Icon‑Klasse</label>
+                        <input name="Features[${index}].IconClass" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Beschreibung</label>
+                    <textarea name="Features[${index}].Description" class="form-control ckeditor" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Reihenfolge</label>
+                    <input name="Features[${index}].SortOrder" type="number" class="form-control" />
+                </div>
+
+                <button type="button" class="btn btn-sm btn-danger remove-feature-btn">
+                    <i class="bi bi-trash me-1"></i> Entfernen
+                </button>
+            </div>`;
+            container.insertAdjacentHTML('beforeend', template);
+            attachRemoveListeners();
+            initializeCkeditors();
+        });
+
+        function attachRemoveListeners() {
+            document.querySelectorAll('.remove-mode-btn').forEach(btn =>
+                btn.onclick = () => btn.closest('.mode-entry').remove());
+
+            document.querySelectorAll('.remove-feature-btn').forEach(btn =>
+                btn.onclick = () => btn.closest('.feature-entry').remove());
+        }
+        attachRemoveListeners();
+    </script>
+}

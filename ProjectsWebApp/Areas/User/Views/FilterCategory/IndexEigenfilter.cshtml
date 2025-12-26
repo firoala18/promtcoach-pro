@@ -1,0 +1,609 @@
+@model ProjectsWebApp.Models.ViewModels.EigenfilterIndexVM
+@using ProjectsWebApp.Models
+
+@{
+    var isFramework = Model.Type == PromptType.Framework;
+    var isMeta      = Model.Type == PromptType.Meta;
+
+    var types = new[] { PromptType.Eigenfilter, PromptType.Framework, PromptType.Meta };
+
+    ViewData["Title"] = Model.Type switch
+    {
+        PromptType.Framework => "Framework entwickeln",
+        PromptType.Meta      => "Meta entwickeln",
+        _                    => "Szenarien entwickeln"
+    };
+
+    var currentTypeStr = Model.Type.ToString();
+
+    var titleText = Model.Type switch
+    {
+        PromptType.Framework => "Framework entwickeln",
+        PromptType.Meta      => "Meta entwickeln",
+        _                    => "Szenarien entwickeln"
+    };
+
+    var applyLabel = Model.Type switch
+    {
+        PromptType.Framework => "Framework ",
+        PromptType.Meta      => "Meta ",
+        _                    => "Szenarien "
+    };
+}
+
+<style>
+    /* ==== Admin-like look ==== */
+    .card {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        transition: box-shadow .25s ease, transform .25s;
+        margin-top: 2rem;
+        margin-bottom: 3rem;
+    }
+
+        .card:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            transform: translateY(-2px);
+        }
+
+    .card-header {
+        background: #f1f1f1;
+        border-bottom: 1px solid #e4e4e4;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+    }
+
+    .table {
+        background: #fff;
+    }
+
+        .table thead th {
+            border-bottom: 2px solid #e4e4e4;
+            color: #333;
+        }
+
+        .table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .table td, .table th {
+            vertical-align: middle;
+            color: #333;
+        }
+
+    .badge {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+        .badge.bg-info {
+            background: black;
+            color: #fff;
+        }
+
+    .btn-success {
+        background: #89ba17;
+        color: #fff;
+        border: none;
+    }
+
+        .btn-success:hover {
+            background: #6f9611;
+            box-shadow: 0 6px 18px rgba(137,186,23,.35);
+        }
+
+    .btn-outline-light {
+        border-color: #ccc;
+        color: #333;
+    }
+
+        .btn-outline-light:hover {
+            background: #e6e6e6;
+            color: #333;
+        }
+
+    .btn-outline-danger {
+        border-color: #d9534f;
+        color: #d9534f;
+    }
+
+        .btn-outline-danger:hover {
+            background: #d9534f;
+            color: #fff;
+        }
+
+    .items-btn {
+        background: #004f72;
+        color: #fff;
+    }
+
+    .display-order-btn {
+        background: black;
+        color: #fff;
+    }
+
+    .category-toolbar {
+        text-align: center;
+        margin-top: 1.5rem;
+        width: 100%;
+    }
+
+        .category-toolbar .btn {
+            margin: 0 .5rem;
+            background: #f1f1f1;
+            border: 1px solid #e4e4e4;
+            color: #333;
+        }
+
+            .category-toolbar .btn:hover {
+                background: #e6e6e6;
+            }
+
+    /* === Segmented toggle custom look === */
+    /* ===== Segmented Toggle Buttons ===== */
+    .seg-toggle {
+        display: inline-flex;
+        background: #f8f9fa;
+        border-radius: 999px;
+        padding: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .seg-toggle .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 1.25rem;
+        min-height: 2.25rem;
+        border-radius: 999px;
+        border: 1px solid #e4e4e4;
+        background: transparent;
+        color: #333;
+        font-size: 0.875rem;
+        line-height: 1.25;
+        transition: all 0.2s ease;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .seg-toggle .btn:hover {
+        background: #e9ecef;
+    }
+
+    .seg-toggle .btn.active {
+        background: #89ba17;
+        color: white !important;
+        border-color: #89ba17;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .seg-toggle .btn:not(:first-child) {
+        margin-left: 4px;
+    }
+
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    #tableManual_length,
+    #tableAi_length {
+        margin-left: 1.25rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    #tableManual_filter,
+    #tableAi_filter {
+        margin-right: 1.25rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Prompt-Entwicklung button (green) */
+    .assistent-btn {
+        background: #587a0f;
+        color: white;
+    }
+    .assistent-btn:hover {
+        border: 1px solid black;
+    }
+
+    #promptTypeTabs.custom-pills {
+        border-bottom: none;
+        display: flex;
+        flex-wrap: wrap !important;
+        gap: .4rem;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #promptTypeTabs.custom-pills .nav-item {
+        flex: 0 0 auto;
+    }
+
+    #promptTypeTabs.custom-pills .nav-link {
+        background: #f1f3f5;
+        color: #333;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: .45rem 1rem !important;
+        font-weight: 600;
+        white-space: nowrap;
+        font-size: 1rem !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        min-height: 36px;
+        text-align: center;
+        transition: background .2s,color .2s, box-shadow .2s;
+    }
+
+    #promptTypeTabs.custom-pills .nav-link:hover {
+        background: #e9ecef;
+        color: #111;
+    }
+
+    #promptTypeTabs.custom-pills .nav-link.active {
+        background: #89ba17;
+        color: #fff;
+        border-color: #89ba17;
+        box-shadow: 0 6px 14px rgba(58,204,89,.25);
+    }
+
+    @@media (max-width: 1199.98px) {
+        #promptTypeTabs.custom-pills {
+            gap: .25rem;
+        }
+
+        #promptTypeTabs.custom-pills .nav-link {
+            padding: .4rem .75rem !important;
+            font-size: .9rem !important;
+            min-height: 34px;
+        }
+    }
+ </style>
+
+<div class="page-header">
+    <div class="page-header-top">
+        <h2 class="mb-0 page-title"><i class="bi bi-funnel me-2"></i>@titleText</h2>
+        <a class="btn assistent-btn"
+           asp-controller="Home"
+           asp-action="PromptAssistent"
+           asp-route-type="@currentTypeStr"
+           asp-area="user"
+           rel="noopener">
+            <i class="bi bi-arrow-left me-1"></i> Promptentwicklung
+        </a>
+    </div>
+
+    <div class="d-flex justify-content-center">
+        <ul id="promptTypeTabs" class="nav nav-pills custom-pills">
+            @foreach (var pt in types)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(pt == Model.Type ? "active" : "")"
+                       asp-action="Index"
+                       asp-route-type="@pt">
+                        @(pt == PromptType.Eigenfilter ? "Szenarien" : pt.ToString())
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+<div class="card shadow-lg rounded-3">
+    @if (User.IsInRole("Admin"))
+    {
+    <div class="card-header">
+        <div class="d-flex align-items-center gap-2">
+            <h4 class="mb-0">Übersicht</h4>
+            <!-- segmented toggle -->
+            
+            <div class="btn-group btn-group-sm ms-3 seg-toggle" role="group" aria-label="Filtergruppen">
+                <button type="button" class="btn active" id="toggleManual" data-target="manual">
+                    <i class="bi bi-person-check me-1"></i> Eigene Filter
+                </button>
+
+                <button type="button" class="btn" id="toggleAi" data-target="ai">
+                    <i class="bi bi-stars me-1"></i> KI-generierte Filter
+                </button>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a asp-controller="Home" asp-action="PromptAssistent" asp-route-type="@currentTypeStr" class="btn btn-sm btn-dark">
+                <i class="bi bi-plus-lg me-1"></i> @applyLabel
+            </a>
+            <a asp-action="Upsert" asp-route-type="@Model.Type" class="btn btn-sm btn-dark ms-3">
+                <i class="bi bi-plus-lg me-1"></i> Kategorie
+            </a>
+        </div>
+        
+    </div>
+    }
+    <!-- Eigene Filter -->
+    <div id="panelManual" class="card-body p-0">
+        <table id="tableManual" class="table table-hover table-striped align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:10%">Reihenfolge</th>
+                    <th style="width:60%">Name</th>
+                    <th style="width:30%" class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model.Manual)
+                {
+                    <tr>
+                        <td><span class="badge display-order-btn">@cat.DisplayOrder</span></td>
+                        <td class="fw-semibold">@cat.Name</td>
+                        <td class="text-end">
+                            <a asp-action="Upsert" asp-route-id="@cat.Id" asp-route-type="@Model.Type" class="btn btn-sm btn-warning me-1">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@cat.Id" method="post" class="d-inline cat-delete-form">
+                                @Html.AntiForgeryToken()
+                                <button type="button" class="btn btn-sm btn-danger cat-delete-btn"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- KI Filter -->
+    <div id="panelAi" class="card-body p-0 d-none">
+        <table id="tableAi" class="table table-hover table-striped align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:10%">Reihenfolge</th>
+                    <th style="width:60%">Name</th>
+                    <th style="width:30%" class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model.Ai)
+                {
+                    <tr>
+                        <td><span class="badge display-order-btn">@cat.DisplayOrder</span></td>
+                        <td class="fw-semibold">
+                            @cat.Name
+                            @if (cat.AiBatchId.HasValue)
+                            {
+                                <span class="badge bg-secondary ms-1" title="Batch">@cat.AiBatchId.Value.ToString("N").Substring(0, 8)</span>
+                            }
+                            @if (cat.CreatedAt.HasValue)
+                            {
+                                <small class="text-muted ms-2" title="Erstellt am">
+                                    @cat.CreatedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Upsert" asp-route-id="@cat.Id" class="btn btn-sm btn-warning me-1">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@cat.Id" method="post" class="d-inline cat-delete-form">
+                                @Html.AntiForgeryToken()
+                                <button type="button" class="btn btn-sm btn-danger cat-delete-btn"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="card-header d-flex justify-content-center">
+        <div class="category-toolbar mb-0 w-100 text-center">
+            <!-- Export only CURRENT group -->
+            <button id="btnExportGroup" type="button" class="btn btn-outline-light">
+                <i class="bi bi-download me-1"></i> JSON exportieren
+            </button>
+
+            <!-- Import stays global to Eigenfilter (unchanged) -->
+            <button id="importJsonBtn" type="button" class="btn btn-outline-light">
+                <i class="bi bi-upload me-1"></i> JSON importieren
+            </button>
+            <form id="importJsonForm" asp-action="Import" asp-route-type="@currentTypeStr" method="post" enctype="multipart/form-data" class="d-none">
+                @Html.AntiForgeryToken()
+                <input type="file" name="file" id="jsonFileInput" accept=".json" />
+            </form>
+
+            <!-- Delete only CURRENT group -->
+            <button id="deleteGroupBtn" type="button" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i> Löschen
+            </button>
+            <form id="deleteGroupForm" asp-action="DeleteEigenfilterGroup" asp-route-type="@currentTypeStr" method="post" class="d-none">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="group" id="groupInput" value="manual" />
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        /* DataTables */
+        const dtOpts = {
+          pagingType: "simple",
+          lengthChange: true,
+          pageLength: 50,
+          lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+          language: {
+            lengthMenu: "Zeige _MENU_ Einträge",
+            search: "Suchen:",
+            searchPlaceholder: "",
+            paginate: { previous: "‹", next: "›" },
+            info: "Zeige _START_ bis _END_ von _TOTAL_ Einträgen",
+            infoEmpty: "Keine Einträge vorhanden",
+            infoFiltered: "(gefiltert aus _MAX_ Einträgen)",
+            zeroRecords: "Keine passenden Einträge gefunden",
+            loadingRecords: "Lade …",
+            processing: "Bitte warten …"
+          }
+        };
+        const dtManual = $('#tableManual').DataTable(dtOpts);
+        const dtAi     = $('#tableAi').DataTable(dtOpts);
+        // Bootstrap-Margin links an die Info-Zeile
+        $('#tableManual_info').addClass('ms-3');
+        $('#tableAi_info').addClass('ms-3');
+
+        /* Toggle panels + track current group */
+        let currentGroup = 'manual'; // 'manual' | 'ai'
+
+        function updateToggleButtons(isManual){
+          const m = document.getElementById('toggleManual');
+          const a = document.getElementById('toggleAi');
+          m.classList.toggle('active', isManual);
+          a.classList.toggle('active', !isManual);
+        }
+
+        function showPanel(which){
+          currentGroup = which;
+          const isManual = (which === 'manual');
+          document.getElementById('panelManual').classList.toggle('d-none', !isManual);
+          document.getElementById('panelAi').classList.toggle('d-none', isManual);
+          updateToggleButtons(isManual);
+          setTimeout(() => (isManual ? dtManual : dtAi).columns.adjust(), 50);
+        }
+
+        document.getElementById('toggleManual').addEventListener('click', ()=> showPanel('manual'));
+        document.getElementById('toggleAi').addEventListener('click', ()=> showPanel('ai'));
+        showPanel('manual');
+
+        /* Export current group */
+        const baseExportGroupUrl = '@Url.Action("ExportEigenfilter", "FilterCategory", new { area = "User", type = currentTypeStr })';
+        document.getElementById('btnExportGroup').addEventListener('click', () => {
+          const url = baseExportGroupUrl + '?group=' + encodeURIComponent(currentGroup);
+          window.location.href = url;
+        });
+
+        /* Delete current group */
+        document.getElementById('deleteGroupBtn').addEventListener('click', async () => {
+          const isAi = (currentGroup === 'ai');
+          const ok = await Swal.fire({
+            title: isAi ? 'KI-Filter löschen?' : 'Eigene Filter löschen?',
+            text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
+            icon : 'warning',
+            showCancelButton : true,
+            confirmButtonColor: '#d33',
+            confirmButtonText : 'Ja, löschen',
+            cancelButtonText  : 'Abbrechen'
+          }).then(r => r.isConfirmed);
+
+          if (!ok) return;
+          document.getElementById('groupInput').value = currentGroup;
+          document.getElementById('deleteGroupForm').submit();
+        });
+
+        /* Row delete (AJAX, both tables) */
+        document.addEventListener('click', async (e) => {
+          const btn = e.target.closest('.cat-delete-btn');
+          if (!btn) return;
+
+          const form = btn.closest('form.cat-delete-form');
+          const row  = btn.closest('tr');
+          const tbl  = $(row.closest('table')).DataTable();
+          e.preventDefault();
+
+          const ok = await Swal.fire({
+            title: 'Kategorie löschen?',
+            text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
+            icon : 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor : '#3085d6',
+            confirmButtonText : 'Ja, löschen!',
+            cancelButtonText  : 'Abbrechen'
+          }).then(r => r.isConfirmed);
+
+          if (!ok) return;
+
+          try {
+            const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+            const res = await fetch(form.action, { method:'POST', headers: token ? { 'RequestVerificationToken': token } : {} });
+            const json = await res.json();
+
+            if (json?.success) {
+              tbl.row(row).remove().draw();
+              Swal.fire({ toast:true, position:'top-end', timer:1800, showConfirmButton:false, icon:'success', title:'Kategorie gelöscht' });
+            } else {
+              throw new Error('Server meldet Fehler');
+            }
+          } catch (err) {
+            console.error(err);
+            form.submit(); // graceful fallback
+          }
+        });
+
+        /* Import (unchanged; acts on whole Eigenfilter type) */
+        const exportEigenUrl = baseExportGroupUrl;
+        document.getElementById('importJsonBtn').addEventListener('click', () => document.getElementById('jsonFileInput').click());
+        document.getElementById('jsonFileInput').addEventListener('change', async (e) => {
+          const file = e.target.files[0]; if (!file) return;
+          let text = await file.text(); if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+          let obj; try { obj = JSON.parse(text); } catch { return Swal.fire('Fehler','Ungültiges JSON-Format.','error'); }
+          const data = obj.data ?? obj.Data, hash = obj.hash ?? obj.Hash;
+          if (!data || !hash) return Swal.fire('Fehler','JSON muss „data“ und „hash“ enthalten.','error');
+
+          const secret = 'uni-wuppertal2025';
+          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret + JSON.stringify(data)));
+          const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
+          if (hex !== hash) return Swal.fire('Fehler','Integritätsprüfung fehlgeschlagen.','error');
+
+          const go = await Swal.fire({
+            title: 'Import bestätigen',
+            html: 'Der <b>aktuelle Inhalt</b> wird vollständig ersetzt.<br>Möchten Sie fortfahren?',
+            icon: 'warning',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'Ja, importieren',
+            denyButtonText: 'Vorher sichern (Download)',
+            cancelButtonText: 'Abbrechen'
+          }).then(r => r.isConfirmed ? 'import' : (r.isDenied ? 'download' : 'cancel'));
+
+          if (go === 'import') document.getElementById('importJsonForm').submit();
+          if (go === 'download') window.location.href = baseExportGroupUrl + '?group=' + currentGroup;
+          if (go === 'cancel') e.target.value = '';
+        });
+
+        /* TempData toasts */
+        @if (TempData["ImportError"] != null)
+        {
+                <text>Swal.fire('Fehler','@TempData["ImportError"]','error');</text>
+        }
+        @if (TempData["ImportSuccess"] != null)
+        {
+                <text>Swal.fire('Erfolg','@TempData["ImportSuccess"]','success');</text>
+        }
+        @if (TempData["DeleteSuccess"] != null)
+        {
+                <text>Swal.fire('Erfolg','@TempData["DeleteSuccess"]','success');</text>
+        }
+    </script>
+}

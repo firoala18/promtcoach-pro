@@ -1,0 +1,187 @@
+@model IEnumerable<ProjectsWebApp.Models.PromptKeyword>
+@{
+    ViewData["Title"] = "Schlüsselbegriffe verwalten";
+}
+
+<style>
+    .container { width: 100%; max-width: 100%; }
+    .form-section {
+        background: #fff; border: 1px solid #e4e4e4; border-radius: 10px; padding: 25px; margin-bottom: 25px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08); transition: box-shadow .25s,transform .25s;
+    }
+    .form-section:hover { box-shadow: 0 12px 32px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .section-title { color:#333; border-bottom:1px solid #e4e4e4; padding-bottom:12px; margin-bottom:20px; font-weight:600; font-size:1.3rem; }
+    .btn-black { background:#000; color:#fff; border:1px solid #000; }
+    .btn-black:hover { background:#333; border-color:#333; color:#fff; }
+    .table thead th { background:#fafafa; font-weight:600; border-bottom:1px solid #e4e4e4; }
+    .table tbody tr td { vertical-align: middle; }
+</style>
+
+<div class="mt-4">
+    <h2 class="mb-4">Schlüsselbegriffe verwalten</h2>
+
+    <div class="form-section">
+        <h3 class="section-title"><i class="fas fa-tags me-2"></i> Kuratierte Begriffe</h3>
+
+        <div class="d-flex justify-content-end mb-3">
+            <a asp-action="Upsert" class="btn btn-black">
+                <i class="bi bi-plus-circle me-1"></i> Schlüsselbegriff
+            </a>
+        </div>
+
+        @Html.AntiForgeryToken()
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width:60px">#</th>
+                    <th>Text</th>
+                    <th style="width:170px" class="text-center">Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var k in Model.OrderBy(x => x.Text))
+                {
+                    <tr data-id="@k.Id">
+                        <td><i class="bi bi-tag"></i></td>
+                        <td>@k.Text</td>
+                        <td class="text-center">
+                            <div class="d-inline-flex justify-content-center gap-2 actions-wrap">
+                                <a asp-action="Upsert" asp-route-id="@k.Id" class="btn btn-sm btn-warning" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger btn-delete" title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end mb-3">
+            <a asp-action="Upsert" class="btn btn-black">
+                <i class="bi bi-plus-circle me-1"></i> Schlüsselbegriff
+            </a>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3 class="section-title"><i class="bi bi-journal-text me-2"></i> Bibliothek – gespeicherte Begriffe</h3>
+
+        @Html.AntiForgeryToken()
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width:60px">#</th>
+                    <th>Text</th>
+                    <th style="width:220px" class="text-center">Aktion</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in (IEnumerable<string>)ViewBag.BibliothekKeywords)
+                {
+                    <tr data-text="@t">
+                        <td><i class="bi bi-bookmark"></i></td>
+                        <td>@t</td>
+                        <td class="text-center">
+                            <div class="d-inline-flex justify-content-center gap-2 actions-wrap">
+                                <button type="button" class="btn btn-sm btn-warning btn-bib-rename" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger btn-bib-delete" title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="form-text">Hinweis: Diese Begriffe stammen aus bereits in der Bibliothek gespeicherten Prompts. Bearbeiten/Löschen aktualisiert alle betroffenen Prompts.</div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tr = btn.closest('tr');
+      const id = tr.getAttribute('data-id');
+      Swal.fire({
+        title: 'Löschen?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ja',
+        cancelButtonText: 'Abbrechen'
+      }).then(r => {
+        if (!r.isConfirmed) return;
+        fetch('@Url.Action("Delete")', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+          },
+          body: new URLSearchParams({ id })
+        }).then(res => { if (res.ok) location.reload(); });
+      });
+    });
+  });
+
+  // Bibliothek: Rename
+  document.querySelectorAll('.btn-bib-rename').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const oldText = tr.getAttribute('data-text');
+      const { value: newText, isConfirmed } = await Swal.fire({
+        title: 'Begriff umbenennen',
+        input: 'text',
+        inputValue: oldText,
+        showCancelButton: true,
+        confirmButtonText: 'Speichern',
+        cancelButtonText: 'Abbrechen'
+      });
+      if (!isConfirmed || !newText || newText.trim().length === 0) return;
+      const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+      const res = await fetch('@Url.Action("RenameBibliothekKeyword")', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'RequestVerificationToken': token
+        },
+        body: new URLSearchParams({ oldText, newText })
+      });
+      if (res.ok) location.reload();
+    });
+  });
+
+  // Bibliothek: Delete
+  document.querySelectorAll('.btn-bib-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tr = btn.closest('tr');
+      const text = tr.getAttribute('data-text');
+      const r = await Swal.fire({
+        title: 'Aus allen Prompts löschen?',
+        text: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ja',
+        cancelButtonText: 'Abbrechen'
+      });
+      if (!r.isConfirmed) return;
+      const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+      const res = await fetch('@Url.Action("DeleteBibliothekKeyword")', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'RequestVerificationToken': token
+        },
+        body: new URLSearchParams({ text })
+      });
+      if (res.ok) location.reload();
+    });
+  });
+</script>
+}

@@ -1,0 +1,23 @@
+# User-specific files
+.vs/
+*.user
+*.suo
+
+# Build results
+**/bin/
+**/obj/
+
+# Runtime logs
+*.log
+
+#md files
+*.md
+# ASP.NET files
+ProjectsWebApp/appsettings.json
+ProjectsWebApp/wwwroot/images/
+ProjectsWebApp/wwwroot/uploads/
+ProjectsWebApp/wwwroot/Video/
+
+# Rider/JetBrains
+.idea/
+*.sln.iml

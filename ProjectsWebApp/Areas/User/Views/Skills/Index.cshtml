@@ -1,0 +1,175 @@
+﻿@model IEnumerable<ProjectsWebApp.Models.Skill>
+
+@{
+    ViewData["Title"] = "Skills";
+    int counter = 1;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* Skills Styling Refresh */
+    .card-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* centers the cards horizontally */
+        gap: 1.5rem;
+        margin: 2rem 0;
+        padding: 0;
+        width: 100%;
+    }
+
+
+
+    .card {
+        /* background: linear-gradient(135deg, #fefefe, #e8f5e9); */
+        /* border-left: 6px solid #89ba17; */
+        border-radius: 15px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        padding: 20px 25px;
+        transition: transform 0.3s, box-shadow 0.3s, background 0.4s;
+        width: 100%;
+        position: relative;
+    }
+
+    .card:hover {
+        /* background: linear-gradient(135deg, #f0fff4, #e0f7e9); */
+        transform: translateY(-6px);
+        /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); */
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: black;
+        position: relative;
+    }
+
+/*     .card-title::before {
+        content: "⭐ ";
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+ */
+    .card-content {
+        color: #444;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-height: 7.2em;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .card-content.expanded {
+        -webkit-line-clamp: unset;
+        max-height: none;
+    }
+
+    .read-more, .read-less {
+        color: #89ba17;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 0.95rem;
+        display: inline-block;
+        margin-top: 10px;
+        transition: color 0.3s;
+    }
+
+ /*    .read-more:hover, .read-less:hover {
+            color: #89ba17;
+    } */
+
+    .d-none {
+        display: none;
+    }
+
+    @@media (max-width: 768px) {
+        .card {
+            width: 100%;
+        }
+    }
+</style>
+
+@* <h2 class="text-center mt-5 mb-4" style="color: #2e7d32;">Meine Fähigkeiten & Kenntnisse</h2> *@
+
+<div class="card-container">
+    @foreach (var skill in Model.OrderBy(s => s.DisplayOrder))
+    {
+        <div class="card">
+            <div class="card-title">@skill.Title</div>
+            <div class="card-content" id="content-@counter">
+                @Html.Raw(skill.Description)
+            </div>
+            <a class="read-more" data-id="@counter">(mehr anzeigen)</a>
+            <a class="read-less d-none" data-id="@counter">(weniger anzeigen)</a>
+        </div>
+        counter++;
+    }
+</div>
+
+<script>
+      document.addEventListener('DOMContentLoaded', function () {
+            const readMoreLinks = document.querySelectorAll('.read-more');
+            const readLessLinks = document.querySelectorAll('.read-less');
+
+            function toggleContent(id, isExpand) {
+                const content = document.getElementById(`content-${id}`);
+                const readMore = document.querySelector(`.read-more[data-id="${id}"]`);
+                const readLess = document.querySelector(`.read-less[data-id="${id}"]`);
+
+                if (content && readMore && readLess) {
+                    if (isExpand) {
+                        content.classList.add('expanded');
+                        readMore.classList.add('d-none');
+                        readLess.classList.remove('d-none');
+                    } else {
+                        content.classList.remove('expanded');
+                        readLess.classList.add('d-none');
+                        readMore.classList.remove('d-none');
+                    }
+                }
+            }
+
+            function checkContentHeight() {
+                readMoreLinks.forEach(link => {
+                    const id = link.getAttribute('data-id');
+                    const content = document.getElementById(`content-${id}`);
+
+                    if (content) {
+                        // Check if content height exceeds 3 lines
+                        const isOverflowing = content.scrollHeight > content.offsetHeight;
+
+                        // Hide "Read More" if content does not overflow
+                        if (!isOverflowing) {
+                            link.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+
+            readMoreLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    toggleContent(id, true);
+                });
+            });
+
+            readLessLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    toggleContent(id, false);
+                });
+            });
+
+            // Initial check for content height
+            checkContentHeight();
+        });
+
+
+
+
+</script>

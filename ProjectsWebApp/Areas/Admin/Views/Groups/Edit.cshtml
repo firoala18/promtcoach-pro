@@ -1,0 +1,251 @@
+@model ProjectsWebApp.Areas.Admin.Models.GroupEditViewModel
+@{
+    ViewData["Title"] = "Raum bearbeiten";
+}
+
+<style>
+    :root {
+        --card-border-radius: 1rem;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        --primary-gradient: linear-gradient(135deg, #89ba17, #a3e635);
+        --surface-bg: #f8fafc;
+    }
+
+    body {
+        background-color: var(--surface-bg);
+    }
+
+    .page-header-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 2rem;
+    }
+
+    .page-header-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--primary-gradient);
+    }
+
+    .edit-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+    }
+
+    .edit-card-header {
+        background: #fff;
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #334155;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 0.5rem;
+        border-color: #e2e8f0;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-control[readonly] {
+        background-color: #f8fafc;
+        color: #64748b;
+    }
+
+    .owner-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        background: #f8fafc;
+    }
+
+    .owner-item {
+        background: #fff;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 0.75rem 1rem;
+        transition: background-color 0.2s;
+    }
+
+    .owner-item:last-child {
+        border-bottom: none;
+    }
+
+    .owner-item:hover {
+        background-color: #f1f5f9;
+    }
+
+    .form-check-input:checked {
+        background-color: #4f46e5;
+        border-color: #4f46e5;
+    }
+
+    .badge-owner {
+        background: #eff6ff;
+        color: #4f46e5;
+        border: 1px solid #e0e7ff;
+        padding: 0.5em 0.8em;
+        font-weight: 500;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            
+            <!-- Header -->
+            <div class="page-header-card">
+                <div class="page-header-bg"></div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                            <i class="bi bi-pencil-square fs-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="fw-bold text-dark mb-1">Raum bearbeiten</h2>
+                            <p class="text-muted mb-0">Einstellungen und Besitzer verwalten</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Form -->
+            <div class="edit-card">
+                <div class="card-body p-4">
+                    <form asp-area="Admin" asp-controller="Groups" asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <!-- Name -->
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label">Raumname</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-tag"></i></span>
+                                <input asp-for="Name" class="form-control border-start-0 ps-0" readonly />
+                            </div>
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-info-circle me-1"></i>Der Name des Raums kann aktuell nicht geändert werden.
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label">Beschreibung</label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Beschreiben Sie den Zweck dieses Raums..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Owners -->
+                        <div class="mb-4">
+                            <label class="form-label d-flex justify-content-between align-items-center">
+                                <span>Besitzer:innen</span>
+                                <span class="badge bg-light text-dark border">Verwaltung</span>
+                            </label>
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                            {
+                                <div class="owner-list">
+                                    @if (Model.OwnerOptions != null && Model.OwnerOptions.Count > 0)
+                                    {
+                                        foreach (var opt in Model.OwnerOptions)
+                                        {
+                                            <div class="owner-item">
+                                                <div class="form-check d-flex align-items-center gap-2 m-0">
+                                                    <input class="form-check-input mt-0" type="checkbox" name="SelectedOwnerIds" value="@opt.UserId" id="owner_@opt.UserId" @(opt.IsSelected ? "checked" : null) />
+                                                    <label class="form-check-label w-100 cursor-pointer" for="owner_@opt.UserId">
+                                                        <div class="fw-medium">@opt.DisplayName</div>
+                                                        <div class="small text-muted" style="font-size: 0.8rem;">@opt.UserId</div> <!-- Assuming UserId is email or similar, useful context -->
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="p-4 text-center text-muted">
+                                            <i class="bi bi-person-x fs-3 d-block mb-2"></i>
+                                            Keine geeigneten Benutzer gefunden.
+                                        </div>
+                                    }
+                                </div>
+                                <div class="form-text mt-2">Wählen Sie die Benutzer aus, die diesen Raum verwalten dürfen.</div>
+                            }
+                            else
+                            {
+                                <div class="bg-light rounded p-3 mb-3 border border-dashed">
+                                    @if (Model.CurrentOwners != null && Model.CurrentOwners.Count > 0)
+                                    {
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach (var owner in Model.CurrentOwners)
+                                            {
+                                                <span class="badge-owner rounded-pill">
+                                                    <i class="bi bi-person-check me-1"></i>@owner.DisplayName
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted small text-center">
+                                            <i class="bi bi-people me-1"></i>Noch keine Besitzer:innen hinterlegt.
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="mb-2">
+                                    <label asp-for="AddOwnerEmail" class="form-label small text-muted">Neue Besitzer:in hinzufügen</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white"><i class="bi bi-envelope"></i></span>
+                                        <input asp-for="AddOwnerEmail" class="form-control" placeholder="E-Mail Adresse eingeben..." />
+                                    </div>
+                                    <span asp-validation-for="AddOwnerEmail" class="text-danger"></span>
+                                    <div class="form-text small mt-1">
+                                        <i class="bi bi-shield-check me-1"></i>Nur Admins, Coaches, Dozenten oder API‑Manager.
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-3 border-top">
+                            <div class="d-flex justify-content-end gap-3">
+                                <button type="submit" class="btn btn-dark px-4">
+                                    <i class="bi bi-save me-2"></i>Speichern
+                                </button>
+                                <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-light border px-4">
+                                    Abbrechen
+                                </a>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,151 @@
+@inject SignInManager<IdentityUser> SignInManager
+@{
+    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
+}
+
+<style>
+    .manage-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .manage-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: #374151;
+        text-decoration: none;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .manage-nav-item i {
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+        color: #6b7280;
+        transition: color 0.2s ease;
+    }
+
+    .manage-nav-item:hover {
+        background: #f3f4f6;
+        color: #111827;
+        text-decoration: none;
+    }
+
+    .manage-nav-item:hover i {
+        color: #89ba17;
+    }
+
+    .manage-nav-item.active {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(137, 186, 23, 0.3);
+    }
+
+    .manage-nav-item.active i {
+        color: #fff;
+    }
+
+    .manage-nav-divider {
+        height: 1px;
+        background: #e5e7eb;
+        margin: 0.75rem 0;
+    }
+
+    .manage-nav-section {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #9ca3af;
+        padding: 0.5rem 1rem 0.25rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Responsive: horizontal scroll on mobile */
+    @@media (max-width: 991px) {
+        .manage-nav {
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .manage-nav-item {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .manage-nav-item i {
+            font-size: 1rem;
+        }
+
+        .manage-nav-divider,
+        .manage-nav-section {
+            display: none;
+        }
+    }
+</style>
+
+<nav class="manage-nav">
+    <!-- Profil -->
+    <a class="manage-nav-item @ManageNavPages.IndexNavClass(ViewContext)"
+       asp-page="./Index">
+        <i class="bi bi-person"></i>
+        <span>Profil</span>
+    </a>
+
+    <!-- E-Mail -->
+    <a class="manage-nav-item @ManageNavPages.EmailNavClass(ViewContext)"
+       asp-page="./Email">
+        <i class="bi bi-envelope"></i>
+        <span>E-Mail-Adresse</span>
+    </a>
+
+    <!-- Passwort ändern -->
+    <a class="manage-nav-item @ManageNavPages.ChangePasswordNavClass(ViewContext)"
+       asp-page="./ChangePassword">
+        <i class="bi bi-key"></i>
+        <span>Passwort ändern</span>
+    </a>
+
+    @if (hasExternalLogins)
+    {
+        <!-- Externe Anmeldungen -->
+        <a class="manage-nav-item @ManageNavPages.ExternalLoginsNavClass(ViewContext)"
+           asp-page="./ExternalLogins">
+            <i class="bi bi-link-45deg"></i>
+            <span>Externe Anmeldungen</span>
+        </a>
+    }
+
+    <div class="manage-nav-divider"></div>
+    <div class="manage-nav-section">Sicherheit</div>
+
+    <!-- 2FA -->
+    <a class="manage-nav-item @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)"
+       asp-page="./TwoFactorAuthentication">
+        <i class="bi bi-shield-lock"></i>
+        <span>2-Faktor-Auth</span>
+    </a>
+
+    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+    {
+        <div class="manage-nav-divider"></div>
+        <div class="manage-nav-section">Administration</div>
+
+        <!-- Admins & Rollen -->
+        <a class="manage-nav-item @ManageNavPages.ManageAdminsNavClass(ViewContext)"
+           asp-page="./ManageAdmins">
+            <i class="bi bi-people-fill"></i>
+            <span>Admins & Rollen</span>
+        </a>
+    }
+</nav>

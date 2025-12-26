@@ -1,0 +1,778 @@
+@model IEnumerable<MakerSpaceProject>
+@using System.Text.RegularExpressions
+@{
+    ViewData["Title"] = "KIBar";
+    var allTags = ViewBag.Tags as List<string>;
+    var desc = ViewBag.MakerSpaceDescription as MakerSpaceDescription;
+}
+
+<style>
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* MakerSpace Description */
+    .makerspace-description {
+        background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+        border-radius: 15px;
+        padding: 2.5rem;
+        margin-bottom: 3rem;
+        /* max-width: 800px; */
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        border: 1px solid rgba(144, 188, 20, 0.15);
+    }
+
+    .description-title {
+        color: #2c3e50;
+        font-weight: 700;
+        font-size: 2.2rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        position: relative;
+        padding-bottom: 1rem;
+    }
+
+        .description-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: #89ba17;
+            border-radius: 2px;
+        }
+
+    .lead {
+        font-size: 1.3rem;
+        color: #89ba17;
+        font-weight: 500;
+        text-align: center;
+        margin-bottom: 1.8rem;
+        line-height: 1.4;
+    }
+
+    .description-content p {
+        color: #4a5568;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .highlight-features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .feature-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        text-align: center;
+        transition: transform 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+
+        .feature-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-item i {
+            font-size: 2rem;
+            color: #89ba17;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .feature-item span {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+    @@media (max-width: 768px) {
+        .makerspace-description {
+            padding: 1.5rem;
+            margin: 2rem 1rem;
+        }
+
+        .description-title {
+            font-size: 1.8rem;
+        }
+
+        .lead {
+            font-size: 1.1rem;
+        }
+    }
+
+    /* Filters & Search */
+    .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+
+        .filters button {
+            background-color: #eee;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+    /* Icon-only filter buttons (top row) should be perfectly circular */
+    .filters .filter-btn-circle {
+        width: 52px;
+        height: 52px;
+        padding: 0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .filters .filter-btn-circle i {
+        margin-right: 0 !important;
+    }
+
+            .filters button.active,
+            .filters button:hover {
+                background-color: #89ba17;
+                color: white;
+            }
+
+
+    .tag-scroll {
+        display: inline-flex;
+        gap: 6px;
+        overflow-x: auto;
+        max-width: 100%;
+        white-space: nowrap;
+        padding-bottom: 4px;
+    }
+
+        .tag-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .tag-scroll::-webkit-scrollbar-thumb {
+            background-color: #89ba17;
+            border-radius: 3px;
+        }
+
+
+    .search-bar {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+        /* Remove previous search input styles */
+        .search-bar input {
+            border: none;
+            outline: none;
+        }
+    /* Input group styling, similar to ProjectsWebApp */
+    .input-group {
+        border: 2px solid #89ba17;
+        border-radius: 30px;
+        overflow: hidden;
+        display: inline-flex;
+        width: 100%;
+        max-width: 400px;
+    }
+
+        .input-group .form-control {
+            border: none;
+            box-shadow: none;
+            font-size: 1rem;
+            padding: 8px 12px;
+        }
+
+        .input-group .input-group-text {
+            background: white;
+            border: none;
+        }
+
+            .input-group .input-group-text i {
+                color: #89ba17;
+                font-size: 1.2rem;
+            }
+
+    /* Grid Layout */
+    .project-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+    }
+
+    /* Card Styling using Flex Layout */
+    .project-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: center;
+    }
+
+    .project-card {
+        display: flex;
+        flex-direction: column;
+        width: 320px;
+        min-height: 480px; /* instead of fixed height */
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+    .project-image {
+        width: 100%;
+        height: 200px;
+        object-fit: contain;
+        background-color: #f9f9f9;
+        padding-left: 15px; /* increased padding for better inner spacing */
+        padding-right: 15px; /* increased padding for better inner spacing */
+        border-radius: 10px; /* make the image edges a little rounded */
+        box-sizing: border-box; /* make sure padding does not break the layout */
+    }
+
+
+
+
+    .card-header {
+        padding: 0.8rem 1rem 0.5rem 1rem;
+    }
+
+        .card-header .tag-badges {
+            margin-bottom: 0.5rem;
+        }
+
+    .tag-badges span {
+        background-color: #89ba17;
+        color: white;
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Icon-only badges in the card header (Top, Forschung, etc.) should be circular */
+    .tag-badges .icon-badge-circle {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 0;
+        border-radius: 50%;
+        justify-content: center;
+    }
+
+    .tag-badges .icon-badge-circle i {
+        margin-right: 0 !important;
+    }
+
+
+    .card-header h5 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #333;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-content {
+        flex: 1;
+        padding: 0 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .card-content .description {
+            font-size: 0.95rem;
+            color: #555;
+            text-align: center;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+    .card-footer {
+        padding: 0.8rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #eee;
+    }
+
+        .card-footer a.more-info {
+            color: #89ba17;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .card-footer a.btn-visit {
+            background-color: #89ba17;
+            color: white;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px; /* override global .btn min-height so circle stays round */
+            padding: 0;       /* remove extra padding from .btn */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            text-decoration: none;
+        }
+
+    .card-text {
+        font-size: 0.95rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        line-height: 1.45; 
+        padding-bottom: 2px; 
+        }
+
+    .card-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.35; /* mehr Zeilenabstand  ➜  Platz für Unterlängen   */
+        padding-bottom: 2px; /* „Sicherheitsabstand“ zum unteren Rand           */
+    }
+
+</style>
+
+<div class="mb-3">
+    <!-- MakerSpace Description Section -->
+    <section class="makerspace-description">
+        <div class="description-container">
+            <h3 class="description-title">@desc.Title</h3>
+            <div class="description-content">
+                <p class="lead">@desc.SubTitle</p>
+                <p>@Html.Raw(desc.Content)</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🔍 Search Bar -->
+    <div class="search-bar">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Suche nach Projekten..." />
+            <span class="input-group-text">
+                <i class="bi bi-search"></i>
+            </span>
+        </div>
+    </div>
+
+    <!-- 🔘 Top Controls (All / Clear / Top Apps) -->
+    <div class="filters d-flex justify-content-center flex-wrap gap-2 mb-4">
+        <button class="filter-btn active" data-filter="all">Alle</button>
+        <button class="filter-btn clear-btn" data-filter="clear">Auswahl aufheben</button>
+        <button class="filter-btn lesezeichen-btn filter-btn-circle" data-filter="lesezeichen" title="Tipp">
+            <i class="fa fa-bookmark fa-users me-1 fs-5"></i>
+        </button>
+        <button class="filter-btn forschung-btn filter-btn-circle" data-filter="forschung" title="Forschung">
+            <i class="fa fa-flask me-1 fs-5"></i>
+        </button>
+        <button class="filter-btn top-btn filter-btn-circle" data-filter="top" title="Lehre">
+            <i class="bi bi-mortarboard-fill me-1 fs-4"></i>
+        </button>
+
+        <button class="filter-btn events-btn filter-btn-circle" data-filter="events" title="Lernen">
+            <i class="bi bi-gear-fill  me-1 fs-5 "></i>
+        </button>
+
+        <button class="filter-btn tutorial-btn filter-btn-circle" data-filter="tutorial" title="Tutorial">
+            <i class="fa-solid fa-book-open  me-1 fs-5 "></i>
+        </button>
+
+        <button class="filter-btn ITRecht-btn filter-btn-circle" data-filter="itrecht" title="IT-Recht">
+           
+            <i class="fa fa-balance-scale me-1 fs-5" aria-hidden="true"></i>
+        </button>
+
+        <button class="filter-btn beitraege-btn filter-btn-circle" data-filter="beitraege" title="Beiträge">
+            <i class="fa fa-newspaper me-1 fs-5" aria-hidden="true"></i>
+
+        </button>
+
+       @* 
+
+        <button class="filter-btn netzwerk-btn" data-filter="netzwerk" title="Netzwerk">
+            <i class="fa-solid fa-users me-1 fs-5"></i>
+        </button>
+
+        <button class="filter-btn download-btn" data-filter="download" title="Herunterladen">
+            <i class="fa fa-cloud-download me-1 fs-5"></i>
+        </button>
+ *@
+    </div>
+
+    <hr class="mb-3" />
+
+    <!-- 🟢 Tag Bubbles -->
+    <div class="filters">
+        @foreach (var tag in allTags)
+        {
+            <button class="filter-btn" data-filter="@tag">@tag</button>
+        }
+    </div>
+
+    <!-- 📦 Project Cards -->
+    <div class="project-grid" id="projectGrid">
+        @foreach (var item in Model.OrderByDescending(a => a.DisplayOrder))
+        {
+            var tagList = item.Tags?.Split(',')?.Select(t => t.Trim()).ToList() ?? new List<string>();
+            var dataTags = string.Join(" ", tagList.Select(t => t.Replace(" ", "_")));
+            var isTop = item.Top ? "true" : "false";
+
+            <div class="project-card"
+                 data-tags="@dataTags"
+                 data-title="@item.Title.ToLower()"
+                 data-description="@item.Description.ToLower()"
+                 data-top="@isTop"
+                 data-forschung="@(item.Forschung.ToString().ToLower())"
+                 data-download="@(item.download.ToString().ToLower())"
+                 data-tutorial="@item.tutorial.ToString().ToLower()"
+                 data-events="@item.events.ToString().ToLower()"
+                 data-netzwerk="@item.netzwerk.ToString().ToLower()"
+                 data-lesezeichen="@item.lesezeichen.ToString().ToLower()"
+                 data-itrecht="@item.ITRecht.ToString().ToLower()"
+                 data-beitraege="@item.Beitraege.ToString().ToLower()">
+
+
+                <!-- Debug Output -->
+                @* <div>tutorial: @item.tutorial | events: @item.events | netzwerk: @item.netzwerk</div> *@
+
+
+                @{
+                    var _raw = item.ImageUrl ?? "";
+                    var _s = _raw.Replace("\\", "/");
+                    if (string.IsNullOrWhiteSpace(_s)) _s = "/images/default.jpg";
+                    var _src = (_s.StartsWith("http", StringComparison.OrdinalIgnoreCase) || _s.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                    ? _s
+                    : Url.Content(_s.StartsWith("~/") ? _s : _s.StartsWith("/") ? ("~" + _s) : ("~/" + _s));
+                }
+                <img src="@_src"
+                     alt="@item.Title"
+                     class="project-image" />
+
+
+
+                <div class="card-header">
+
+                    <div class="tag-badges d-flex align-items-center flex-wrap gap-2 mb-2">
+
+                        <!-- 🎓 and 🧪 Icons First -->
+                        @if (item.Top)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: orange;" title="Education">
+                                <i class="bi bi-mortarboard-fill"></i>
+                            </span>
+                        }
+                        @if (item.Forschung)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: coral;" title="Forschung">
+                                <i class="fa fa-flask"></i>
+                            </span>
+                        }
+
+                        @if (item.download)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: #0066cc;" title="Herunterladen">
+                                <i class="bi bi-download"></i>
+                            </span>
+                        }
+                        @if (item.tutorial)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: #6f42c1;" title="Tutorial">
+                                <i class="fa-solid fa-book-open"></i>
+                            </span>
+                        }
+                        @if (item.events)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: #fd7e14;" title="Events">
+                                
+                                <i class="bi bi-gear-fill "></i>
+                            </span>
+                        }
+                        @if (item.netzwerk)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: #20c997;" title="Netzwerk">
+                                <i class="fa-solid fa-users"></i>
+                            </span>
+                        }
+
+                        @if (item.lesezeichen)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: violet;" title="Top">
+                                <i class="fa fa-bookmark"></i>
+                            </span>
+                        }
+                        @if (item.ITRecht)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: royalblue;" title="Top">
+                                  <i class="fa fa-balance-scale" aria-hidden="true"></i>
+            
+                            </span>
+                        }
+                        @if (item.Beitraege)
+                        {
+                            <span class="badge rounded-pill icon-badge-circle" style="background-color: darkcyan;" title="Top">
+                                <i class="fa fa-newspaper" aria-hidden="true"></i>
+                            </span>
+                        }
+
+                        <!-- 🏷️ Then the Tags -->
+                        <div class="tag-scroll">
+                            @foreach (var tag in tagList)
+                            {
+                                <span>@tag.Trim()</span>
+                            }
+                        </div>
+                    </div>
+
+                    <h5 class="card-title">@item.Title</h5>
+                </div>
+
+
+                <div class="card-content">
+                    <p class="description card-text">@Html.Raw(Regex.Replace(item.Description ?? "", @"<[^>]+>|&nbsp;", " ").Trim())</p>
+
+                </div>
+
+                <div class="card-footer">
+                    <div class="btn">
+                    <a href="@Url.Action("KIBarDetails", "Home", new { area = "User", id = item.Id })" class="more-info">…mehr Anzeigen</a>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="@item.ProjectUrl"
+                           target="_blank"
+                           class="btn-visit btn"
+                           title="URL öffnen">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+
+                        <a href="mailto:@ViewBag.ContactEmail?subject=Link%20melden&body=Bitte prüfen Sie die URL: @(Context.Request.Scheme)://@(Context.Request.Host)/User/Home/ToolBarDetails/@item.Id"
+                           class="btn-visit btn"
+                           style="background-color: #f8f9fa; border: 1px solid #e6e6e6; color: #333;"
+                           title="Link melden">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const searchInput = document.getElementById("searchInput");
+        const filterButtons = document.querySelectorAll(".filter-btn");
+        const cards = document.querySelectorAll(".project-card");
+        let selectedFilters = [];
+
+
+        function filterCards() {
+            const searchTerm = searchInput.value.toLowerCase();
+            console.clear();
+            console.log("🔍 Current Search Term:", searchTerm);
+            console.log("🎯 Selected Filters:", selectedFilters);
+
+            cards.forEach((card, index) => {
+                const title = card.getAttribute("data-title") || "";
+                const description = card.getAttribute("data-description") || "";
+                const tags = card.getAttribute("data-tags") || "";
+                const isTop = card.getAttribute("data-top") === "true";
+                const isForschung = card.getAttribute("data-forschung") === "true";
+                const isDownload = card.getAttribute("data-download") === "true";
+                const isTutorial = card.getAttribute("data-tutorial") === "true";
+                const isEvent = card.getAttribute("data-events") === "true";
+                const isNetzwerk = card.getAttribute("data-netzwerk") === "true";
+                const isLesezeichen = card.getAttribute("data-lesezeichen") === "true";
+                const isITRecht   = card.getAttribute("data-itrecht") === "true";
+                const isBeitraege = card.getAttribute("data-beitraege") === "true";
+
+
+                const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+
+                let matchesFilter = true;
+
+                if (selectedFilters.length > 0) {
+                    matchesFilter = false;
+
+                    for (let filter of selectedFilters) {
+                        if (filter === "top" && isTop) {
+                            matchesFilter = true;
+                        } else if (filter === "forschung" && isForschung) {
+                            matchesFilter = true;
+                        } else if (filter === "download" && isDownload) {
+                            matchesFilter = true;
+                        }
+                        else if (filter === "tutorial" && isTutorial) {
+                            matchesFilter = true;
+                        } else if (filter === "events" && isEvent) {
+                            matchesFilter = true;
+                        } else if (filter === "netzwerk" && isNetzwerk) {
+                            matchesFilter = true;
+                        } else if (filter === "lesezeichen" && isLesezeichen) {
+                            matchesFilter = true;
+                        }
+                        else if (filter === "itrecht"    && isITRecht)    matchesFilter = true;
+                        else if (filter === "beitraege"  && isBeitraege)  matchesFilter = true;
+                        else if (tags.includes(filter.replace(/\s/g, "_"))) {
+                            matchesFilter = true;
+                        }
+
+                    }
+                }
+
+                const shouldShow = matchesSearch && matchesFilter;
+
+                // 🔥 DEBUG OUTPUT FOR THIS CARD
+                console.log(`📦 Card #${index + 1}:`);
+                console.log("   - Title:", title);
+                console.log("   - Description:", description);
+                console.log("   - Tags:", tags);
+                console.log("   - isTop:", isTop);
+                console.log("   - isForschung:", isForschung);
+                console.log("   - isDownload:", isDownload);
+                console.log("   - isTutorial:", isTutorial);
+                console.log("   - isEvent:", isEvent);
+                console.log("   - isNetzwerk:", isNetzwerk);
+                console.log("   - isNetzwerk:", isBeitraege);
+                console.log("   - isNetzwerk:", isITRecht);
+                console.log("   - Matches Search:", matchesSearch);
+                console.log("   - Matches Filter:", matchesFilter);
+                console.log("   ➡️ FINAL Decision: ", shouldShow ? "SHOW" : "HIDE");
+
+                // Apply visibility
+                card.style.display = shouldShow ? "" : "none";
+            });
+
+            console.log("✅ Filtering finished.");
+        }
+
+
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener("click", function (e) {
+                const filterVal = this.getAttribute("data-filter");
+
+                // Case: Alle
+                if (filterVal === "all") {
+                    selectedFilters = [];
+                    filterButtons.forEach(b => b.classList.remove("active"));
+                    this.classList.add("active");
+                }
+                // Case: Auswahl aufheben
+                else if (filterVal === "clear") {
+                    selectedFilters = [];
+                    filterButtons.forEach(b => b.classList.remove("active"));
+                    document.querySelector('[data-filter="all"]').classList.add("active");
+                }
+                // Case: Top Apps or a Tag
+                else {
+                    const isActive = this.classList.contains("active");
+                    this.classList.toggle("active", !isActive);
+
+                    if (!isActive) {
+                        selectedFilters.push(filterVal);
+                    } else {
+                        selectedFilters = selectedFilters.filter(f => f !== filterVal);
+                    }
+
+                    // If none are selected, activate "Alle"
+                    if (selectedFilters.length === 0) {
+                        filterButtons.forEach(b => b.classList.remove("active"));
+                        document.querySelector('[data-filter="all"]').classList.add("active");
+                    } else {
+                        document.querySelector('[data-filter="all"]').classList.remove("active");
+                    }
+                }
+
+                filterCards();
+            });
+        });
+
+        searchInput.addEventListener("input", filterCards);
+
+        document.querySelectorAll('.card-text').forEach(function (element) {
+            let sanitizedText = element.innerHTML
+                // Remove HTML tags
+                .replace(/<\/?p>/gi, '') // <p> tags
+                .replace(/<\/?b>/gi, '') // <b> tags
+                .replace(/<\/?strong>/gi, '') // <strong> tags
+                .replace(/<\/?br>/gi, '') // <br> tags
+                .replace(/<\/?ul>/gi, '') // <ul> tags
+                .replace(/<\/?ol>/gi, '') // <ol> tags
+                .replace(/<\/?li>/gi, '') // <li> tags
+                .replace(/<\/?blockquote>/gi, '') // <blockquote> tags
+
+                // Handle encoded entities for HTML tags
+                .replace(/&lt;p&gt;/gi, ' ') // Encoded <p> tags
+                .replace(/&lt;\/p&gt;/gi, ' ') // Encoded </p> tags
+                .replace(/&lt;ul&gt;/gi, ' ') // Encoded <ul> tags
+                .replace(/&lt;\/ul&gt;/gi, ' ') // Encoded </ul> tags
+                .replace(/&lt;ol&gt;/gi, ' ') // Encoded <ol> tags
+                .replace(/&lt;\/ol&gt;/gi, ' ') // Encoded </ol> tags
+                .replace(/&lt;li&gt;/gi, ' ') // Encoded <li> tags
+                .replace(/&lt;\/li&gt;/gi, ' ') // Encoded </li> tags
+                .replace(/&lt;blockquote&gt;/gi, ' ') // Encoded <blockquote> tags
+                .replace(/&lt;\/blockquote&gt;/gi, ' ') // Encoded </blockquote> tags
+                .replace(/&lt;strong&gt;/gi, ' ') // Encoded <strong> tags
+                .replace(/&lt;\/strong&gt;/gi, ' ') // Encoded </strong> tags
+                .replace(/&lt;br\/&gt;/gi, ' ') // Encoded <br> tags
+
+                // Remove additional non-breaking spaces or special characters
+                .replace(/&nbsp;/gi, ' ') // Non-breaking spaces
+                .replace(/&lt;/gi, '<') // Encoded <
+                .replace(/&gt;/gi, '>') // Encoded >
+
+                // Remove any remaining encoded tags (safety net)
+                .replace(/<\/?[a-z][a-z0-9]*[^<>]*>/gi, ''); // Matches any HTML-like tags
+
+            console.log(sanitizedText)
+            // Update the sanitized text back into the element
+            element.innerHTML = sanitizedText.trim();
+        });
+
+
+
+    </script>
+}

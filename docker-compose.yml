@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-promptcoach}
+      POSTGRES_USER: ${PGUSER:-promptcoach}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-promptcoach}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${PGHOST_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=promptcoach;Username=promptcoach;Password=promptcoach}
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ASPNETCORE_PATHBASE: ${ASPNETCORE_PATHBASE:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5001:8080"
+    volumes:
+      - uploads_images:/app/wwwroot/images
+      - uploads_videos:/app/wwwroot/videos
+      - uploads_misc:/app/wwwroot/uploads
+
+  migrator:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /src
+    environment:
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=promptcoach;Username=promptcoach;Password=promptcoach}
+    volumes:
+      - .:/src
+    command: ["bash","scripts/migrate.sh"]
+
+volumes:
+  pgdata:
+  uploads_images:
+  uploads_videos:
+  uploads_misc:

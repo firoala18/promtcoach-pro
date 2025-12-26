@@ -1,0 +1,586 @@
+@using ProjectsWebApp.Models.ViewModels
+@model LandingPageVM
+
+@{
+    ViewData["Title"] = "Prompt-Engineering";
+    var routeTypeDisplayNames = ViewBag.RouteTypeDisplayNames as Dictionary<string, string> ?? new Dictionary<string, string>();
+
+    string GetDisplayName(string routeType)
+    {
+        return routeTypeDisplayNames.TryGetValue(routeType ?? "", out var name) ? name : routeType ?? "";
+    }
+
+    string ResolveImageUrl(string imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl))
+            return "/images/prompt-type-placeholder.png";
+        if (imageUrl.StartsWith("/") || imageUrl.StartsWith("http") || imageUrl.StartsWith("~"))
+            return imageUrl;
+        return $"/images/uploads/{imageUrl}";
+    }
+}
+
+<style>
+    .landing-admin-page .card {
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .landing-admin-page .card-header {
+        background: #1f2937;
+        color: #fff;
+        border-radius: 12px 12px 0 0 !important;
+        padding: 1rem 1.25rem;
+    }
+    .landing-admin-page .mode-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .landing-admin-page .mode-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .landing-admin-page .mode-card img {
+        height: 160px;
+        object-fit: cover;
+        width: 100%;
+    }
+    .landing-admin-page .feature-icon-preview {
+        width: 60px;
+        height: 60px;
+        background: #f3f4f6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #374151;
+    }
+    .landing-admin-page .hero-preview {
+        position: relative;
+        height: 200px;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .landing-admin-page .hero-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .landing-admin-page .hero-preview .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        padding: 1rem;
+    }
+    .landing-admin-page .edit-btn {
+        width: 36px;
+        height: 36px;
+        min-height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+    }
+    .landing-admin-page .badge-route {
+        background: #e5e7eb;
+        color: #374151;
+        font-weight: 500;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+    }
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+    }
+    .modal-header {
+        background: #1f2937;
+        color: #fff;
+        border-radius: 16px 16px 0 0;
+        padding: 1rem 1.5rem;
+    }
+    .modal-header .btn-close {
+        filter: invert(1);
+    }
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+        padding: 0.625rem 1rem;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 3px rgba(137,186,23,0.15);
+    }
+    .btn-save {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border: none;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    .btn-save:hover {
+        background: linear-gradient(135deg, #7aa615 0%, #5c7d0f 100%);
+        color: #fff;
+    }
+    .current-image-preview {
+        max-height: 120px;
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+    }
+</style>
+
+<div class="landing-admin-page py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="bi bi-layout-text-window-reverse me-2"></i>
+            Prompt-Engineering Seite verwalten
+        </h2>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Hero Section -->
+    <section class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-image me-2"></i>Hero-Bereich</h5>
+            @if (Model.Hero != null)
+            {
+                <button type="button" class="btn btn-light btn-sm" onclick="editHero()">
+                    <i class="bi bi-pencil me-1"></i> Bearbeiten
+                </button>
+            }
+        </div>
+        <div class="card-body">
+            @if (Model.Hero != null)
+            {
+                <div class="hero-preview">
+                    <img src="@Url.Content(ResolveImageUrl(Model.Hero.BackgroundUrl))" alt="Hero">
+                    <div class="overlay">
+                        <h3 class="fw-bold mb-2">@Model.Hero.Title</h3>
+                        <p class="mb-0 text-center">@Html.Raw(Model.Hero.Lead)</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Kein Hero-Bereich konfiguriert
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- Modes Section -->
+    <section class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Prompt-Arten (9 Typen)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var mode in Model.Modes.OrderBy(m => m.SortOrder))
+                {
+                    <div class="col">
+                        <div class="card mode-card h-100" id="mode-card-@mode.Id">
+                            <img src="@Url.Content(ResolveImageUrl(mode.ImageUrl))" alt="@mode.Title" class="card-img-top">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="@mode.IconClass fs-5"></i>
+                                        <h6 class="card-title mb-0 fw-bold">@mode.Title</h6>
+                                    </div>
+                                    <button type="button" class="btn btn-warning edit-btn" onclick="editMode(@mode.Id)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge-route">
+                                        <i class="bi bi-link-45deg me-1"></i>@GetDisplayName(mode.RouteType)
+                                    </span>
+                                    <span class="badge-route">
+                                        <i class="bi bi-sort-numeric-up me-1"></i>@mode.SortOrder
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-card-list me-2"></i>Info-Karten</h5>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                @foreach (var feature in Model.Features.OrderBy(f => f.SortOrder))
+                {
+                    <div class="col">
+                        <div class="card h-100" id="feature-card-@feature.Id">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start justify-content-between mb-3">
+                                    <div class="feature-icon-preview">
+                                        <i class="@feature.IconClass"></i>
+                                    </div>
+                                    <button type="button" class="btn btn-warning edit-btn" onclick="editFeature(@feature.Id)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                                <h6 class="fw-bold mb-2">@feature.Title</h6>
+                                <p class="text-muted small mb-2">@Html.Raw(feature.Description)</p>
+                                <span class="badge-route">
+                                    <i class="bi bi-sort-numeric-up me-1"></i>@feature.SortOrder
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Hero Edit Modal -->
+<div class="modal fade" id="heroModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-image me-2"></i>Hero-Bereich bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="heroForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="heroId" name="id">
+                    <div class="mb-3">
+                        <label class="form-label">Titel</label>
+                        <input type="text" class="form-control" id="heroTitle" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Lead-Text</label>
+                        <textarea class="form-control" id="heroLead" name="lead" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aktuelles Hintergrundbild</label>
+                        <div id="heroCurrentImage" class="mb-2"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Hintergrundbild hochladen</label>
+                        <input type="file" class="form-control" id="heroBackgroundFile" name="backgroundFile" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-save">
+                        <i class="bi bi-check-lg me-1"></i>Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mode Edit Modal -->
+<div class="modal fade" id="modeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-grid me-2"></i>Prompt-Art bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="modeForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="modeId" name="id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Titel</label>
+                            <input type="text" class="form-control" id="modeTitle" name="title" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Route-Typ</label>
+                            <select class="form-select" id="modeRouteType" name="routeType" required>
+                                <option value="Text">Text</option>
+                                <option value="Bild">Bild</option>
+                                <option value="Video">Video</option>
+                                <option value="Sound">Sound</option>
+                                <option value="Beruf">KI-Agent</option>
+                                <option value="Meta">Meta</option>
+                                <option value="Eigenfilter">Szenarien</option>
+                                <option value="Framework">Framework</option>
+                                <option value="Bildung">Domäne</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Icon-Klasse (Bootstrap Icons)</label>
+                            <input type="text" class="form-control" id="modeIconClass" name="iconClass" placeholder="bi bi-...">
+                            <div class="form-text">z.B. bi bi-fonts, bi bi-image, bi bi-robot</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Reihenfolge</label>
+                            <input type="number" class="form-control" id="modeSortOrder" name="sortOrder" min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Aktuelles Bild</label>
+                        <div id="modeCurrentImage" class="mb-2"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Bild hochladen</label>
+                        <input type="file" class="form-control" id="modeImageFile" name="imageFile" accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-save">
+                        <i class="bi bi-check-lg me-1"></i>Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Edit Modal -->
+<div class="modal fade" id="featureModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-card-list me-2"></i>Info-Karte bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="featureForm">
+                <div class="modal-body">
+                    <input type="hidden" id="featureId" name="id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Titel</label>
+                            <input type="text" class="form-control" id="featureTitle" name="title" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Icon-Klasse (Bootstrap Icons)</label>
+                            <input type="text" class="form-control" id="featureIconClass" name="iconClass" placeholder="bi bi-...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Beschreibung</label>
+                        <textarea class="form-control" id="featureDescription" name="description" rows="4"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reihenfolge</label>
+                        <input type="number" class="form-control" id="featureSortOrder" name="sortOrder" min="1" style="max-width: 150px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-save">
+                        <i class="bi bi-check-lg me-1"></i>Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const heroModal = new bootstrap.Modal(document.getElementById('heroModal'));
+    const modeModal = new bootstrap.Modal(document.getElementById('modeModal'));
+    const featureModal = new bootstrap.Modal(document.getElementById('featureModal'));
+
+    // Route type display names
+    const routeTypeNames = {
+        'Text': 'Text',
+        'Bild': 'Bild',
+        'Video': 'Video',
+        'Sound': 'Sound',
+        'Beruf': 'KI-Agent',
+        'Meta': 'Meta',
+        'Eigenfilter': 'Szenarien',
+        'Framework': 'Framework',
+        'Bildung': 'Domäne'
+    };
+
+    function resolveImageUrl(url) {
+        if (!url) return '/images/prompt-type-placeholder.png';
+        if (url.startsWith('/') || url.startsWith('http') || url.startsWith('~')) return url;
+        return '/images/uploads/' + url;
+    }
+
+    // Hero functions
+    async function editHero() {
+        try {
+            const res = await fetch('@Url.Action("GetHero")');
+            if (!res.ok) throw new Error('Hero nicht gefunden');
+            const data = await res.json();
+
+            document.getElementById('heroId').value = data.id;
+            document.getElementById('heroTitle').value = data.title || '';
+            document.getElementById('heroLead').value = data.lead || '';
+
+            const imgContainer = document.getElementById('heroCurrentImage');
+            if (data.backgroundUrl) {
+                imgContainer.innerHTML = `<img src="${resolveImageUrl(data.backgroundUrl)}" class="current-image-preview" alt="Current">`;
+            } else {
+                imgContainer.innerHTML = '<span class="text-muted">Kein Bild vorhanden</span>';
+            }
+
+            heroModal.show();
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    }
+
+    document.getElementById('heroForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        try {
+            const res = await fetch('@Url.Action("UpdateHero")', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                heroModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Gespeichert!',
+                    text: 'Hero-Bereich wurde aktualisiert.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            } else {
+                throw new Error(data.message || 'Speichern fehlgeschlagen');
+            }
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    });
+
+    // Mode functions
+    async function editMode(id) {
+        try {
+            const res = await fetch(`@Url.Action("GetMode")?id=${id}`);
+            if (!res.ok) throw new Error('Mode nicht gefunden');
+            const data = await res.json();
+
+            document.getElementById('modeId').value = data.id;
+            document.getElementById('modeTitle').value = data.title || '';
+            document.getElementById('modeRouteType').value = data.routeType || '';
+            document.getElementById('modeIconClass').value = data.iconClass || '';
+            document.getElementById('modeSortOrder').value = data.sortOrder || 1;
+
+            const imgContainer = document.getElementById('modeCurrentImage');
+            if (data.imageUrl) {
+                imgContainer.innerHTML = `<img src="${resolveImageUrl(data.imageUrl)}" class="current-image-preview" alt="Current">`;
+            } else {
+                imgContainer.innerHTML = '<span class="text-muted">Kein Bild vorhanden</span>';
+            }
+
+            modeModal.show();
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    }
+
+    document.getElementById('modeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        try {
+            const res = await fetch('@Url.Action("UpdateMode")', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                modeModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Gespeichert!',
+                    text: 'Prompt-Art wurde aktualisiert.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            } else {
+                throw new Error(data.message || 'Speichern fehlgeschlagen');
+            }
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    });
+
+    // Feature functions
+    async function editFeature(id) {
+        try {
+            const res = await fetch(`@Url.Action("GetFeature")?id=${id}`);
+            if (!res.ok) throw new Error('Feature nicht gefunden');
+            const data = await res.json();
+
+            document.getElementById('featureId').value = data.id;
+            document.getElementById('featureTitle').value = data.title || '';
+            document.getElementById('featureIconClass').value = data.iconClass || '';
+            document.getElementById('featureDescription').value = data.description || '';
+            document.getElementById('featureSortOrder').value = data.sortOrder || 1;
+
+            featureModal.show();
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    }
+
+    document.getElementById('featureForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+
+        try {
+            const res = await fetch('@Url.Action("UpdateFeature")', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                featureModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Gespeichert!',
+                    text: 'Info-Karte wurde aktualisiert.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => location.reload());
+            } else {
+                throw new Error(data.message || 'Speichern fehlgeschlagen');
+            }
+        } catch (err) {
+            Swal.fire('Fehler', err.message, 'error');
+        }
+    });
+</script>
+}

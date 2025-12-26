@@ -1,0 +1,63 @@
+@model ProjectsWebApp.ViewComponents.AdminUsersMegaMenuViewComponent.AdminUsersMegaMenuModel
+
+<div class="mega-users-panel">
+    <div class="mega-users-toolbar">
+        <div class="mega-users-meta">
+            <span class="mega-users-count">@Model.TotalUsers</span>
+            <span class="mega-users-label">Benutzer</span>
+        </div>
+
+        <form asp-area="Admin" asp-controller="SiteUsers" asp-action="DeleteAllRegularUsers" method="post"
+              onsubmit="return confirm('Alle regulären Benutzer wirklich löschen?');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+            <button type="submit" class="btn btn-sm btn-outline-danger">Alle löschen</button>
+        </form>
+    </div>
+
+    <div class="mega-users-groups">
+        @if (Model.Groups == null || Model.Groups.Count == 0)
+        {
+            <div class="mega-users-empty">Keine regulären Benutzer gefunden.</div>
+        }
+        else
+        {
+            @foreach (var g in Model.Groups)
+            {
+                <div class="mega-users-group">
+                    <div class="mega-users-group-header">
+                        <div class="mega-users-group-title">
+                            <span class="mega-users-group-name">@g.GroupName</span>
+                            <span class="mega-users-group-badge">@g.Users.Count</span>
+                        </div>
+
+                        <form asp-area="Admin" asp-controller="SiteUsers" asp-action="DeleteGroupUsers" method="post"
+                              onsubmit="return confirm('Alle Benutzer in Gruppe @g.GroupName wirklich löschen?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="groupName" value="@g.GroupName" />
+                            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Gruppe löschen</button>
+                        </form>
+                    </div>
+
+                    <ul class="mega-users-list">
+                        @foreach (var u in g.Users)
+                        {
+                            <li class="mega-users-item">
+                                <span class="mega-users-email" title="@u.Email">@u.Email</span>
+
+                                <form asp-area="Admin" asp-controller="SiteUsers" asp-action="DeleteUser" method="post"
+                                      onsubmit="return confirm('Benutzer @u.Email wirklich löschen?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Löschen">Löschen</button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>

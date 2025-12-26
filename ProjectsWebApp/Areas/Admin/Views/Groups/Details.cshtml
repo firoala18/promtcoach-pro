@@ -1,0 +1,2790 @@
+@model ProjectsWebApp.Areas.Admin.Models.GroupDetailsViewModel
+@{
+    ViewData["Title"] = "Raumdetails";
+    var isSuperUserGlobal = User.IsInRole("SuperAdmin");
+    var isAdminUserGlobal = User.IsInRole("Admin");
+    var isDozentUserGlobal = User.IsInRole("Dozent");
+    var isPrivilegedUser = isSuperUserGlobal || isAdminUserGlobal || isDozentUserGlobal;
+}
+
+<style>
+    :root {
+        --card-border-radius: 1rem;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        --primary-gradient: linear-gradient(135deg, #89ba17, #a3e635);
+        --accent-gradient: linear-gradient(135deg, #89ba17, #a3e635);
+        --surface-bg: #f8fafc;
+    }
+
+    body {
+        background-color: var(--surface-bg);
+    }
+
+    .page-header-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .page-header-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--primary-gradient);
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        border: none;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 100%;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+        .stat-icon.members {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        .stat-icon.prompts {
+            background: #fdf2f8;
+            color: #db2777;
+        }
+
+        .stat-icon.assistants {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .stat-icon.invites {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+    .config-section {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        /* Allow overlays (e.g. role dropdown menus) to extend outside without being clipped */
+        overflow: visible;
+    }
+
+    .config-header {
+        background: #fff;
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .config-tabs {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem 0.75rem 0 0;
+        padding: 0.5rem;
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0 !important; /* Remove bottom margin as content attaches directly */
+    }
+
+    .config-tabs .nav-item {
+        flex: 1;
+        display: flex;
+    }
+
+    /* Vertical Divider between items */
+    .config-tabs .nav-item:not(:last-child) {
+        border-right: 1px solid #cbd5e1;
+        padding-right: 0.5rem;
+        margin-right: 0.5rem;
+    }
+
+    .config-tabs .nav-link {
+        width: 100%;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        color: #64748b;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        border: none;
+        background: transparent;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+        .config-tabs .nav-link:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: #0f172a;
+        }
+
+        .config-tabs .nav-link.active {
+            background: #fff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+    .config-tabs .nav-link i {
+        font-size: 1.1rem;
+    }
+
+    @@media (max-width: 1199px) {
+        .config-header {
+            padding: 1.25rem;
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+
+        .config-header > .d-flex {
+            flex: 1 1 320px;
+            min-width: 240px;
+        }
+
+        .config-toggle {
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .config-content {
+            padding: 1.25rem;
+        }
+
+        .config-tabs {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .config-tabs .nav-item {
+            flex: 1 1 100%; /* Stack on mobile */
+            border-right: none !important; /* Remove dividers on mobile */
+            padding-right: 0 !important;
+            margin-right: 0 !important;
+        }
+
+        .config-tabs .nav-link {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            justify-content: flex-start; /* Left align on mobile */
+        }
+
+        .config-tabs .nav-link.active {
+            border-color: #89ba17;
+            box-shadow: 0 0 0 1px #89ba17;
+        }
+
+        .sub-config-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .sub-config-tabs .nav-link {
+            white-space: nowrap;
+        }
+
+        #tab-invites .invite-codes-toolbar {
+            align-items: flex-start;
+        }
+
+        #tab-invites .table-responsive {
+            overflow-x: visible;
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .config-header {
+            padding: 1rem;
+        }
+
+        .config-toggle {
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .config-content {
+            padding: 1rem;
+        }
+
+        .config-tabs .nav-item {
+            flex: 1 1 100%;
+        }
+
+        .sub-config-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sub-config-tabs .nav-link {
+            white-space: nowrap;
+        }
+
+        #tab-invites .invite-codes-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: .75rem;
+        }
+
+        #tab-invites .invite-codes-toolbar .btn-group {
+            width: 100%;
+        }
+
+        #tab-invites .invite-codes-toolbar .btn-group > .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        #tab-apikeys select.form-select.w-auto {
+            width: 100% !important;
+        }
+    }
+
+    @@media (max-width: 1199px) {
+        #tab-invites table.invite-codes-table thead {
+            display: none;
+        }
+
+        #tab-invites .table-responsive.border {
+            border: 0 !important;
+        }
+
+        #tab-invites table.invite-codes-table,
+        #tab-invites table.invite-codes-table tbody,
+        #tab-invites table.invite-codes-table tr,
+        #tab-invites table.invite-codes-table td {
+            display: block;
+            width: 100%;
+        }
+
+        #tab-invites table.invite-codes-table tr {
+            border: 1px solid #e5e7eb;
+            border-radius: .85rem;
+            padding: .9rem 1rem;
+            margin: .65rem .15rem;
+            background: #fff;
+        }
+
+        #tab-invites table.invite-codes-table tr:first-child {
+            border-top: 0;
+        }
+
+        #tab-invites table.invite-codes-table td {
+            border: 0;
+            padding: .35rem 0;
+        }
+
+        #tab-invites table.invite-codes-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: .15rem;
+        }
+
+        #tab-invites table.invite-codes-table td[data-label="Code"]::before,
+        #tab-invites table.invite-codes-table td.actions::before {
+            display: none;
+        }
+
+        #tab-invites table.invite-codes-table td[data-label="Code"] {
+            padding-bottom: .6rem;
+        }
+
+        #tab-invites table.invite-codes-table td[data-label="Code"] .font-monospace {
+            font-size: 1rem;
+            padding: .35rem .6rem;
+        }
+
+        #tab-invites table.invite-codes-table td.actions {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding-top: .6rem;
+            text-align: left !important;
+            justify-content: flex-end;
+        }
+
+        #tab-invites table.invite-codes-table td.actions::before {
+            flex: 0 0 auto;
+        }
+
+        #tab-invites table.invite-codes-table td.actions form {
+            margin: 0;
+        }
+
+        #tab-invites table.invite-codes-table td.actions .btn {
+            min-width: 44px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+
+    .config-content {
+        padding: 2rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-top: none; /* Connect with tabs */
+        border-radius: 0 0 1rem 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Members table wrapper: allow overlays like role dropdown to escape on large screens,
+           but enable horizontal scrolling on tablets/mobiles so rows do not overflow the card. */
+    .members-table-wrapper {
+        width: 100%;
+        overflow: visible;
+    }
+
+    .alpha-nav { display:flex; flex-wrap:wrap; justify-content:center; gap:.4rem; margin-top:.25rem; }
+    .alpha-nav .pill { border:1px solid #e5e7eb; background:#fff; color:#111827; border-radius:999px; padding:.25rem .5rem; line-height:1; font-weight:600; font-size:.9rem; min-height:auto; }
+    .alpha-nav .pill.active { border-color: #89ba17; color:#0f172a; box-shadow:0 0 0 .16rem rgba(137,186,23,.15); }
+    .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center; aspect-ratio:1/1; }
+
+    @@media (max-width: 1200px) {
+        .members-table-wrapper {
+            overflow-x: auto;
+        }
+    }
+
+    /* Modern Accordion */
+    details.pc-accordion {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+        details.pc-accordion summary {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            color: #334155;
+            background: #f8fafc;
+            transition: background 0.2s;
+        }
+
+            details.pc-accordion summary:hover {
+                background: #f1f5f9;
+            }
+
+            details.pc-accordion summary::-webkit-details-marker {
+                display: none;
+            }
+
+            details.pc-accordion summary::after {
+                content: "\f282"; /* bi-chevron-right */
+                font-family: "bootstrap-icons";
+                transition: transform 0.2s;
+            }
+
+        details.pc-accordion[open] summary::after {
+            transform: rotate(90deg);
+        }
+
+        details.pc-accordion[open] summary {
+            border-bottom: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        details.pc-accordion > div {
+            padding: 1.25rem;
+        }
+
+    /* Provider Pills */
+    .provider-pill {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+        background: transparent;
+    }
+
+    .provider-pill-kisski {
+        background: transparent;
+        color: inherit;
+    }
+
+    .provider-pill-openai {
+        background: transparent;
+        color: inherit;
+    }
+
+    .provider-pill-gemini {
+        background: transparent;
+        color: inherit;
+    }
+
+    .provider-pill-claude {
+        background: transparent;
+        color: inherit;
+    }
+
+    .provider-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    /* Members Table */
+    .modern-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        .modern-table th {
+            background: #f8fafc;
+            padding: 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .modern-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            color: #334155;
+        }
+
+        .modern-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .modern-table tr:hover td {
+            background: #f8fafc;
+        }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--accent-gradient);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .role-badge {
+        padding: 0.35em 0.8em;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    /* Custom role dropdown (Mitglieder-Rollen) */
+    .role-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .role-dropdown-toggle {
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        padding: 0.25rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #0f172a;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+        .role-dropdown-toggle:hover {
+            background: #f8fafc;
+        }
+
+    .role-native-select {
+        display: none;
+    }
+
+    .role-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        display: inline-block;
+    }
+
+    .role-dot-danger {
+        background: #ef4444;
+    }
+
+    .role-dot-warning {
+        background: #eab308;
+    }
+
+    .role-dot-primary {
+        background: #3b82f6;
+    }
+
+    .role-dot-info {
+        background: #06b6d4;
+    }
+
+    .role-dot-secondary {
+        background: #6b7280;
+    }
+
+    .role-dropdown-menu {
+        min-width: 260px;
+        border-radius: 0.9rem;
+        padding: 0.5rem 0.75rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        /* Render as viewport overlay so it is not clipped by table or card scroll containers */
+        position: fixed;
+        transform: none !important;
+        z-index: 1080;
+    }
+
+    .role-section-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        padding: 0.35rem 0.25rem;
+    }
+
+    .role-section-divider {
+        margin: 0.25rem 0 0.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .role-option {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.4rem 0.25rem;
+        font-size: 0.85rem;
+        color: #0f172a;
+        border-radius: 0.5rem;
+    }
+
+        .role-option:hover {
+            background: #f1f5f9;
+        }
+
+        .role-option.active {
+            background: #eff6ff;
+            font-weight: 600;
+        }
+
+        .role-option .role-option-label {
+            flex: 1;
+        }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #cbd5e1;
+        transition: all 0.2s;
+        background: #e5e7eb;
+        color: #111827;
+        font-size: 0.95rem;
+    }
+
+        .action-btn:hover:not(:disabled) {
+            background: #111827;
+            color: #ffffff;
+            border-color: #111827;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.delete {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+
+            .action-btn.delete:hover:not(:disabled) {
+                background: #b91c1c;
+                color: #ffffff;
+                border-color: #b91c1c;
+            }
+
+        .action-btn:disabled,
+        .action-btn.disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .action-btn.delete:disabled,
+        .action-btn.delete.disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            opacity: 1;
+        }
+
+    /* Mitglieder table column sizing */
+    .members-date-col {
+        width: 90px;
+    }
+
+    .members-actions-col,
+    .members-admin-col {
+        text-align: center;
+        width: 180px;
+    }
+
+    .members-actions-cell,
+    .members-admin-cell {
+        white-space: nowrap;
+    }
+
+    .members-actions-group,
+    .members-admin-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.6rem;
+        background: #f8fafc;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .members-actions-divider {
+        width: 1px;
+        height: 24px;
+        background: #e2e8f0;
+        margin: 0 0.3rem;
+    }
+
+    .section-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .config-header {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+        .config-header:hover {
+            background-color: #f8fafc;
+        }
+
+    .config-toggle .bi-chevron-down {
+        transition: transform 0.2s ease;
+    }
+
+    /* When the section is open, rotate the icon */
+    .config-toggle.open .bi-chevron-down {
+        transform: rotate(180deg);
+    }
+
+    .tracking-btn {
+    }
+
+    /* Sub-configuration tabs (Premium Button style) */
+    .sub-config-tabs {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+
+        .sub-config-tabs .nav-link {
+            padding: 0.6rem 1.25rem;
+            font-size: 0.95rem;
+            color: #475569;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+            .sub-config-tabs .nav-link:hover {
+                color: #0f172a;
+                background: #f8fafc;
+                border-color: #cbd5e1;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            }
+
+            .sub-config-tabs .nav-link.active {
+                background: #0f172a;
+                color: #fff;
+                border-color: #0f172a;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+
+            .sub-config-tabs .nav-link.active:hover {
+                background: #1e293b;
+            }
+
+    /* Usage Section Styles */
+    .usage-stat-item {
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        height: 100%;
+        transition: all 0.2s ease;
+        border: 1px solid #f1f5f9;
+    }
+
+        .usage-stat-item:hover {
+            background: #fff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border-color: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+    .usage-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .usage-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
+    }
+
+    .usage-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .top-user-item {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        transition: background 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+        .top-user-item:last-child {
+            border-bottom: none;
+        }
+
+        .top-user-item:hover {
+            background: #f8fafc;
+        }
+
+    .user-initials {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .active-provider-highlight {
+        border: 2px solid #89ba17;
+        background-color: rgba(137, 186, 23, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    .active-provider-highlight .form-label {
+        color: #89ba17 !important;
+    }
+    .active-provider-highlight .form-select {
+        border-color: #89ba17;
+    }
+    .active-provider-highlight .form-select:focus {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 0.25rem rgba(137, 186, 23, 0.25);
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="zurueck-container">
+        <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn-zurueck">
+            <i class="bi bi-arrow-left"></i>
+            <span>Zurück</span>
+        </a>
+    </div>
+
+    <!-- Header Section -->
+    <div class="page-header-card mb-4">
+        <div class="page-header-bg"></div>
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1">Raum</span>
+                        <span class="text-muted small"><i class="bi bi-clock me-1"></i> Erstellt: @Model.CreatedAt.ToLocalTime().ToString("g")</span>
+                    </div>
+                    <h1 class="fw-bold text-dark mb-2">@Model.Name</h1>
+                    <p class="text-muted mb-3" style="max-width: 600px;">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "Keine Beschreibung vorhanden." : Model.Description)
+                    </p>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small fw-semibold">Raumverwaltung:</span>
+                        @if (Model.Owners != null && Model.Owners.Count > 0)
+                        {
+                            <div class="d-flex gap-2">
+                                @foreach (var o in Model.Owners)
+                                {
+                                    <span class="badge bg-light text-dark border">@o</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted small fst-italic">(keine)</span>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (Model.CanDeleteGroup)
+                    {
+                        <form id="groupDeleteForm" asp-area="Admin" asp-controller="Groups" asp-action="Delete" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="button" class="btn btn-outline-danger" onclick="confirmDeleteGroup('@Model.Name')">
+                                <i class="bi bi-trash me-2"></i>Raum löschen
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    @if (isPrivilegedUser)
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="stat-card p-4">
+                    <div class="stat-icon members">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">@Model.MemberCount</h3>
+                    <div class="text-muted small fw-medium">Mitglieder</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card p-4">
+                    <div class="stat-icon prompts">
+                        <i class="bi bi-chat-quote"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">@Model.PromptCount</h3>
+                    <div class="text-muted small fw-medium">Prompts</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card p-4">
+                    <div class="stat-icon assistants">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">@Model.AssistantCount</h3>
+                    <div class="text-muted small fw-medium">Assistenten</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card p-4">
+                    <div class="stat-icon invites">
+                        <i class="bi bi-ticket-perforated"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">@Model.InviteCodeCount</h3>
+                    <div class="text-muted small fw-medium">Einladungscodes</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isPrivilegedUser && !Model.AnalyticsEnabled)
+    {
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3 small" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-shield-lock me-2"></i>
+                <span>Nutzungs‑Tracking (Analytics) ist aktuell deaktiviert. Es werden keine neuen Ereignisse aufgezeichnet.</span>
+            </div>
+            <a asp-area="Admin" asp-controller="FeatureFlags" asp-action="Index" class="btn btn-sm btn-dark tracking-btn">
+                Tracking aktivieren
+            </a>
+        </div>
+    }
+
+    @if (isPrivilegedUser && Model.TotalEventsLast30Days > 0)
+    {
+        <div class="config-section mb-4">
+            <div class="config-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="section-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-graph-up fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Analytics</h5>
+                        <div class="text-muted small">Letzte 30 Tage</div>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-light border config-toggle" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#groupAnalyticsCollapse"
+                        aria-expanded="true" aria-controls="groupAnalyticsCollapse">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+
+            <div id="groupAnalyticsCollapse" class="collapse show">
+                <div class="config-content">
+                    <ul class="nav nav-pills config-tabs mb-4" id="groupAnalyticsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="analytics-usage-tab" data-bs-toggle="tab" data-bs-target="#analytics-usage" type="button" role="tab">
+                                <i class="bi bi-activity"></i> Nutzung
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="analytics-topusers-tab" data-bs-toggle="tab" data-bs-target="#analytics-topusers" type="button" role="tab">
+                                <i class="bi bi-trophy"></i> Aktivste Nutzer*innen
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="groupAnalyticsTabContent">
+                        <div class="tab-pane fade show active" id="analytics-usage" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+                                <div>
+                                    <h5 class="fw-bold mb-1">Nutzung</h5>
+                                    <span class="badge bg-light text-secondary border">Letzte 30 Tage</span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small fw-medium">Zeitraum</div>
+                                    <div class="small font-monospace text-dark">
+                                        @(Model.AnalyticsFromUtc?.ToLocalTime().ToString("dd.MM.yyyy")) - @(Model.AnalyticsToUtc?.ToLocalTime().ToString("dd.MM.yyyy"))
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-12 mb-2">
+                                    <div class="p-3 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-10 d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="bg-white p-2 rounded-circle text-primary shadow-sm">
+                                                <i class="bi bi-activity fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <div class="small text-primary fw-semibold text-uppercase opacity-75">Gesamt Ereignisse</div>
+                                                <div class="fs-3 fw-bold text-primary">@Model.TotalEventsLast30Days</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="small text-muted">Aktive Nutzer</div>
+                                            <div class="fs-5 fw-bold text-dark">@Model.ActiveUsersLast30Days</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-indigo-50 text-indigo-600" style="background:#e0e7ff; color:#4338ca;">
+                                            <i class="bi bi-box-arrow-in-right"></i>
+                                        </div>
+                                        <div class="usage-label">Logins</div>
+                                        <div class="usage-value">@Model.TotalLoginLast30Days</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-pink-50 text-pink-600" style="background:#fce7f3; color:#db2777;">
+                                            <i class="bi bi-chat-quote"></i>
+                                        </div>
+                                        <div class="usage-label">Prompt Gen.</div>
+                                        <div class="usage-value">@Model.TotalPromptGenerateLast30Days</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-orange-50 text-orange-600" style="background:#ffedd5; color:#ea580c;">
+                                            <i class="bi bi-funnel"></i>
+                                        </div>
+                                        <div class="usage-label">Filter Gen.</div>
+                                        <div class="usage-value">@Model.TotalFilterGenerateLast30Days</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-emerald-50 text-emerald-600" style="background:#d1fae5; color:#059669;">
+                                            <i class="bi bi-magic"></i>
+                                        </div>
+                                        <div class="usage-label">Smart Select</div>
+                                        <div class="usage-value">@Model.TotalSmartSelectionLast30Days</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-cyan-50 text-cyan-600" style="background:#cffafe; color:#0891b2;">
+                                            <i class="bi bi-robot"></i>
+                                        </div>
+                                        <div class="usage-label">Assistent</div>
+                                        <div class="usage-value">@Model.TotalAssistantActionsLast30Days</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <div class="usage-stat-item">
+                                        <div class="usage-icon bg-slate-50 text-slate-600" style="background:#f1f5f9; color:#475569;">
+                                            <i class="bi bi-archive"></i>
+                                        </div>
+                                        <div class="usage-label">Gespeichert</div>
+                                        <div class="usage-value">@Model.TotalPromptSaveCollectionLast30Days</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="analytics-topusers" role="tabpanel">
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <h6 class="fw-bold mb-0">Aktivste Nutzer*innen</h6>
+                                <i class="bi bi-trophy text-warning"></i>
+                            </div>
+
+                            @if (Model.TopUsersLast30Days != null && Model.TopUsersLast30Days.Count > 0)
+                            {
+                                <div style="max-height: 320px; overflow-y: auto; padding-right: .25rem;">
+                                    <div class="d-flex flex-column gap-1">
+                                        @foreach (var u in Model.TopUsersLast30Days)
+                                        {
+                                            <div class="top-user-item d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                                    <div class="user-initials flex-shrink-0">
+                                                        @(!string.IsNullOrEmpty(u.Email) ? u.Email.Substring(0, 1).ToUpper() : "?")
+                                                    </div>
+                                                    <div class="d-flex flex-column overflow-hidden">
+                                                        <span class="text-truncate fw-medium text-dark" title="@u.Email">@u.Email</span>
+                                                    </div>
+                                                </div>
+                                                <span class="badge bg-light text-dark border ms-2">@u.TotalEvents Events</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                                    <small>Noch keine Aktivität verzeichnet.</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isPrivilegedUser)
+    {
+        <!-- Configuration Section -->
+        <div class="config-section mb-4">
+            <div class="config-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="section-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-sliders fs-5"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">Konfiguration</h5>
+                </div>
+                <button class="btn btn-sm btn-light border config-toggle" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#groupConfigCollapse"
+                        aria-expanded="true" aria-controls="groupConfigCollapse">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+
+            <div id="groupConfigCollapse" class="collapse show">
+                <div class="config-content">
+                    <div id="groupConfigAlert" class="alert d-none" role="alert"></div>
+
+                    @if (Model.Prompts != null)
+                    {
+                        <form id="gp_toggleModeForm"
+                              asp-area="Identity"
+                              asp-page="/Account/Manage/GroupPrompts"
+                              asp-page-handler="ToggleMode"
+                              method="post"
+                              data-async="true"
+                              data-success="Systemprompt‑Modus gespeichert.">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="GroupName" value="@Model.Prompts.GroupName" />
+                            <input type="hidden" id="gp_toggleUseGlobal" name="UseGlobal" value="@(Model.Prompts.UseGlobal ? "true" : "false")" />
+                        </form>
+                    }
+
+                    <ul class="nav nav-pills config-tabs mb-4" id="groupConfigTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-kifunctions-tab" data-bs-toggle="tab" data-bs-target="#tab-kifunctions" type="button" role="tab">
+                                <i class="bi bi-robot"></i> KI-Funktionen
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-apikeys-tab" data-bs-toggle="tab" data-bs-target="#tab-apikeys" type="button" role="tab">
+                                <i class="bi bi-key"></i> API‑Schlüssel
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-invites-tab" data-bs-toggle="tab" data-bs-target="#tab-invites" type="button" role="tab">
+                                <i class="bi bi-link-45deg"></i> Einladungscodes
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="gp_promptsFields">
+                        <!-- Invite Codes Tab -->
+                        <div class="tab-pane fade" id="tab-invites" role="tabpanel">
+                            @if (Model.InviteCodes != null)
+                            {
+                                <div class="invite-codes-toolbar d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                    <h6 class="fw-bold mb-0">Aktive Codes</h6>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-plus-lg me-1"></i> Neuer Code
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="createInviteCode(true, true)">
+                                                    Raumverwaltung‑Einladungscode erstellen
+                                                    <i class="bi bi-info-circle ms-2 text-muted" title="Für Personen, die diesen Raum administrativ verwalten (Dozent‑Rolle + Raumleitung)."></i>
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="createInviteCode(true, false)">
+                                                    Dozenten‑Einladungscode erstellen
+                                                    <i class="bi bi-info-circle ms-2 text-muted" title="Für Lehrende/Forschende ohne Verwaltungsrechte (Dozent‑Rolle, nur Mitglied des Raums)."></i>
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider" /></li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" onclick="createInviteCode(false, false)">
+                                                    Teilnehmende‑Einladungscode erstellen
+                                                    <i class="bi bi-info-circle ms-2 text-muted" title="Für Studierende/Teilnehmende ohne besondere Rechte (Standardrolle)."></i>
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                @if (Model.InviteCodes.Count > 0)
+                                {
+                                    <div class="table-responsive border rounded-3">
+                                        <table class="table table-hover align-middle mb-0 invite-codes-table">
+                                            <thead class="bg-light">
+                                                <tr>
+                                                    <th class="ps-3">Code</th>
+                                                    <th>Status</th>
+                                                    <th>Typ</th>
+                                                    <th>Notiz</th>
+                                                    <th class="text-end pe-3">Aktion</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var c in Model.InviteCodes)
+                                                {
+                                                    <tr>
+                                                        <td class="ps-3" data-label="Code">
+                                                            <span class="font-monospace bg-light border px-2 py-1 rounded">@c.Code</span>
+                                                        </td>
+                                                        <td data-label="Status">
+                                                            @if (c.IsActive)
+                                                            {
+                                                                <span class="badge bg-success bg-opacity-10 text-success">Aktiv</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Inaktiv</span>
+                                                            }
+                                                        </td>
+                                                        <td data-label="Typ">
+                                                            @if (c.IsDozentCode)
+                                                            {
+                                                                <span class="badge bg-light text-dark border me-1">Dozent</span>
+                                                                @if (c.DozentBecomesOwner)
+                                                                {
+                                                                    <span class="badge bg-light text-dark border">Besitzer*in</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-light text-dark border">Mitglied</span>
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-light text-dark border">Standard</span>
+                                                            }
+                                                        </td>
+                                                        <td class="text-muted small" data-label="Notiz">@(string.IsNullOrWhiteSpace(c.Note) ? "—" : c.Note)</td>
+                                                        <td class="text-end pe-3 actions" data-label="Aktion">
+                                                            <button type="button" class="btn btn-sm btn-light border me-1"
+                                                                    data-code-id="@c.Id" data-code="@c.Code"
+                                                                    data-is-active="@c.IsActive.ToString().ToLowerInvariant()"
+                                                                    data-note="@c.Note"
+                                                                    onclick="openEditInviteCodeModal(this)">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <form asp-area="Admin" asp-controller="Groups" asp-action="DeleteInviteCode" method="post" class="d-inline"
+                                                                  onsubmit="return confirm('Code wirklich löschen?');">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@Model.Id" />
+                                                                <input type="hidden" name="codeId" value="@c.Id" />
+                                                                <button type="submit" class="btn btn-sm btn-light border text-danger">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                                        Keine Einladungscodes vorhanden.
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        <!-- KI Funktionen Wrapper Tab -->
+                        <div class="tab-pane fade show active" id="tab-kifunctions" role="tabpanel">
+
+                            <!-- Sub Navigation for KI Funktionen -->
+                            <ul class="nav nav-pills sub-config-tabs mb-4 ps-0" id="kiFunctionsTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="tab-systemprompts-tab" data-bs-toggle="tab" data-bs-target="#tab-systemprompts" type="button" role="tab">
+                                        <i class="bi bi-chat-dots me-2"></i>Prompt generieren
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-filter-tab" data-bs-toggle="tab" data-bs-target="#tab-filter" type="button" role="tab">
+                                        <i class="bi bi-funnel me-2"></i>Filter generieren
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="tab-smart-tab" data-bs-toggle="tab" data-bs-target="#tab-smart" type="button" role="tab">
+                                        <i class="bi bi-lightning-charge me-2"></i>Smart Selection
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content">
+                                <!-- System Prompts Tab -->
+                                <div class="tab-pane fade show active" id="tab-systemprompts" role="tabpanel">
+                                    @if (Model.Prompts != null)
+                                    {
+                                        <form asp-area="Identity" asp-page="/Account/Manage/GroupPrompts" asp-page-handler="SaveTechnique" method="post" data-async="true" data-success="Systemprompts gespeichert.">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="group" value="@Model.Prompts.GroupName" />
+                                            <input type="hidden" name="GroupName" value="@Model.Prompts.GroupName" />
+
+                                            <div class="card bg-light border-0 mb-4">
+                                                <div class="card-body">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input gp-use-global-sync" id="gp_useGlobalSwitch_system" type="checkbox" name="UseGlobal" value="true" @(Model.Prompts.UseGlobal ? "checked" : null) />
+                                                        <label class="form-check-label fw-medium" for="gp_useGlobalSwitch_system">Globale System-Prompts verwenden</label>
+                                                    </div>
+                                                    <div class="form-text">Wenn aktiviert, werden die Einstellungen aus der globalen Konfiguration übernommen.</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="local-fields-container">
+                                                <div class="row g-3">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">System-Preamble</label>
+                                                        <textarea name="SystemPreamble" class="form-control" rows="3">@Model.Prompts.SystemPreamble</textarea>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">User-Instruction (Text)</label>
+                                                        <textarea name="UserInstructionText" class="form-control" rows="3">@Model.Prompts.UserInstructionText</textarea>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">KI-Assistent Systemprompt</label>
+                                                        <textarea name="KiAssistantSystemPrompt" class="form-control" rows="3">@Model.Prompts.KiAssistantSystemPrompt</textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex justify-content-end mt-4">
+                                                <button type="submit" class="btn btn-dark">
+                                                    <i class="bi bi-save me-2"></i>Speichern
+                                                </button>
+                                            </div>
+                                        </form>
+                                    }
+                                </div>
+
+                                <!-- Filter Tab -->
+                                <div class="tab-pane fade" id="tab-filter" role="tabpanel">
+                                    @if (Model.Prompts != null)
+                                    {
+                                        <form asp-area="Identity" asp-page="/Account/Manage/GroupPrompts" asp-page-handler="SaveFilter" method="post" data-async="true" data-success="Filter gespeichert.">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="GroupName" value="@Model.Prompts.GroupName" />
+                                            <input type="hidden" id="gp_useGlobal_hidden_filter" name="UseGlobal" value="@(Model.Prompts.UseGlobal ? "true" : "false")" />
+
+                                            <div class="card bg-light border-0 mb-4">
+                                                <div class="card-body">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input gp-use-global-sync" id="gp_useGlobalSwitch_filter" type="checkbox" value="true" @(Model.Prompts.UseGlobal ? "checked" : null) />
+                                                        <label class="form-check-label fw-medium" for="gp_useGlobalSwitch_filter">Globale System-Prompts verwenden</label>
+                                                    </div>
+                                                    <div class="form-text">Wenn aktiviert, werden die Einstellungen aus der globalen Konfiguration übernommen.</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="local-fields-container">
+                                                <h6 class="fw-bold mb-3">Allgemeine Filter</h6>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Filter‑System‑Preamble</label>
+                                                    <textarea name="FilterSystemPreamble" class="form-control" rows="3">@Model.Prompts.FilterSystemPreamble</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">User‑Instruction (Text)</label>
+                                                    <textarea name="FilterFirstLine" class="form-control" rows="3">@Model.Prompts.FilterFirstLine</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="text-end mb-4">
+                                                <button type="submit" class="btn btn-primary btn-sm">Filter speichern</button>
+                                            </div>
+                                        </form>
+
+                                        <hr class="my-4" />
+
+                                        <div class="local-fields-container">
+                                            <h6 class="fw-bold mb-3">Typ‑Guidance</h6>
+                                            @if (Model.Prompts.TypeGuidances != null && Model.Prompts.TypeGuidances.Count > 0)
+                                            {
+                                                <form asp-area="Identity" asp-page="/Account/Manage/GroupPrompts" asp-page-handler="SaveFilterTypes" method="post" data-async="true" data-success="Typ‑Guidance gespeichert.">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="groupName" value="@Model.Prompts.GroupName" />
+                                                    <input type="hidden" name="UseGlobal" value="@(Model.Prompts.UseGlobal ? "true" : "false")" />
+
+                                                    <div class="row g-3">
+                                                        @foreach (var kv in Model.Prompts.TypeGuidances)
+                                                        {
+                                                            <div class="col-12">
+                                                                <label class="form-label small text-uppercase text-muted fw-bold">@kv.Key</label>
+                                                                <input type="hidden" name="types" value="@kv.Key" />
+                                                                <textarea name="texts" class="form-control" rows="2">@kv.Value</textarea>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="text-end mt-3">
+                                                        <button type="submit" class="btn btn-primary btn-sm">Guidance speichern</button>
+                                                    </div>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Smart Selection Tab -->
+                                <div class="tab-pane fade" id="tab-smart" role="tabpanel">
+                                    @if (Model.Prompts != null)
+                                    {
+                                        <form asp-area="Identity" asp-page="/Account/Manage/GroupPrompts" asp-page-handler="SaveSmart" method="post" data-async="true" data-success="Smart‑Selection gespeichert.">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="GroupName" value="@Model.Prompts.GroupName" />
+                                            <input type="hidden" name="UseGlobal" value="@(Model.Prompts.UseGlobal ? "true" : "false")" />
+
+                                            <div class="card bg-light border-0 mb-4">
+                                                <div class="card-body">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input gp-use-global-sync" id="gp_useGlobalSwitch_smart" type="checkbox" value="true" @(Model.Prompts.UseGlobal ? "checked" : null) />
+                                                        <label class="form-check-label fw-medium" for="gp_useGlobalSwitch_smart">Globale System-Prompts verwenden</label>
+                                                    </div>
+                                                    <div class="form-text">Wenn aktiviert, werden die Einstellungen aus der globalen Konfiguration übernommen.</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="local-fields-container">
+                                                <div class="mb-3">
+                                                    <label class="form-label">System‑Preamble</label>
+                                                    <textarea name="SmartSelectionSystemPreamble" class="form-control" rows="3">@Model.Prompts.SmartSelectionSystemPreamble</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">User‑Prompt</label>
+                                                    <textarea name="SmartSelectionUserPrompt" class="form-control" rows="3">@Model.Prompts.SmartSelectionUserPrompt</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <button type="submit" class="btn btn-primary">Speichern</button>
+                                            </div>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- API Keys Tab -->
+                        <div class="tab-pane fade" id="tab-apikeys" role="tabpanel">
+                            @if (Model.ApiKeys != null)
+                            {
+                                <form method="post"
+                                      action="@Url.Page("/Account/Manage/ManageUsers", new { area = "Identity", handler = "SaveGroupApiKeys" })"
+                                      data-async="true"
+                                      data-success="API‑Schlüssel gespeichert.">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="GroupName" value="@Model.ApiKeys.GroupName" />
+
+                                    @if (Model.HasApiManagerOwner)
+                                    {
+                                        <div class="alert alert-info d-flex align-items-center">
+                                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                            <div>
+                                                <strong>API‑Manager aktiv:</strong> Globale Schlüssel werden erzwungen.
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <fieldset @(Model.HasApiManagerOwner ? "disabled" : null)>
+                                        <div class="mb-4 active-provider-highlight">
+                                            <label class="form-label fw-semibold">Aktiver Anbieter</label>
+                                            <select name="ActiveProvider" class="form-select w-auto">
+                                                @* <option value="">(Standard)</option> *@
+                                                <option value="kisski" selected="@(Model.ApiKeys.ActiveProvider == "kisski" ? "selected" : null)">Kisski</option>
+                                                <option value="openai" selected="@(Model.ApiKeys.ActiveProvider == "openai" ? "selected" : null)">OpenAI-kompatibel</option>
+                                                <option value="gemini" selected="@(Model.ApiKeys.ActiveProvider == "gemini" ? "selected" : null)">Gemini</option>
+                                                @* <option value="claude" selected="@(Model.ApiKeys.ActiveProvider == "claude" ? "selected" : null)">Claude</option> *@
+                                            </select>
+                                        </div>
+
+                                        <div class="accordion-wrapper">
+                                            <!-- Kisski -->
+                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "kisski" ? "open" : null)>
+                                                <summary>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="provider-pill provider-pill-kisski">
+                                                            <img src="@Url.Content("~/KISSKI-Logo.png")" alt="KISSKI Logo" class="provider-logo" />
+                                                        </span>
+                                                        <span>KISSKI</span>
+                                                        @if (Model.ApiKeys.ActiveProvider == "kisski")
+                                                        {
+                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
+                                                        }
+                                                    </div>
+                                                </summary>
+                                                <div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">API‑Key</label>
+                                                            <input name="KisskiApiKey" value="@Model.ApiKeys.KisskiApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Modell</label>
+                                                            <select name="KisskiModel" class="form-select">
+                                                                <option value="medgemma-27b" selected="@(Model.ApiKeys.KisskiModel == "medgemma-27b" ? "selected" : null)">medgemma-27b</option>
+                                                                <option value="gemma-3-27b-it" selected="@(Model.ApiKeys.KisskiModel == "gemma-3-27b-it" ? "selected" : null)">gemma-3-27b-it</option>
+                                                                <option value="openai-gpt-oss-120b" selected="@(Model.ApiKeys.KisskiModel == "openai-gpt-oss-120b" ? "selected" : null)">openai-gpt-oss-120b</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </details>
+
+                                            <!-- OpenAI -->
+                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "openai" ? "open" : null)>
+                                                <summary>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="provider-pill provider-pill-openai">
+                                                            <img src="@Url.Content("~/ChatGPT-Logo.png")" alt="ChatGPT Logo" class="provider-logo" />
+                                                        </span>
+                                                        <span>OpenAI</span>
+                                                        @if (Model.ApiKeys.ActiveProvider == "openai")
+                                                        {
+                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
+                                                        }
+                                                    </div>
+                                                </summary>
+                                                <div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">API‑Key</label>
+                                                            <input name="OpenAIKey" value="@Model.ApiKeys.OpenAIKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Modell</label>
+                                                            <select name="OpenAIModel" class="form-select">
+                                                                <option value="gpt-4o-mini" selected="@(Model.ApiKeys.OpenAIModel == "gpt-4o-mini" || Model.ApiKeys.OpenAIModel == "4o-mini" ? "selected" : null)">4o-mini</option>
+                                                                <option value="gpt-4o" selected="@(Model.ApiKeys.OpenAIModel == "gpt-4o" || Model.ApiKeys.OpenAIModel == "4o" ? "selected" : null)">4o</option>
+                                                                <option value="gpt-5" selected="@(Model.ApiKeys.OpenAIModel == "gpt-5" ? "selected" : null)">GPT-5</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </details>
+
+                                            <!-- Gemini -->
+                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "gemini" ? "open" : null)>
+                                                <summary>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span class="provider-pill provider-pill-gemini">
+                                                            <img src="@Url.Content("~/Gemini-Logo.png")" alt="Gemini Logo" class="provider-logo" />
+                                                        </span>
+                                                        <span>Gemini</span>
+                                                        @if (Model.ApiKeys.ActiveProvider == "gemini")
+                                                        {
+                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
+                                                        }
+                                                    </div>
+                                                </summary>
+                                                <div>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">API‑Key</label>
+                                                            <input name="GeminiApiKey" value="@Model.ApiKeys.GeminiApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Modell</label>
+                                                            <select name="GeminiModel" class="form-select">
+                                                                <option value="gemini-2.5-flash" selected="@(Model.ApiKeys.GeminiModel == "gemini-2.5-flash" ? "selected" : null)">Gemini 2.5 Flash</option>
+                                                                <option value="gemini-2.5-pro" selected="@(Model.ApiKeys.GeminiModel == "gemini-2.5-pro" ? "selected" : null)">Gemini 2.5 Pro</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </details>
+
+                                            <!-- Claude -->
+                                            @*  <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "claude" ? "open" : null)>
+                                            <summary>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="provider-pill provider-pill-claude">C</span>
+                                                    <span>Claude</span>
+                                                    @if (Model.ApiKeys.ActiveProvider == "claude") { <span class="badge bg-primary rounded-pill">Aktiv</span> }
+                                                </div>
+                                            </summary>
+                                            <div>
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">API‑Key</label>
+                                                        <input name="ClaudeApiKey" value="@Model.ApiKeys.ClaudeApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Modell</label>
+                                                        <input name="ClaudeModel" value="@Model.ApiKeys.ClaudeModel" class="form-control" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </details> *@
+                                        </div>
+
+                                        <div class="d-flex justify-content-end mt-4">
+                                            <button type="submit" class="btn btn-primary" @(Model.HasApiManagerOwner ? "disabled" : null)>
+                                                <i class="bi bi-save me-2"></i>API‑Schlüssel speichern
+                                            </button>
+                                        </div>
+                                    </fieldset>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Members Section -->
+    <div class="config-section">
+        <div class="config-header">
+            <div class="d-flex align-items-center gap-3">
+                <div class="section-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-people-fill fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Mitglieder</h5>
+                    <div class="text-muted small">Benutzerverwaltung und Rollen</div>
+                </div>
+            </div>
+            <span class="badge bg-light text-dark border">@Model.MemberCount Benutzer</span>
+        </div>
+
+        <div class="config-content">
+            <div id="groupMembersAlert" class="alert d-none" role="alert"></div>
+
+            @if (Model.Members != null && Model.Members.Count > 0)
+            {
+                <div id="alphaNavMembers" class="alpha-nav mb-3">
+                    <button type="button" class="pill active" data-alpha="all">Alle</button>
+                    <button type="button" class="pill" data-alpha="0-9">0–9</button>
+                    <button type="button" class="pill" data-alpha="A">A</button>
+                    <button type="button" class="pill" data-alpha="B">B</button>
+                    <button type="button" class="pill" data-alpha="C">C</button>
+                    <button type="button" class="pill" data-alpha="D">D</button>
+                    <button type="button" class="pill" data-alpha="E">E</button>
+                    <button type="button" class="pill" data-alpha="F">F</button>
+                    <button type="button" class="pill" data-alpha="G">G</button>
+                    <button type="button" class="pill" data-alpha="H">H</button>
+                    <button type="button" class="pill" data-alpha="I">I</button>
+                    <button type="button" class="pill" data-alpha="J">J</button>
+                    <button type="button" class="pill" data-alpha="K">K</button>
+                    <button type="button" class="pill" data-alpha="L">L</button>
+                    <button type="button" class="pill" data-alpha="M">M</button>
+                    <button type="button" class="pill" data-alpha="N">N</button>
+                    <button type="button" class="pill" data-alpha="O">O</button>
+                    <button type="button" class="pill" data-alpha="P">P</button>
+                    <button type="button" class="pill" data-alpha="Q">Q</button>
+                    <button type="button" class="pill" data-alpha="R">R</button>
+                    <button type="button" class="pill" data-alpha="S">S</button>
+                    <button type="button" class="pill" data-alpha="T">T</button>
+                    <button type="button" class="pill" data-alpha="U">U</button>
+                    <button type="button" class="pill" data-alpha="V">V</button>
+                    <button type="button" class="pill" data-alpha="W">W</button>
+                    <button type="button" class="pill" data-alpha="X">X</button>
+                    <button type="button" class="pill" data-alpha="Y">Y</button>
+                    <button type="button" class="pill" data-alpha="Z">Z</button>
+                </div>
+
+                <div class="members-table-wrapper">
+                    <table class="modern-table" id="groupMembersTable">
+                        <thead>
+                            <tr>
+                                <th>Benutzer</th>
+                                @if (isPrivilegedUser)
+                                {
+                                    <th class="members-date-col">Erstellt</th>
+                                    <th class="members-date-col"><span>Letzte</span><br /><span>Anmeldung</span></th>
+                                }
+                                <th>Rolle</th>
+                                @if (isPrivilegedUser)
+                                {
+                                    <th class="members-actions-col">Aktionen</th>
+                                    <th class="members-admin-col text-end">Verwaltung</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in Model.Members)
+                            {
+                                var roles = m.Roles ?? string.Empty;
+                                var isSuper = roles.Contains("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+                                var isAdmin = roles.Contains("Admin", StringComparison.OrdinalIgnoreCase) && !isSuper;
+                                var isDozent = roles.Contains("Dozent", StringComparison.OrdinalIgnoreCase) && !isSuper && !isAdmin;
+                                var isApiManager = roles.Contains("ApiManager", StringComparison.OrdinalIgnoreCase) && !isSuper && !isAdmin && !isDozent;
+
+                                // Normale Benutzer sehen keine Admin/SuperAdmin/API‑Manager Einträge
+                                if (!isPrivilegedUser && (isSuper || isAdmin || isApiManager))
+                                {
+                                    continue;
+                                }
+
+                                string aliasTemp = null;
+                                if (Model.RoleAliasesByUserId != null && Model.RoleAliasesByUserId.TryGetValue(m.UserId, out var aliasValue) && !string.IsNullOrWhiteSpace(aliasValue))
+                                {
+                                    aliasTemp = aliasValue;
+                                }
+
+                                string currentRoleValue;
+                                string currentRoleLabel;
+                                string currentRoleColorKey;
+
+                                if (isSuper)
+                                {
+                                    currentRoleValue = "SuperAdmin";
+                                    currentRoleLabel = "Administrator*in";
+                                    currentRoleColorKey = "danger";
+                                }
+                                else if (isAdmin)
+                                {
+                                    currentRoleValue = "Admin";
+                                    currentRoleLabel = "Coach*in";
+                                    currentRoleColorKey = "warning";
+                                }
+                                else if (isApiManager)
+                                {
+                                    currentRoleValue = "ApiManager";
+                                    currentRoleLabel = "API‑Manager*in";
+                                    currentRoleColorKey = "primary";
+                                }
+                                else if (isDozent)
+                                {
+                                    if (string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        currentRoleValue = "Dozent|GruppenManager";
+                                        currentRoleLabel = "Gruppen‑Manager*in";
+                                    }
+                                    else if (string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        currentRoleValue = "Dozent|Dozent";
+                                        currentRoleLabel = "Dozent*in";
+                                    }
+                                    else
+                                    {
+                                        currentRoleValue = "Dozent|Forscher";
+                                        currentRoleLabel = "Forscher*in";
+                                    }
+
+                                    currentRoleColorKey = "info";
+                                }
+                                else
+                                {
+                                    if (string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        currentRoleValue = "User|Benutzer";
+                                        currentRoleLabel = "Benutzer*in";
+                                    }
+                                    else
+                                    {
+                                        currentRoleValue = "User|Student";
+                                        currentRoleLabel = "Student*in";
+                                    }
+
+                                    currentRoleColorKey = "secondary";
+                                }
+
+                                var avatarSource = !string.IsNullOrWhiteSpace(m.Name) ? m.Name : (m.Email ?? m.UserId);
+                                var avatarText = avatarSource.Length >= 2 ? avatarSource.Substring(0, 2).ToUpper() : avatarSource.ToUpper();
+
+                                var alphaSource = !string.IsNullOrWhiteSpace(m.Name) ? m.Name : (m.Email ?? string.Empty);
+                                var firstChar = string.IsNullOrWhiteSpace(alphaSource) ? "" : alphaSource.Trim().Substring(0, 1).ToUpperInvariant();
+                                var rowAlpha = string.IsNullOrWhiteSpace(firstChar)
+                                    ? string.Empty
+                                    : (char.IsDigit(firstChar[0]) ? "0-9" : firstChar);
+
+                                <tr class="member-row" data-alpha="@rowAlpha">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="user-avatar">@avatarText</div>
+                                            <div>
+                                                <div class="fw-medium text-dark">@m.Email</div>
+                                                @if (!string.IsNullOrWhiteSpace(m.Name))
+                                                {
+                                                    <div class="text-muted small">@m.Name</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    @if (isPrivilegedUser)
+                                    {
+                                        <td class="text-muted small">@(m.CreatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</td>
+                                        <td class="text-muted small">@(m.LastLoginAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</td>
+                                    }
+                                    <td>
+                                        @{
+                                            var isSuperUser = User.IsInRole("SuperAdmin");
+                                            var isCoachUser = User.IsInRole("Admin");
+                                            var isDozentUser = User.IsInRole("Dozent");
+                                        }
+
+                                        @if (isPrivilegedUser)
+                                        {
+                                            if (isSuperUser)
+                                            {
+                                                <form method="post"
+                                                      action="@Url.Page("/Account/Manage/ManageUsers", new { area = "Identity", handler = "UpdateStatus" })"
+                                                      data-async="true"
+                                                      data-alert-id="groupMembersAlert"
+                                                      data-success="Rolle aktualisiert.">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="UpdateStatusEmail" value="@m.Email" />
+                                                    <select name="UpdateStatusRole" class="form-select form-select-sm border-0 bg-light role-change-select role-native-select" data-email="@m.Email">
+                                                        <optgroup label="Verwaltung">
+                                                            <option value="SuperAdmin" selected="@(isSuper ? "selected" : null)">Administrator*in</option>
+                                                            <option value="Admin" selected="@((isAdmin && !isSuper && !isDozent) ? "selected" : null)">Coach*in</option>
+                                                            <option value="ApiManager" selected="@((isApiManager && !isSuper && !isAdmin && !isDozent) ? "selected" : null)">API‑Manager*in</option>
+                                                        </optgroup>
+
+                                                        <optgroup label="Gruppenleitung &amp; Lehre">
+                                                            <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                            <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                            <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                        </optgroup>
+
+                                                        <optgroup label="Teilnehmende">
+                                                            <option value="User|Student" selected="@((!isAdmin && !isSuper && !isDozent && !isApiManager && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Student*in</option>
+                                                            <option value="User|Benutzer" selected="@((!isAdmin && !isSuper && !isDozent && !isApiManager && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Benutzer*in</option>
+                                                        </optgroup>
+                                                    </select>
+
+                                                    <div class="dropdown role-dropdown">
+                                                        <button type="button" class="role-dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-email="@m.Email">
+                                                            <span class="role-dot role-dot-@currentRoleColorKey"></span>
+                                                            <span class="role-dropdown-label">@currentRoleLabel</span>
+                                                            <i class="bi bi-chevron-down ms-1 text-muted small"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu role-dropdown-menu shadow-sm">
+                                                            <div class="role-section-title">VERWALTUNG</div>
+                                                            <button type="button" class="role-option @(isSuper ? "active" : null)" data-role-value="SuperAdmin" data-role-label="Administrator*in" data-role-color="danger">
+                                                                <span class="role-dot role-dot-danger"></span>
+                                                                <span class="role-option-label">Administrator*in</span>
+                                                            </button>
+                                                            <button type="button" class="role-option @((isAdmin && !isSuper && !isDozent) ? "active" : null)" data-role-value="Admin" data-role-label="Coach*in" data-role-color="warning">
+                                                                <span class="role-dot role-dot-danger"></span>
+                                                                <span class="role-option-label">Coach*in</span>
+                                                            </button>
+                                                            <button type="button" class="role-option @((isApiManager && !isSuper && !isAdmin && !isDozent) ? "active" : null)" data-role-value="ApiManager" data-role-label="API‑Manager*in" data-role-color="primary">
+                                                                <span class="role-dot role-dot-warning"></span>
+                                                                <span class="role-option-label">API‑Manager*in</span>
+                                                            </button>
+
+                                                            <div class="role-section-divider"></div>
+                                                            <div class="role-section-title">GRUPPENLEITUNG &amp; LEHRE</div>
+                                                            <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|GruppenManager" data-role-label="Gruppen‑Manager*in" data-role-color="info">
+                                                                <span class="role-dot role-dot-info"></span>
+                                                                <span class="role-option-label">Gruppen‑Manager*in</span>
+                                                            </button>
+                                                            <button type="button" class="role-option @((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "active" : null)" data-role-value="Dozent|Forscher" data-role-label="Forscher*in" data-role-color="info">
+                                                                <span class="role-dot role-dot-info"></span>
+                                                                <span class="role-option-label">Forscher*in</span>
+                                                            </button>
+                                                            <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|Dozent" data-role-label="Dozent*in" data-role-color="info">
+                                                                <span class="role-dot role-dot-info"></span>
+                                                                <span class="role-option-label">Dozent*in</span>
+                                                            </button>
+
+                                                            <div class="role-section-divider"></div>
+                                                            <div class="role-section-title">TEILNEHMENDE</div>
+                                                            <button type="button" class="role-option @((!isAdmin && !isSuper && !isDozent && !isApiManager && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "active" : null)" data-role-value="User|Student" data-role-label="Student*in" data-role-color="secondary">
+                                                                <span class="role-dot role-dot-secondary"></span>
+                                                                <span class="role-option-label">Student*in</span>
+                                                            </button>
+                                                            <button type="button" class="role-option @((!isAdmin && !isSuper && !isDozent && !isApiManager && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="User|Benutzer" data-role-label="Benutzer*in" data-role-color="secondary">
+                                                                <span class="role-dot role-dot-secondary"></span>
+                                                                <span class="role-option-label">Benutzer*in</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            }
+                                            else if (isDozentUser && !isApiManager && !isSuper && !isAdmin)
+                                            {
+                                                var isSelfRow = string.Equals(m.Email, User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                                                <form method="post"
+                                                      action="@Url.Page("/Account/Manage/ManageUsers", new { area = "Identity", handler = "UpdateStatus" })"
+                                                      data-async="true"
+                                                      data-alert-id="groupMembersAlert"
+                                                      data-success="Rolle aktualisiert.">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="UpdateStatusEmail" value="@m.Email" />
+                                                    <select name="UpdateStatusRole" class="form-select form-select-sm border-0 bg-light role-change-select role-native-select" data-email="@m.Email">
+                                                        @if (isSelfRow)
+                                                        {
+                                                            <optgroup label="Meine Dozentenrolle">
+                                                                <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                                <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                                <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                            </optgroup>
+                                                        }
+                                                        else
+                                                        {
+                                                            <optgroup label="Gruppenleitung &amp; Lehre">
+                                                                <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                                <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                                <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                            </optgroup>
+                                                            <optgroup label="Teilnehmende">
+                                                                <option value="User|Student" selected="@((!isAdmin && !isSuper && !isDozent && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Student*in</option>
+                                                                <option value="User|Benutzer" selected="@((!isAdmin && !isSuper && !isDozent && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Benutzer*in</option>
+                                                            </optgroup>
+                                                        }
+                                                    </select>
+
+                                                    <div class="dropdown role-dropdown">
+                                                        <button type="button" class="role-dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-email="@m.Email">
+                                                            <span class="role-dot role-dot-@currentRoleColorKey"></span>
+                                                            <span class="role-dropdown-label">@currentRoleLabel</span>
+                                                            <i class="bi bi-chevron-down ms-1 text-muted small"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu role-dropdown-menu shadow-sm">
+                                                            @if (isSelfRow)
+                                                            {
+                                                                <div class="role-section-title">MEINE DOZENTENROLLE</div>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|GruppenManager" data-role-label="Gruppen‑Manager*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Gruppen‑Manager*in</span>
+                                                                </button>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "active" : null)" data-role-value="Dozent|Forscher" data-role-label="Forscher*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Forscher*in</span>
+                                                                </button>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|Dozent" data-role-label="Dozent*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Dozent*in</span>
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <div class="role-section-title">GRUPPENLEITUNG &amp; LEHRE</div>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|GruppenManager" data-role-label="Gruppen‑Manager*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Gruppen‑Manager*in</span>
+                                                                </button>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "active" : null)" data-role-value="Dozent|Forscher" data-role-label="Forscher*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Forscher*in</span>
+                                                                </button>
+                                                                <button type="button" class="role-option @((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="Dozent|Dozent" data-role-label="Dozent*in" data-role-color="info">
+                                                                    <span class="role-dot role-dot-info"></span>
+                                                                    <span class="role-option-label">Dozent*in</span>
+                                                                </button>
+
+                                                                <div class="role-section-divider"></div>
+                                                                <div class="role-section-title">TEILNEHMENDE</div>
+                                                                <button type="button" class="role-option @((!isAdmin && !isSuper && !isDozent && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "active" : null)" data-role-value="User|Student" data-role-label="Student*in" data-role-color="secondary">
+                                                                    <span class="role-dot role-dot-secondary"></span>
+                                                                    <span class="role-option-label">Student*in</span>
+                                                                </button>
+                                                                <button type="button" class="role-option @((!isAdmin && !isSuper && !isDozent && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" data-role-value="User|Benutzer" data-role-label="Benutzer*in" data-role-color="secondary">
+                                                                    <span class="role-dot role-dot-secondary"></span>
+                                                                    <span class="role-option-label">Benutzer*in</span>
+                                                                </button>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                var roleLabel = isSuper ? "Administrator*in" : (isAdmin ? "Coach*in" : (isDozent ? "Forscher*in" : (isApiManager ? "API‑Manager*in" : "Student*in")));
+                                                var roleColor = isSuper ? "danger" : (isAdmin ? "warning" : (isDozent ? "info" : (isApiManager ? "primary" : "secondary")));
+                                                <span class="badge bg-@roleColor bg-opacity-10 text-@roleColor border border-@roleColor">@roleLabel</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            var roleLabel = isSuper ? "Administrator*in" : (isAdmin ? "Coach*in" : (isDozent ? "Forscher*in" : (isApiManager ? "API‑Manager*in" : "Student*in")));
+                                            var roleColor = isSuper ? "danger" : (isAdmin ? "warning" : (isDozent ? "info" : (isApiManager ? "primary" : "secondary")));
+                                            <span class="badge bg-@roleColor bg-opacity-10 text-@roleColor border border-@roleColor">@roleLabel</span>
+                                        }
+                                    </td>
+                                    @if (isPrivilegedUser)
+                                    {
+                                        <td class="members-actions-cell">
+                                            <div class="members-actions-group">
+                                                <a asp-area="User" asp-controller="MyPrompts" asp-action="AdminList" asp-route-uid="@m.UserId" class="action-btn" title="Sammlung ansehen">
+                                                    <i class="bi bi-bookmarks"></i>
+                                                </a>
+
+                                                @* Divider before analytics *@
+                                                <span class="members-actions-divider"></span>
+
+                                                @if (Model.AnalyticsEnabled)
+                                                {
+                                                    <a asp-area="Admin" asp-controller="Groups" asp-action="UserAnalytics" asp-route-id="@Model.Id" asp-route-uid="@m.UserId" class="action-btn" title="Analytics anzeigen">
+                                                        <i class="bi bi-graph-up"></i>
+                                                    </a>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="action-btn disabled" title="Analytics deaktiviert" disabled>
+                                                        <i class="bi bi-graph-up"></i>
+                                                    </button>
+                                                }
+
+                                                @if (isSuperUser)
+                                                {
+                                                    @* Divider before filter button *@
+                                                    <span class="members-actions-divider"></span>
+                                                    <a asp-area="Admin" asp-controller="FilterCategory" asp-action="AdminList" asp-route-uid="@m.UserId" class="action-btn" title="Filter verwalten">
+                                                        <i class="bi bi-funnel"></i>
+                                                    </a>
+                                                }
+
+                                                @if (isSuperUser || isCoachUser)
+                                                {
+                                                    @* Divider before password button *@
+                                                    <span class="members-actions-divider"></span>
+                                                    <button type="button" class="action-btn" title="Passwort setzen" onclick="openResetPasswordModal('@m.Email')">
+                                                        <i class="bi bi-key"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="text-end members-admin-cell">
+                                            <div class="members-admin-group">
+                                                @if (isPrivilegedUser && m.GroupCount > 1)
+                                                {
+                                                    <form method="post" asp-area="Admin" asp-controller="Groups" asp-action="RemoveMembership" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@Model.Id" />
+                                                        <input type="hidden" name="uid" value="@m.UserId" />
+                                                        <button type="button"
+                                                                class="action-btn delete js-remove-membership"
+                                                                title="aus Raum entfernen"
+                                                                data-user-email="@m.Email">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else if (isPrivilegedUser)
+                                                {
+                                                    <button type="button" class="action-btn delete" title="Benutzer gehört nur zu diesem einen Raum" disabled>
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-people fs-1 d-block mb-3 opacity-25"></i>
+                    <p class="mb-1">Keine Mitglieder gefunden.</p>
+                    <small>Fügen Sie Benutzer über Einladungscodes oder die Benutzerverwaltung hinzu.</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div id="editInviteCodeModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold">Einladungscode bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-area="Admin" asp-controller="Groups" asp-action="EditInviteCode" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" id="editInviteCodeId" name="codeId" />
+                    <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input type="text" class="form-control" id="editInviteCodeCode" name="code" required />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="editInviteCodeIsActive" name="isActive" />
+                        <label class="form-check-label" for="editInviteCodeIsActive">Aktiv</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notiz (optional)</label>
+                        <input type="text" class="form-control" id="editInviteCodeNote" name="note" />
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-dark">Speichern</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resetPasswordModal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0">
+                <h5 class="modal-title fw-bold">Passwort zurücksetzen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post"
+                      action="@Url.Page("/Account/Manage/ManageUsers", new { area = "Identity", handler = "ResetPassword" })"
+                      data-async="true"
+                      data-alert-id="groupMembersAlert"
+                      data-success="Passwort gesetzt.">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="resetPasswordEmail" name="ResetPasswordEmail" />
+                    <div class="mb-3">
+                        <label class="form-label">Benutzer</label>
+                        <input type="text" class="form-control bg-light" id="resetPasswordEmailDisplay" disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Passwort</label>
+                        <input type="password" class="form-control" name="NewPassword" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort bestätigen</label>
+                        <input type="password" class="form-control" name="ConfirmPassword" required />
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">Passwort setzen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Activate a specific config tab based on query parameter (?tab=invites, etc.)
+        // Activate a specific config tab based on query parameter (?tab=invites, etc.)
+        (function () {
+            try {
+                var params = new URLSearchParams(window.location.search || '');
+                var tab = (params.get('tab') || '').toLowerCase();
+                if (!tab) return;
+
+                // Map nested tabs to their parent container
+                var nestedMap = {
+                    'systemprompts': 'kifunctions',
+                    'filter': 'kifunctions',
+                    'smart': 'kifunctions'
+                };
+
+                var parentTab = nestedMap[tab];
+
+                // Helper to deactivate all
+                function deactivateAll(navSelector, paneSelector) {
+                    document.querySelectorAll(navSelector).forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll(paneSelector).forEach(el => el.classList.remove('show', 'active'));
+                }
+
+                if (parentTab) {
+                    // 1. Deactivate top-level
+                    deactivateAll('#groupConfigTabs .nav-link', '#gp_promptsFields > .tab-pane');
+
+                    // 2. Activate Parent (KI-Funktionen)
+                    var parentTrigger = document.getElementById('tab-' + parentTab + '-tab');
+                    var parentPane = document.getElementById('tab-' + parentTab);
+                    if (parentTrigger) parentTrigger.classList.add('active');
+                    if (parentPane) parentPane.classList.add('show', 'active');
+
+                    // 3. Deactivate sub-level (defaults)
+                    deactivateAll('#kiFunctionsTabs .nav-link', '#tab-kifunctions .tab-content > .tab-pane');
+
+                    // 4. Activate Child
+                    var childTrigger = document.getElementById('tab-' + tab + '-tab');
+                    var childPane = document.getElementById('tab-' + tab);
+                    if (childTrigger) childTrigger.classList.add('active');
+                    if (childPane) childPane.classList.add('show', 'active');
+
+                } else {
+                    // Standard top-level tab
+                    var paneId = 'tab-' + tab;
+                    var triggerId = paneId + '-tab';
+                    var trigger = document.getElementById(triggerId);
+                    var pane = document.getElementById(paneId);
+
+                    if (trigger && pane) {
+                        deactivateAll('#groupConfigTabs .nav-link', '#gp_promptsFields > .tab-pane');
+                        trigger.classList.add('active');
+                        pane.classList.add('show', 'active');
+                    }
+                }
+            } catch (e) { console.error(e); }
+        })();
+
+        // Async Form Handling
+        (function () {
+            var forms = document.querySelectorAll('form[data-async="true"]');
+            function showAlert(alertId, kind, message) {
+                var targetId = alertId || 'groupConfigAlert';
+                var alertBox = document.getElementById(targetId);
+                if (!alertBox) return;
+                alertBox.className = 'alert alert-' + kind + ' alert-dismissible fade show';
+                alertBox.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                alertBox.classList.remove('d-none');
+            }
+
+            forms.forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var fd = new FormData(form);
+                    var alertId = form.getAttribute('data-alert-id') || 'groupConfigAlert';
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).then(function (resp) {
+                        if (resp.ok) {
+                            var msg = form.getAttribute('data-success') || 'Gespeichert.';
+                            showAlert(alertId, 'success', msg);
+                        } else {
+                            showAlert(alertId, 'danger', 'Fehler beim Speichern.');
+                        }
+                    }).catch(function () {
+                        showAlert(alertId, 'danger', 'Netzwerkfehler.');
+                    });
+                });
+            });
+        })();
+
+        // Persist Konfiguration accordion open/close state per group in localStorage
+        (function () {
+            var collapseEl = document.getElementById('groupConfigCollapse');
+            var toggleBtn = document.querySelector('.config-toggle[data-bs-target="#groupConfigCollapse"]');
+            if (!collapseEl || !toggleBtn || typeof window === 'undefined') return;
+
+            var storageKey = 'pc_group_config_open_@Model.Id';
+
+            function readStoredState() {
+                try {
+                    var v = localStorage.getItem(storageKey);
+                    if (v === '0') return false;
+                    if (v === '1') return true;
+                } catch (_) { }
+                // Default: start open (matches markup "collapse show")
+                return true;
+            }
+
+            function saveState(isOpen) {
+                try { localStorage.setItem(storageKey, isOpen ? '1' : '0'); } catch (_) { }
+                toggleBtn.classList.toggle('open', isOpen);
+                toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+
+            // If Bootstrap collapse is available, use it to control the element
+            var bsCollapse = (window.bootstrap && window.bootstrap.Collapse)
+                ? window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false })
+                : null;
+
+            var shouldBeOpen = readStoredState();
+            if (bsCollapse) {
+                if (shouldBeOpen) {
+                    bsCollapse.show();
+                } else {
+                    bsCollapse.hide();
+                }
+            } else {
+                // Fallback: toggle class directly
+                collapseEl.classList.toggle('show', shouldBeOpen);
+            }
+            saveState(shouldBeOpen);
+
+            collapseEl.addEventListener('shown.bs.collapse', function () { saveState(true); });
+            collapseEl.addEventListener('hidden.bs.collapse', function () { saveState(false); });
+        })();
+
+        // Create invite code (normal or Dozent) via hidden POST form
+        function createInviteCode(isDozent, dozentOwner) {
+            var form = document.createElement('form');
+            form.method = 'post';
+            form.action = '@Url.Action("CreateInviteCode", "Groups", new { area = "Admin", id = Model.Id })';
+
+            var tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '__RequestVerificationToken';
+            var tokenField = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tokenField) {
+                tokenInput.value = tokenField.value;
+            }
+            form.appendChild(tokenInput);
+
+            var isDozentInput = document.createElement('input');
+            isDozentInput.type = 'hidden';
+            isDozentInput.name = 'isDozent';
+            isDozentInput.value = isDozent ? 'true' : 'false';
+            form.appendChild(isDozentInput);
+
+            var ownerInput = document.createElement('input');
+            ownerInput.type = 'hidden';
+            ownerInput.name = 'dozentOwner';
+            ownerInput.value = dozentOwner ? 'true' : 'false';
+            form.appendChild(ownerInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Confirm delete group (uses SweetAlert2 when available)
+        function confirmDeleteGroup(groupName) {
+            var form = document.getElementById('groupDeleteForm');
+            if (!form) return;
+
+            if (typeof Swal === 'undefined' || !Swal.fire) {
+                if (confirm('Möchten Sie den Raum "' + groupName + '" wirklich löschen? Alle Mitglieder, die nur zu diesem Raum gehören, werden ebenfalls gelöscht.')) {
+                    form.submit();
+                }
+                return;
+            }
+
+            Swal.fire({
+                title: 'Raum löschen?',
+                html: 'Möchten Sie den Raum <b>' + groupName + '</b> wirklich löschen?<br/>Alle Mitglieder, die nur zu diesem Raum gehören, werden ebenfalls gelöscht.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ja, Raum löschen',
+                cancelButtonText: 'Abbrechen',
+                confirmButtonColor: '#d33'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        // Role change confirmation using SweetAlert2
+        (function () {
+            var selects = document.querySelectorAll('.role-change-select');
+            if (!selects || selects.length === 0) return;
+
+            function syncRoleDropdownFromSelect(selectEl, form) {
+                if (!selectEl || !form) return;
+                var dd = form.querySelector('.role-dropdown');
+                if (!dd) return;
+
+                var labelEl = dd.querySelector('.role-dropdown-label');
+                var dotEl = dd.querySelector('.role-dot');
+                var value = selectEl.value;
+
+                var activeOpt = null;
+                var options = dd.querySelectorAll('.role-option');
+                options.forEach(function (opt) {
+                    if (opt.getAttribute('data-role-value') === value) {
+                        activeOpt = opt;
+                    }
+                });
+
+                // reset active markers
+                options.forEach(function (opt) {
+                    opt.classList.remove('active');
+                });
+
+                if (activeOpt) {
+                    activeOpt.classList.add('active');
+                    var label = activeOpt.getAttribute('data-role-label') || activeOpt.textContent.trim();
+                    var colorKey = activeOpt.getAttribute('data-role-color') || 'secondary';
+
+                    if (labelEl) {
+                        labelEl.textContent = label;
+                    }
+                    if (dotEl) {
+                        dotEl.classList.remove('role-dot-danger', 'role-dot-warning', 'role-dot-primary', 'role-dot-info', 'role-dot-secondary');
+                        dotEl.classList.add('role-dot-' + colorKey);
+                    }
+                }
+            }
+
+            selects.forEach(function (sel) {
+                // remember original value so we can revert on cancel
+                sel.setAttribute('data-original', sel.value);
+
+                sel.addEventListener('change', function (e) {
+                    var selectEl = e.target;
+                    var form = selectEl.closest('form');
+                    if (!form) return;
+
+                    // If SweetAlert2 is missing, fall back to immediate async submit
+                    if (typeof Swal === 'undefined' || !Swal.fire) {
+                        var evt = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(evt);
+                        return;
+                    }
+
+                    var email = selectEl.getAttribute('data-email') || '';
+                    var newRole = selectEl.options[selectEl.selectedIndex]?.text || '';
+                    var oldValue = selectEl.getAttribute('data-original') || '';
+
+                    Swal.fire({
+                        title: 'Rolle ändern?',
+                        html: email
+                            ? 'Soll die Rolle von <b>' + email + '</b> zu <b>' + newRole + '</b> geändert werden?'
+                            : 'Soll die Rolle wirklich zu <b>' + newRole + '</b> geändert werden?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ja, ändern',
+                        cancelButtonText: 'Abbrechen'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            // trigger async submit handler
+                            var evt = new Event('submit', { bubbles: true, cancelable: true });
+                            form.dispatchEvent(evt);
+                            // update original value to new value after confirmed
+                            selectEl.setAttribute('data-original', selectEl.value);
+                            syncRoleDropdownFromSelect(selectEl, form);
+                        } else {
+                            // revert selection
+                            if (oldValue) {
+                                selectEl.value = oldValue;
+                            }
+                            syncRoleDropdownFromSelect(selectEl, form);
+                        }
+                    });
+                });
+            });
+        })();
+
+        // Custom role dropdown -> drive hidden native select + reuse SweetAlert flow
+        (function () {
+            var dropdowns = document.querySelectorAll('.role-dropdown');
+            if (!dropdowns || dropdowns.length === 0) return;
+
+            dropdowns.forEach(function (dd) {
+                var form = dd.closest('form');
+                if (!form) return;
+
+                var select = form.querySelector('.role-native-select');
+                if (!select) return;
+
+                var toggle = dd.querySelector('.role-dropdown-toggle');
+                var labelEl = dd.querySelector('.role-dropdown-label');
+                var dotEl = dd.querySelector('.role-dot');
+
+                dd.querySelectorAll('.role-option').forEach(function (opt) {
+                    opt.addEventListener('click', function (e) {
+                        e.preventDefault();
+
+                        var value = opt.getAttribute('data-role-value');
+                        if (!value) return;
+
+                        // If already selected, just close the dropdown
+                        if (select.value === value) {
+                            try {
+                                if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown && toggle) {
+                                    var inst = bootstrap.Dropdown.getInstance(toggle) || new bootstrap.Dropdown(toggle);
+                                    inst.hide();
+                                }
+                            } catch { }
+                            return;
+                        }
+
+                        var label = opt.getAttribute('data-role-label') || opt.textContent.trim();
+                        var colorKey = opt.getAttribute('data-role-color') || 'secondary';
+
+                        // Update native select and trigger change -> SweetAlert + async submit
+                        select.value = value;
+                        var changeEvt = new Event('change', { bubbles: true, cancelable: true });
+                        select.dispatchEvent(changeEvt);
+
+                        // Update pill UI to reflect new selection
+                        if (labelEl) {
+                            labelEl.textContent = label;
+                        }
+                        if (dotEl) {
+                            dotEl.classList.remove('role-dot-danger', 'role-dot-warning', 'role-dot-primary', 'role-dot-info', 'role-dot-secondary');
+                            dotEl.classList.add('role-dot-' + colorKey);
+                        }
+
+                        // Update active marker inside menu
+                        dd.querySelectorAll('.role-option').forEach(function (btn) {
+                            btn.classList.remove('active');
+                        });
+                        opt.classList.add('active');
+
+                        // Close Bootstrap dropdown
+                        try {
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown && toggle) {
+                                var instance = bootstrap.Dropdown.getInstance(toggle) || new bootstrap.Dropdown(toggle);
+                                instance.hide();
+                            }
+                        } catch { }
+                    });
+                });
+            });
+        })();
+
+        // Modal Helpers
+        function openResetPasswordModal(email) {
+            var modalEl = document.getElementById('resetPasswordModal');
+            var modal = new bootstrap.Modal(modalEl);
+            document.getElementById('resetPasswordEmail').value = email;
+            document.getElementById('resetPasswordEmailDisplay').value = email;
+            modal.show();
+        }
+
+        function openEditInviteCodeModal(button) {
+            var modalEl = document.getElementById('editInviteCodeModal');
+            var modal = new bootstrap.Modal(modalEl);
+
+            document.getElementById('editInviteCodeId').value = button.getAttribute('data-code-id');
+            document.getElementById('editInviteCodeCode').value = button.getAttribute('data-code') || '';
+            document.getElementById('editInviteCodeNote').value = button.getAttribute('data-note') || '';
+            document.getElementById('editInviteCodeIsActive').checked = button.getAttribute('data-is-active') === 'true';
+
+            modal.show();
+        }
+
+        // Mitglieder: SweetAlert2 confirmation for removing membership and deleting user
+        (function () {
+            // Remove membership (only from this group)
+            document.querySelectorAll('.js-remove-membership').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var form = btn.closest('form');
+                    if (!form) return;
+
+                    var email = btn.getAttribute('data-user-email') || '';
+
+                    // Fallback if SweetAlert2 is not available
+                    if (typeof Swal === 'undefined' || !Swal.fire) {
+                        if (confirm(email ? ('Benutzer ' + email + ' nur aus diesem Raum entfernen?') : 'Benutzer nur aus diesem Raum entfernen?')) {
+                            form.submit();
+                        }
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: 'Nur aus diesem Raum entfernen?',
+                        html: email
+                            ? 'Soll <b>' + email + '</b> nur aus diesem Raum entfernt werden?\n<br/>Das Benutzerkonto bleibt bestehen.'
+                            : 'Soll der Benutzer nur aus diesem Raum entfernt werden? Das Benutzerkonto bleibt bestehen.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ja, entfernen',
+                        cancelButtonText: 'Abbrechen'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        })();
+
+        // Mitglieder: Alphabet filter (A–Z)
+        (function () {
+            var nav = document.getElementById('alphaNavMembers');
+            var table = document.getElementById('groupMembersTable');
+            if (!nav || !table) return;
+
+            var buttons = Array.from(nav.querySelectorAll('.pill'));
+            var rows = Array.from(table.querySelectorAll('tbody tr.member-row'));
+
+            function setActive(btn) {
+                buttons.forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+            }
+
+            function applyFilter(alpha) {
+                var a = (alpha || 'all').toString();
+                rows.forEach(function (row) {
+                    var ra = (row.getAttribute('data-alpha') || '').toString();
+                    var ok = true;
+                    if (a === 'all') ok = true;
+                    else if (a === '0-9') ok = ra === '0-9';
+                    else ok = ra === a;
+                    row.classList.toggle('d-none', !ok);
+                });
+            }
+
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var alpha = btn.getAttribute('data-alpha') || 'all';
+                    setActive(btn);
+                    applyFilter(alpha);
+                });
+            });
+
+            // default
+            applyFilter('all');
+        })();
+
+        // Global Toggle Sync
+        (function () {
+            var toggles = document.querySelectorAll('.gp-use-global-sync');
+            var fields = document.getElementById('gp_promptsFields');
+            var hiddenFilter = document.getElementById('gp_useGlobal_hidden_filter');
+            var toggleForm = document.getElementById('gp_toggleModeForm');
+            var toggleInput = document.getElementById('gp_toggleUseGlobal');
+
+            if (!fields || toggles.length === 0) return;
+
+            function setUseGlobal(on) {
+                if (hiddenFilter) hiddenFilter.value = on ? 'true' : 'false';
+
+                // Sync all toggles
+                toggles.forEach(function(t) {
+                    t.checked = on;
+                });
+
+                // Hide/Show local fields containers
+                var containers = fields.querySelectorAll('.local-fields-container');
+                containers.forEach(function(c) {
+                    c.style.display = on ? 'none' : 'block';
+                });
+            }
+
+            // Initial state based on the first toggle found (they should all be same from server)
+            setUseGlobal(toggles[0].checked);
+
+            toggles.forEach(function(sw) {
+                sw.addEventListener('change', function () {
+                    var on = sw.checked;
+                    setUseGlobal(on);
+                    if (toggleInput) toggleInput.value = on ? 'true' : 'false';
+                    if (toggleForm) {
+                        var evt = new Event('submit', { bubbles: true, cancelable: true });
+                        toggleForm.dispatchEvent(evt);
+                    }
+                });
+            });
+        })();
+
+        // Config collapse chevron rotation
+        (function () {
+            var collapseEl = document.getElementById('groupConfigCollapse');
+            var toggleBtn = document.querySelector('.config-toggle[data-bs-target="#groupConfigCollapse"]');
+            if (!collapseEl || !toggleBtn) return;
+
+            var onShow = function () {
+                toggleBtn.classList.add('open');
+            };
+            var onHide = function () {
+                toggleBtn.classList.remove('open');
+            };
+
+            // Bootstrap 5 events (if available)
+            collapseEl.addEventListener('show.bs.collapse', onShow);
+            collapseEl.addEventListener('hide.bs.collapse', onHide);
+
+            // Fallback: toggle class on click so the chevron always rotates
+            toggleBtn.addEventListener('click', function () {
+                toggleBtn.classList.toggle('open');
+            });
+
+            // Initial state (in case it's not the default 'show')
+            if (collapseEl.classList.contains('show')) {
+                toggleBtn.classList.add('open');
+            }
+        })();
+
+        (function () {
+            var collapseEl = document.getElementById('groupAnalyticsCollapse');
+            var toggleBtn = document.querySelector('.config-toggle[data-bs-target="#groupAnalyticsCollapse"]');
+            if (!collapseEl || !toggleBtn || typeof window === 'undefined') return;
+
+            var storageKey = 'pc_group_analytics_open_@Model.Id';
+
+            function readStoredState() {
+                try {
+                    var v = localStorage.getItem(storageKey);
+                    if (v === '0') return false;
+                    if (v === '1') return true;
+                } catch (_) { }
+                return true;
+            }
+
+            function saveState(isOpen) {
+                try { localStorage.setItem(storageKey, isOpen ? '1' : '0'); } catch (_) { }
+                toggleBtn.classList.toggle('open', isOpen);
+                toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+
+            var bsCollapse = (window.bootstrap && window.bootstrap.Collapse)
+                ? window.bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false })
+                : null;
+
+            var shouldBeOpen = readStoredState();
+            if (bsCollapse) {
+                if (shouldBeOpen) {
+                    bsCollapse.show();
+                } else {
+                    bsCollapse.hide();
+                }
+            } else {
+                collapseEl.classList.toggle('show', shouldBeOpen);
+            }
+            saveState(shouldBeOpen);
+
+            collapseEl.addEventListener('shown.bs.collapse', function () { saveState(true); });
+            collapseEl.addEventListener('hidden.bs.collapse', function () { saveState(false); });
+        })();
+
+        (function () {
+            var collapseEl = document.getElementById('groupAnalyticsCollapse');
+            var toggleBtn = document.querySelector('.config-toggle[data-bs-target="#groupAnalyticsCollapse"]');
+            if (!collapseEl || !toggleBtn) return;
+
+            var onShow = function () {
+                toggleBtn.classList.add('open');
+            };
+            var onHide = function () {
+                toggleBtn.classList.remove('open');
+            };
+
+            collapseEl.addEventListener('show.bs.collapse', onShow);
+            collapseEl.addEventListener('hide.bs.collapse', onHide);
+
+            toggleBtn.addEventListener('click', function () {
+                toggleBtn.classList.toggle('open');
+            });
+
+            if (collapseEl.classList.contains('show')) {
+                toggleBtn.classList.add('open');
+            }
+        })();
+    </script>
+}

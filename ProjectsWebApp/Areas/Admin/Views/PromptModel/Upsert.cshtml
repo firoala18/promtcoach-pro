@@ -1,0 +1,113 @@
+﻿@model PromptModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Prompt-Modell-Managment" : "Prompt-Modell-Managment";
+}
+
+<style>
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .form-section {
+        background: #fff;
+        border: 1px solid #e4e4e4;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        transition: box-shadow .25s,transform .25s;
+    }
+
+        .form-section:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            transform: translateY(-2px);
+        }
+
+    .section-title {
+        color: #333;
+        border-bottom: 1px solid #e4e4e4;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 1.3rem;
+    }
+
+    .form-label {
+        color: #222;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        background: #fff;
+        border: 1px solid #ced4da;
+        color: #222;
+        padding: 10px 15px;
+        border-radius: 6px;
+        transition: all .2s;
+    }
+
+        .form-control:focus {
+            border-color: #4a86e8;
+            box-shadow: 0 0 0 .20rem rgba(74,134,232,.25);
+        }
+
+    .btn-primary {
+        background: #4a86e8;
+        border: 1px solid #4a86e8;
+        color: #fff;
+        padding: 10px 25px;
+        font-weight: 500;
+        transition: transform .2s,box-shadow .2s;
+    }
+
+        .btn-primary:hover {
+            background: #3b74d4;
+            border-color: #3b74d4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(74,134,232,.3);
+        }
+
+
+    
+</style>
+
+<div class="mt-4">
+    <h2 class="mb-4 ">Prompt-Modell  @(Model.Id == 0 ? "hinzufügen" : " bearbeiten") </h2>
+
+    <div class="form-section">
+        <h3 class="section-title">
+            @(Model.Id == 0 ? "Prompt-Modell" : "Prompt-Modell")
+        </h3>
+
+        <form method="post" autocomplete="off">
+            <input type="hidden" asp-for="Id" />
+
+            <div class="mb-4">
+                <label asp-for="Titel" class="form-label"></label>
+                <input asp-for="Titel" class="form-control" placeholder="Titel des Modells" autofocus />
+                <span asp-validation-for="Titel" class="text-danger"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="RedirectUrl" class="form-label"></label>
+                <input asp-for="RedirectUrl" class="form-control" placeholder="https://…" />
+                <span asp-validation-for="RedirectUrl" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4 gap-2">
+                <a asp-action="Index" class="btn btn-secondary">
+                     Abbrechen
+                </a>
+                <button type="submit" class="btn " style="background:black; color:white">
+                    <i class="bi bi-check-lg me-1"></i> Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

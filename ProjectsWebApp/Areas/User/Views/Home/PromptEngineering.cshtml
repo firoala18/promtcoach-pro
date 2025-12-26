@@ -1,0 +1,407 @@
+@using ProjectsWebApp.Models.ViewModels
+@model LandingPageVM
+@{
+    ViewData["Title"] = "Prompt Engineering";
+}
+
+<style>
+    /* ───── Design Tokens ───────────────────────────── */
+    :root {
+        --clr-bg: #191919;
+        --clr-card: #2e2e2e;
+        --clr-card-glass: rgba(46,46,46,.65);
+        --clr-secondary: #6B6B6B;
+        --clr-muted: #9A9A9A;
+        --clr-text: #DEDEDE;
+        --clr-accent: #3acc59;
+        --radius: 1rem;
+        --shadow: 0 1rem 2rem rgba(0,0,0,.4);
+        --blur: 20px;
+    }
+
+    * {
+        box-sizing: border-box
+    }
+
+    html, body {
+        height: 100%
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Segoe UI',system-ui,-apple-system,sans-serif;
+        /*    background: var(--clr-bg); */
+        color: var(--clr-text);
+        line-height: 1.5;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #fff;
+        font-weight: 700
+    }
+
+    a {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    /* ───── Hero ────────────────────────────────────── */
+    .hero {
+        position: relative;
+        isolation: isolate; /* creates new stacking context */
+        min-height: 30vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 1rem 6rem;
+        border-radius: 50px;
+        margin-bottom: 70px;
+    }
+
+    .hero-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        /* filter: brightness(.35) saturate(.9); */
+        z-index: -2;
+        border-radius: 50px;
+    }
+
+    .hero::before { /* angled overlay */
+        content: "";
+        position: absolute;
+        inset: 0;
+        /*  background: linear-gradient(135deg,transparent 0%,rgba(0,0,0,.65) 70%); */
+        z-index: -1;
+    }
+
+    .hero-content {
+        text-align: center;
+        width: 100%;
+        padding-inline: 1rem;
+        animation: fadeSlide .8s ease-out;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.5rem,6vw,4rem);
+        line-height: 1.1;
+        background: linear-gradient(90deg,var(--clr-muted) 0%,#fff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .hero .lead {
+        font-size: 1.325rem;
+        color: var(--clr-text);
+        text-shadow: 0 0 .5rem #000;
+    }
+
+    /* ───── Modes grid ───────────────────────────────── */
+    .modes {
+        background: var(--clr-card);
+        /* ↓ smaller top / bottom paddings */
+        padding: 2.8rem 0 0rem;
+        border-top-left-radius: 3rem;
+        border-top-right-radius: 3rem;
+        border-radius: 50px;
+        /* max-height removed – section now grows just as tall as the cards */
+    }
+
+        .modes h2 {
+            margin-bottom: 3rem;
+        }
+
+    .mode-card {
+        position: relative;
+        display: block;
+        border-radius: var(--radius);
+        overflow: hidden;
+        /* box-shadow: var(--shadow); */
+        transition: transform .4s cubic-bezier(.25,.8,.25,1);
+        height: auto; /* kill 250px */
+        aspect-ratio: 5 / 3; /* Desktop ~60% Höhe der Breite */
+        max-height: 220px; /* Hard cap, falls sehr breite Screens */
+    }
+
+        .mode-card:hover {
+            transform: translateY(-6px);
+        }
+
+        .mode-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .6s ease;
+        }
+
+        .mode-card:hover img {
+            transform: scale(1.08);
+        }
+
+        .mode-card::after { /* glass layer for label */
+            content: "";
+            position: absolute;
+            inset: 0;
+            /* background: linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.75) 100%); */
+            pointer-events: none;
+        }
+
+    .mode-label {
+        position: absolute;
+        bottom: 1.2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: .55rem 1.5rem;
+        background: var(--clr-card-glass);
+        backdrop-filter: blur(var(--blur));
+        border: 1px solid rgba(255,255,255,.1);
+        border-radius: 2rem;
+        font-weight: 600;
+        letter-spacing: .2px;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        transition: background .3s,border-color .3s;
+    }
+
+    .mode-card:hover .mode-label {
+        background: #d4d4d4;
+        border-color: transparent;
+        color: #101010;
+    }
+
+    /* ───── Features ─────────────────────────────────── */
+    .features {
+        padding: 5rem 0 6rem;
+    }
+
+    .feature-card {
+        background: #393939;
+        backdrop-filter: blur(var(--blur));
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 2.25rem 1.75rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: transform .35s,box-shadow .35s,border .35s;
+    }
+
+        .feature-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 1.5rem 2.5rem rgba(0,0,0,.6);
+            border-color: rgba(255,255,255,.13);
+        }
+
+    .feature-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.05);
+        display: grid;
+        place-items: center;
+        margin-inline: auto;
+        margin-bottom: 1rem;
+        font-size: 2rem;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        margin-bottom: .6rem;
+        color: #fff;
+    }
+
+    .feature-desc {
+        color: white;
+        font-size: 1rem;
+    }
+
+    /* ───── Animations ───────────────────────────────── */
+    @@keyframes fadeSlide {
+        0% {
+            opacity: 0;
+            transform: translateY(26px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    @@media (max-width:767px) {
+        .mode-card {
+            height: 220px;
+        }
+
+        .features {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+        .hero {
+            border-radius: 32px;
+            margin-bottom: 48px;
+        }
+
+        .modes {
+            padding: 3.5rem 0 5rem;
+            border-radius: 32px;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .hero {
+            border-radius: 20px;
+            padding: 2.5rem 1rem 3.5rem;
+        }
+
+        .mode-label {
+            font-size: .85rem;
+            padding: .4rem 1rem;
+        }
+
+        .feature-card {
+            padding: 1.75rem 1.25rem;
+        }
+    }
+
+    /* ===== Mode-Label responsive verkleinern ===== */
+    .mode-label {
+        font-size: clamp(.7rem, 2.2vw, .95rem);
+        padding: .74rem 1rem;
+        line-height: 1.05;
+        white-space: nowrap; /* verhindert Zeilenumbruch */
+        gap: .25rem;
+    }
+
+    /* Karte selbst: keine feste Höhe, damit das Label Platz hat */
+    .mode-card {
+        aspect-ratio: 16 / 9; /* responsive Höhe */
+        height: auto;
+    }
+
+    /* Tablet (≤ 992px) – noch etwas kleiner */
+    @@media (max-width: 992px) {
+        .mode-label {
+            font-size: .8rem;
+            padding: .3rem .85rem;
+            bottom: .75rem;
+        }
+
+            .mode-label i {
+                font-size: 1rem;
+            }
+    }
+
+    /* Mobile (≤ 576px) – extra kompakt */
+    @@media (max-width: 576px) {
+        .mode-label {
+            font-size: .72rem;
+            padding: .28rem .7rem;
+            bottom: .6rem;
+            max-width: 85%; /* falls Text sehr lang ist */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+            .mode-label i {
+                display: none; /* optional: Icon ausblenden */
+            }
+    }
+</style>
+
+<!-- ────────── HERO ────────── -->
+@{
+    var baseSeg = (Context.Request.PathBase.Value ?? string.Empty).Trim('/');
+    var _bgRaw = Model.Hero?.BackgroundUrl ?? string.Empty;
+    var s = _bgRaw.Replace("\\", "/");
+    if (s.StartsWith("~/")) s = s.Substring(2);
+    else if (s.StartsWith("/")) s = s.Substring(1);
+    if (!string.IsNullOrEmpty(baseSeg))
+    {
+        var with = baseSeg + "/";
+        if (s.StartsWith(with, StringComparison.OrdinalIgnoreCase)) s = s.Substring(with.Length);
+    }
+    var heroSrc = Url.Content("~/" + s);
+}
+<section class="hero">
+    <img class="hero-bg" src="@heroSrc" alt="" />
+    <div class="hero-content">
+        <h1>@Model.Hero.Title</h1>
+        <p class="lead">@Html.Raw(Model.Hero.Lead)</p>
+    </div>
+</section>
+
+<!-- ────────── MODES ───────── -->
+<section class="modes">
+    <div class="container">
+        <h2 class="text-center fw-bold">Prompt-Arten – Übersicht & Auswahl</h2>
+        <div class="row g-4 mt-4">
+            @foreach (var m in Model.Modes)
+            {
+                <div class="col-12 col-sm-6 col-lg-4">
+                    @{
+                        var baseSeg2 = baseSeg;
+                        var _pRaw = m.ImageUrl ?? string.Empty;
+                        var t = _pRaw.Replace("\\", "/");
+
+                        // Handle case where ImageUrl is just a filename (no path)
+                        if (!string.IsNullOrEmpty(t) && !t.StartsWith("/") && !t.StartsWith("~") && !t.StartsWith("http") && !t.Contains("/"))
+                        {
+                            t = "images/uploads/" + t;
+                        }
+
+                        if (t.StartsWith("~/")) t = t.Substring(2);
+                        else if (t.StartsWith("/")) t = t.Substring(1);
+                        if (!string.IsNullOrEmpty(baseSeg2))
+                        {
+                            var with2 = baseSeg2 + "/";
+                            if (t.StartsWith(with2, StringComparison.OrdinalIgnoreCase)) t = t.Substring(with2.Length);
+                        }
+                        if (string.IsNullOrWhiteSpace(t) || t.EndsWith("prompt-type-placeholder.png", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Fallback to a built-in image when no custom prompt type image is configured
+                            t = "PromptCoach-final.svg";
+                        }
+                        var modeImgSrc = Url.Content("~/" + t);
+                    }
+                    <a class="mode-card"
+                       asp-controller="Home"
+                       asp-action="PromptAssistent"
+                       asp-route-type="@m.RouteType">
+                        <img src="@modeImgSrc" alt="@m.Title" />
+                        <span class="mode-label">
+                            <i class="@m.IconClass"></i> @m.Title
+                        </span>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ───────── FEATURES ──────── -->
+<section class="features">
+    <div class="container">
+        <div class="row g-4">
+            @foreach (var f in Model.Features)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="@f.IconClass"></i></div>
+                        <div class="feature-title">@f.Title</div>
+                        <div class="feature-desc">@Html.Raw(f.Description)</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>

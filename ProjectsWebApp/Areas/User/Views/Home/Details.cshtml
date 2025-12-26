@@ -1,0 +1,1251 @@
+﻿@model ProjectsWebApp.Models.Project
+
+<style>
+    /* ======================
+           Main Container
+        ====================== */
+    .details-container {
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ======================
+           Header Section
+        ====================== */
+    .details-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+        .details-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #343a40;
+            margin-bottom: 0.5rem;
+        }
+
+        .details-header p {
+            font-size: 1rem;
+            color: #6c757d;
+            margin: 0;
+        }
+
+    /* ======================
+           Carousel
+        ====================== */
+    .carousel-inner img {
+        width: 100%;
+        height: auto;
+        max-height: 500px;
+        object-fit: contain;
+        border-radius: 10px;
+    }
+
+    .thumbnail-container {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 1rem;
+    }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+        width: auto;
+        height: auto;
+        background: none;
+        border: none;
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        width: 40px;
+        height: 40px;
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+    }
+
+        .carousel-control-prev-icon:hover,
+        .carousel-control-next-icon:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+    .carousel-control-prev,
+    .carousel-control-next {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+    }
+
+    .thumbnail {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        overflow: hidden;
+        cursor: pointer;
+        background-color: #000;
+        transition: border-color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .thumbnail:hover {
+            border-color: #90bc14; /* On hover: green border */
+        }
+
+        .thumbnail img,
+        .thumbnail video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .play-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 2rem;
+        pointer-events: none;
+    }
+
+    /* ======================
+           Tags
+        ====================== */
+    .tag-badge {
+        background-color: #90bc14 !important; /* same website green */
+        color: #fff !important;
+        font-size: 0.9rem;
+        margin-right: 0.4rem;
+        margin-bottom: 0.4rem;
+        border-radius: 4px;
+        padding: 0.4rem 0.6rem;
+        display: inline-block;
+    }
+
+    /* ======================
+           Fancy Cards
+        ====================== */
+    .fancy-card {
+        margin-bottom: 2rem;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        background-color: #ffffff;
+    }
+
+    .fancy-card-header {
+        background-color: #90bc14;
+        color: #ffffff;
+        padding: 1rem 1.5rem;
+    }
+
+        .fancy-card-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+            .fancy-card-header h3 i {
+                margin-right: 8px;
+                font-size: 1.3rem;
+            }
+
+    .fancy-card-body {
+        padding: 1rem 1.5rem;
+        font-size: 16px;
+    }
+
+    .vertical-props-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+        .vertical-props-list li {
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+            .vertical-props-list li strong {
+                font-weight: 600;
+                margin-right: 0.25rem;
+            }
+
+    .fancy-hidden-content {
+        /* Remove display:none */
+        /* Instead, animate from 0 to auto height */
+        max-height: 0;
+        overflow: hidden;
+        margin-top: 1rem;
+        transition: max-height 0.4s ease;
+    }
+
+        /* A helper class that indicates "expanded" state. */
+        .fancy-hidden-content.expanded {
+            /* No hard-coded max-height here; we’ll set it dynamically in JS. */
+        }
+
+
+    .fancy-card-footer {
+        background-color: #f6f6f6;
+        padding: 0.75rem 1.5rem;
+        text-align: right;
+    }
+
+    .toggle-link {
+        color: #90bc14;
+        text-decoration: none;
+        font-weight: 600;
+        border: 0;
+        background: transparent;
+        font-size: 0.95rem;
+        cursor: pointer;
+    }
+
+        .toggle-link:hover {
+            text-decoration: underline;
+        }
+
+    /* ======================
+           Sub-Accordion (Fancy)
+           Now with expand/collapse animations
+        ====================== */
+    .fancy-accordion .accordion-item {
+        border: none;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .fancy-accordion .accordion-header {
+        background-color: #f8f8f8;
+        padding: 0;
+    }
+
+    .fancy-accordion .accordion-button {
+        border-radius: 0;
+        background-color: #f8f8f8;
+        color: #333;
+        border: none;
+        box-shadow: none;
+        outline: none;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+        .fancy-accordion .accordion-button.collapsed {
+            border-bottom: 1px solid #eee;
+        }
+
+        .fancy-accordion .accordion-button:hover {
+            background-color: #f2f2f2;
+        }
+        /* When expanded, add a subtle accent or border at the bottom */
+        .fancy-accordion .accordion-button:not(.collapsed) {
+            color: #90bc14;
+            background-color: #fdfdfd;
+            border-bottom: 1px solid #ddd;
+        }
+
+    .fancy-hidden-content p strong {
+        font-weight: 600;
+        color: #444;
+    }
+    /* Animate height during expand/collapse */
+    .fancy-accordion .accordion-collapse {
+        transition: height 0.4s ease;
+    }
+
+    .fancy-accordion .accordion-body {
+        background: #ffffff;
+        padding: 1rem;
+        color: #444;
+    }
+
+    /* ======================
+           Back Button - uses global .btn-zurueck from site.css
+        ====================== */
+
+    @@media (max-width: 576px) {
+        .details-header h2 {
+            font-size: 1.7rem;
+        }
+
+        .details-header p {
+            font-size: 0.9rem;
+        }
+    }
+
+    .btn-custom {
+        padding: 12px 20px; /* Add more padding for a spacious look */
+        font-size: 1rem; /* Standard font size */
+        border-radius: 30px; /* Rounded corners */
+        transition: all 0.3s ease-in-out; /* Smooth transition for hover effects */
+        display: inline-flex;
+        align-items: center; /* Vertically align icon and text */
+        justify-content: center; /* Center text and icon */
+        gap: 10px; /* Space between icon and text */
+    }
+
+        .btn-custom i {
+            font-size: 1.2rem; /* Slightly larger icon size */
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-3px); /* Subtle lift effect on hover */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+        }
+
+    .btn-success {
+        background-color: #90bc14; /* Slightly darker green */
+        color: #fff; /* White text */
+        border: none;
+    }
+
+        .btn-success:hover {
+            background-color: #7ca310; /* Darker green on hover */
+        }
+
+    .btn-outline-primary {
+        color: white; /* Primary blue */
+        border: 2px solid #90bc14; /* Blue border */
+        background-color: #90bc14; /* White background */
+    }
+
+        .btn-outline-primary:hover {
+            background-color: #7ca310; /* Blue background */
+            color: #fff; /* White text */
+            border-color: #7ca310; /* Keep border consistent */
+        }
+
+
+    /* Responsive Adjustments */
+    @@media (max-width: 576px) {
+        .action-buttons {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .download-btn, .share-btn {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    .kurze-beschreibung p, .lange-beschreibung p {
+        line-height: 1.6; /* Adjust for better spacing */
+        margin-bottom: 1rem; /* Add spacing between paragraphs */
+    }
+
+    .lange-beschreibung strong, .kurze-beschreibung strong {
+        font-weight: bold;
+        /* color: #90bc14;  */
+    }
+
+    .lange-beschreibung ul, .kurze-beschreibung ul {
+        margin-left: 20px; /* Indentation for list */
+        list-style-type: disc;
+    }
+
+        .lange-beschreibung ul li, .kurze-beschreibung ul li {
+            margin-bottom: 0.5rem; /* Add spacing between items */
+            color: #343a40; /* Darker text color */
+        }
+
+    .lange-beschreibung-container, .kurze-beschreibung-container {
+        background-color: #f9f9f9; /* Light gray background */
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem; /* Spacing from the next section */
+        border: 1px solid #e0e0e0; /* Optional border */
+    }
+
+    .lange-beschreibung, kurze-beschreibung {
+        font-size: 1rem;
+        color: #555; /* Neutral text color */
+    }
+
+ </style>
+
+<div class="zurueck-container">
+    <a href="@Url.Action("GoBack", "Home", new { area = "User" })" class="btn-zurueck">
+        <i class="bi bi-arrow-left"></i>
+        <span>Zurück</span>
+    </a>
+</div>
+
+<div class="details-container">
+
+    <!-- ======================
+       HEADER
+    ====================== -->
+    <div class="details-header">
+        <h2>@Model.Title</h2>
+        <p>
+            Version: @Model.Version |
+            Erscheinungsjahr: @Model.ReleaseYear |
+            Status:  @Html.Raw(ProjectHelper.GetFormattedStatus(Model.Status.ToString()))
+        </p>
+    </div>
+
+    <!-- ======================
+         CAROUSEL
+    ====================== -->
+    @if ((Model.Images != null && Model.Images.Any()) || (Model.Videos != null && Model.Videos.Any()))
+    {
+
+        // Initialize a slide counter for carousel indicators and items
+        int slideIndex = 0;
+
+        <div id="projectCarousel" class="carousel slide mb-4" data-bs-interval="false">
+            <div class="carousel-indicators">
+                @* First indicators for images *@
+                @if (Model.Images != null && Model.Images.Any())
+                {
+                    @for (int i = 0; i < Model.Images.Count; i++)
+                    {
+                        <button type="button" data-bs-target="#projectCarousel" data-bs-slide-to="@slideIndex" class="@(slideIndex == 0 ? "active" : "")"></button>
+                        slideIndex++;
+                    }
+                }
+                @* Then indicators for videos *@
+                @if (Model.Videos != null && Model.Videos.Any())
+                {
+                    foreach (var video in Model.Videos)
+                    {
+                        <button type="button" data-bs-target="#projectCarousel" data-bs-slide-to="@slideIndex" class="@(slideIndex == 0 ? "active" : "")"></button>
+                        slideIndex++;
+                    }
+                }
+            </div>
+            <div class="carousel-inner">
+                @{
+                    int index = 0;
+                }
+                @if (Model.Images != null && Model.Images.Any())
+                {
+                    for (int i = 0; i < Model.Images.Count; i++)
+                    {
+                        <div class="carousel-item @(index == 0 ? "active" : "")">
+                            <img src="@Url.Content(Model.Images[i].Url)" class="d-block w-100" alt="Project Image @(i + 1)" />
+                        </div>
+                        index++;
+                    }
+                }
+                @if (Model.Videos != null && Model.Videos.Any())
+                {
+                    foreach (var video in Model.Videos)
+                    {
+                        <div class="carousel-item @(index == 0 ? "active" : "")">
+                            <video class="d-block w-100" controls>
+                                <source src="@Url.Content(video.Url)" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        index++;
+                    }
+                }
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#projectCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#projectCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <!-- Thumbnails -->
+        <div class="thumbnail-container">
+            @{
+                int thumbIndex = 0;
+            }
+            @if (Model.Images != null)
+            {
+                foreach (var image in Model.Images)
+                {
+                    <div class="thumbnail" data-index="@thumbIndex" onclick="goToSlide(@thumbIndex)">
+                        <img src="@image.Url" alt="Thumbnail">
+                    </div>
+                    thumbIndex++;
+                }
+            }
+            @if (Model.Videos != null && Model.Videos.Any())
+            {
+                foreach (var video in Model.Videos)
+                {
+                    <div class="thumbnail" data-index="@thumbIndex" onclick="goToSlide(@thumbIndex)">
+                        <video preload="metadata">
+                            <source src="@video.Url" type="video/mp4" />
+                        </video>
+                        <div class="play-icon">
+                            <i class="bi bi-play-circle-fill"></i>
+                        </div>
+                    </div>
+                    thumbIndex++;
+                }
+            }
+        </div>
+
+    }
+
+    @*     <div id="h5p-container" class="mt-5"></div> *@
+
+
+    <!-- ======================
+       TAGS
+    ====================== -->
+    <div class="mb-3 mt-3 text-center">
+        @if (!string.IsNullOrEmpty(Model.Tags))
+        {
+            foreach (var tag in Model.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                <span class="tag-badge">@tag.Trim()</span>
+            }
+        }
+    </div>
+
+    <!-- ======================
+       CARD 1: PROJEKTÜBERSICHT
+    ====================== -->
+    <div class="card fancy-card">
+        <div class="fancy-card-header">
+            <h3>
+                <i class="bi bi-card-list"></i>
+                Projektübersicht
+            </h3>
+        </div>
+        <div class="fancy-card-body">
+            <!-- First four fields in a vertical list -->
+            <ul class="vertical-props-list">
+                @if (!string.IsNullOrEmpty(Model.ProjectAcronym))
+                {
+                    <li>
+                        <strong>Projekt-Akronym:</strong> @Model.ProjectAcronym
+                    </li>
+                }
+                <li>
+                    <strong>Titel:</strong> @Model.Title
+                </li>
+                <div class="kurze-beschreibung-container">
+                    <h6>Kurze Beschreibung:</h6>
+                    <div class="kurze-beschreibung">
+                        @Html.Raw(Model.KurzeBeschreibung)
+                    </div>
+                </div>
+                <li>
+                    @if (!string.IsNullOrWhiteSpace(Model.Url))
+                    {
+                        <p>
+                            <strong>Produktive Webseite:</strong>
+                            <a href="@Model.Url" target="_blank">@Model.Url</a>
+                        </p>
+                    }
+                </li>
+                <li>
+                    @if (!string.IsNullOrEmpty(Model.CategoryIds))
+                    {
+                        <p> <strong>Technologien:</strong> @Model.CategoryIds</p>
+                    }
+                </li>
+                <li>
+                    @if (!string.IsNullOrEmpty(Model.TechAnforderungIds))
+                    {
+                        <p><strong>Technische Anforderungen:</strong> @Model.TechAnforderungIds</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Keine technischen Anforderungen</p>
+                    }
+                </li>
+                <li>
+                    @if (!string.IsNullOrEmpty(Model.FakultaetIds))
+                    {
+                        <p><strong>Organisation:</strong> @Model.FakultaetIds</p>
+                    }
+                </li>
+                <li>
+                    @if (!string.IsNullOrEmpty(Model.FachgruppenIds))
+                    {
+                        <p><strong>Fachgruppen:</strong> @Model.FachgruppenIds</p>
+                    }
+                </li>
+                <li>
+                    <p><strong>Projektverantwortung:</strong> @Model.ProjectResponsibility</p>
+                </li>
+
+            </ul>
+
+            <!-- Additional props behind toggle -->
+            <div class="fancy-hidden-content" id="projektUebersichtMore">
+
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectLeadership))
+                {
+                    <p><strong>Projektleitung:</strong> @Model.ProjectLeadership</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectManagement))
+                {
+                    <p><strong>Projektmanagement:</strong> @Model.ProjectManagement</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Foerderung))
+                {
+                    <p><strong>Förderung:</strong> @Model.Foerderung</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectPartners))
+                {
+                    <p><strong>Projektpartner:</strong> @Model.ProjectPartners</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Netzwerk))
+                {
+                    <p><strong>Netzwerk:</strong> @Model.Netzwerk</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Expertise))
+                {
+                    <p><strong>Expertise:</strong> @Model.Expertise</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectCoordination))
+                {
+                    <p><strong>Projektkoordination:</strong> @Model.ProjectCoordination</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectConception))
+                {
+                    <p><strong>Projektkonzeption:</strong> @Model.ProjectConception</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectSupport))
+                {
+                    <p><strong>Projektbetreuung:</strong> @Model.ProjectSupport</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.ProjectDevelopment))
+                {
+                    <p><strong>Projektentwicklung:</strong> @Model.ProjectDevelopment</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.zusaetzlicheInformationen))
+                {
+                    <p><strong>Zusätzliche Informationen:</strong> @Model.zusaetzlicheInformationen</p>
+                }
+
+                <!-- Sub-Accordion with fancy styling -->
+                <!-- "data-bs-parent" is removed so multiple can stay open -->
+                <div class="accordion fancy-accordion mt-3" id="teamsAccordion">
+
+                    @*    @if (!string.IsNullOrWhiteSpace(Model.Development) ||
+                    !string.IsNullOrWhiteSpace(Model.SoftwareDevelopers) ||
+                    !string.IsNullOrWhiteSpace(Model.Programming)
+                    )
+                    {
+
+                        <!-- Technisches Team -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="technicalTeamHeading">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#technicalTeamCollapse"
+                                        aria-expanded="false"
+                                        aria-controls="technicalTeamCollapse">
+                                    <i class="bi bi-gear me-2"></i>Technisches Team
+                                </button>
+                            </h2>
+                            <div id="technicalTeamCollapse"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="technicalTeamHeading">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Development))
+                                    {
+                                        <p><strong>Entwicklung:</strong> @Model.Development</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.SoftwareDevelopers))
+                                    {
+                                        <p><strong>Softwareentwickler:</strong> @Model.SoftwareDevelopers</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.Programming))
+                                    {
+                                        <p><strong>Programmierung:</strong> @Model.Programming</p>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                   @if (!string.IsNullOrWhiteSpace(Model.Design) ||
+                    !string.IsNullOrWhiteSpace(Model.MediaDesign) ||
+                    !string.IsNullOrWhiteSpace(Model.UXDesign) ||
+                    !string.IsNullOrWhiteSpace(Model.InteractionDesign) ||
+                    !string.IsNullOrWhiteSpace(Model.ThreeDArtist) ||
+                    !string.IsNullOrWhiteSpace(Model.SoundDesign)
+                    )
+                    {
+                        <!-- Kreatives Team -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="creativeTeamHeading">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#creativeTeamCollapse"
+                                        aria-expanded="false"
+                                        aria-controls="creativeTeamCollapse">
+                                    <i class="bi bi-palette me-2"></i>Kreatives Team
+                                </button>
+                            </h2>
+                            <div id="creativeTeamCollapse"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="creativeTeamHeading">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Design))
+                                    {
+                                        <p><strong>Design:</strong> @Model.Design</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.MediaDesign))
+                                    {
+                                        <p><strong>Mediendesign:</strong> @Model.MediaDesign</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.UXDesign))
+                                    {
+                                        <p><strong>UX Design:</strong> @Model.UXDesign</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.InteractionDesign))
+                                    {
+                                        <p><strong>Interaktionsdesign:</strong> @Model.InteractionDesign</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.ThreeDArtist))
+                                    {
+                                        <p><strong>3D-Artist:</strong> @Model.ThreeDArtist</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.SoundDesign))
+                                    {
+                                        <p><strong>SoundDesign:</strong> @Model.SoundDesign</p>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Didactics) ||
+                    !string.IsNullOrWhiteSpace(Model.ContentDevelopment) ||
+                    !string.IsNullOrWhiteSpace(Model.StoryDesign) ||
+                    !string.IsNullOrWhiteSpace(Model.DidacticDesign))
+                    {
+                        <!-- Didaktisches Team -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="didacticTeamHeading">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#didacticTeamCollapse"
+                                        aria-expanded="false"
+                                        aria-controls="didacticTeamCollapse">
+                                    <i class="bi bi-book me-2"></i>Didaktisches Team
+                                </button>
+                            </h2>
+                            <div id="didacticTeamCollapse"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="didacticTeamHeading">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Didactics))
+                                    {
+                                        <p><strong>Didaktik:</strong> @Model.Didactics</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.ContentDevelopment))
+                                    {
+                                        <p><strong>Content Development:</strong> @Model.ContentDevelopment</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.StoryDesign))
+                                    {
+                                        <p><strong>Story Design:</strong> @Model.StoryDesign</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.DidacticDesign))
+                                    {
+                                        <p><strong>Didaktisches Design:</strong> @Model.DidacticDesignTeam</p>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Research) ||
+                    !string.IsNullOrWhiteSpace(Model.Evaluation))
+                    {
+                        <!-- Forschungsteam -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="researchTeamHeading">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#researchTeamCollapse"
+                                        aria-expanded="false"
+                                        aria-controls="researchTeamCollapse">
+                                    <i class="bi bi-search me-2"></i>Forschungsteam
+                                </button>
+                            </h2>
+                            <div id="researchTeamCollapse"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="researchTeamHeading">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Research))
+                                    {
+                                        <p><strong>Forschung:</strong> @Model.ResearchTeam</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.Evaluation))
+                                    {
+                                        <p><strong>Evaluation:</strong> @Model.EvaluationTeam</p>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    } *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Lizenz) ||
+                    !string.IsNullOrWhiteSpace(Model.OpenSource) ||
+                    !string.IsNullOrWhiteSpace(Model.CreativeCommons))
+                    {
+                        <!-- Lizenzierung -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFakultaet">
+                                <button class="accordion-button collapsed"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapseFakultaet"
+                                        aria-expanded="false"
+                                        aria-controls="collapseFakultaet">
+                                    <i class="bi bi-shield-lock me-2"></i>Lizenzierung
+                                </button>
+                            </h2>
+                            <div id="collapseFakultaet"
+                                 class="accordion-collapse collapse"
+                                 aria-labelledby="headingFakultaet">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Lizenz))
+                                    {
+                                        <p><strong>Lizenz:</strong> @Model.Lizenz</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.OpenSource))
+                                    {
+                                        <p><strong>OpenSource:</strong> @Model.OpenSource</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.CreativeCommons))
+                                    {
+                                        <p><strong>Creative Commons:</strong> @Model.CreativeCommons</p>
+                                    }
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <!-- End Sub-Accordion -->
+            </div>
+        </div>
+        <div class="fancy-card-footer">
+            <button class="toggle-link" onclick="toggleContent('projektUebersichtMore', this)">
+                Mehr anzeigen
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================
+       CARD 2: PROJEKTBESCHREIBUNG
+    ====================== -->
+    <div class="card fancy-card">
+        <div class="fancy-card-header">
+            <h3>
+                <i class="bi bi-file-earmark-text-fill"></i>
+                Projektbeschreibung
+            </h3>
+        </div>
+        <div class="fancy-card-body">
+            <ul class="vertical-props-list">
+                <li>
+                    <strong>Kompetenzziele / Future Skills:</strong> @Model.ProjectGoals
+                </li>
+                <li>
+                    @if (!string.IsNullOrWhiteSpace(Model.PrimaryTargetGroup))
+                    {
+                        <strong>Primäre Zielgruppe:</strong> @Model.PrimaryTargetGroup
+                    }
+                </li>
+                <li>
+                    @if (!string.IsNullOrWhiteSpace(Model.TaxonomyLevel))
+                    {
+                        <strong>Höchste Taxonomiestufe:</strong> @Model.TaxonomyLevel
+                    }
+                </li>
+
+                <div class="lange-beschreibung-container">
+                    <h6>Lange Beschreibung:</h6>
+                    <div class="lange-beschreibung">
+                        @Html.Raw(Model.longDescription)
+                    </div>
+                </div>
+                @*  <li>
+                <strong>Lange Beschreibung:</strong> @Model.longDescription
+                </li> *@
+            </ul>
+
+            <div class="fancy-hidden-content" id="projektBeschreibungMore">
+                @if (!string.IsNullOrWhiteSpace(Model.DidacticDesign))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Didaktisches Szenario:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.DidacticDesign)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Methods))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Methoden / Vorgehen:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Methods)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.DidaktischerAnsatz))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Sozialform(en):</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.DidaktischerAnsatz)
+                        </div>
+                    </div>
+                }
+                @* musste gändert sein *@
+                @if (!string.IsNullOrWhiteSpace(Model.Applications))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Raumgestaltung / Lernumgebung:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Applications)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Conception))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Technikeinsatz:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Conception)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Evaluation))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Apps / Tools:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Evaluation)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Research))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Zeitrahmen / Dauer:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Research)
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Erfolgsmessung))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Evaluation / Erfolgsmessung:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Erfolgsmessung)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Materialien))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Zeitrahmen / Dauer:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Materialien)
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Recommendations))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Tipps:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Recommendations)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Documents))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Offenes Feld:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.Documents)
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.zusaetzlicheInformationen))
+                {
+                    <div class="lange-beschreibung-container">
+                        <h6>Offenes Feld:</h6>
+                        <div class="lange-beschreibung">
+                            @Html.Raw(Model.zusaetzlicheInformationen)
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+        </div>
+        <div class="fancy-card-footer">
+            <button class="toggle-link" onclick="toggleContent('projektBeschreibungMore', this)">
+                Mehr anzeigen
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================
+       CARD 3: WEITERFÜHRENDE INFOS
+    ====================== -->
+    @if (!string.IsNullOrWhiteSpace(Model.Documents) || !string.IsNullOrWhiteSpace(Model.References) || !string.IsNullOrWhiteSpace(Model.DokuLink))
+    {
+        <div class="card fancy-card">
+            <div class="fancy-card-header">
+                <h3>
+                    <i class="bi bi-info-circle-fill"></i>
+                    Weiterführende Informationen
+                </h3>
+            </div>
+            <div class="fancy-card-body">
+                <ul class="vertical-props-list">
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(Model.Documents))
+                        {
+                            <div class="lange-beschreibung-container">
+                                <h6>Dokumente:</h6>
+                                <div class="lange-beschreibung">
+                                    @Html.Raw(Model.Documents.Replace("<a ", "<a target='_blank' "))
+                                </div>
+                            </div>
+                        }
+
+                    </li>
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(Model.References))
+                        {
+                            <div class="lange-beschreibung-container">
+                                <h6>Verweise:</h6>
+                                <div class="lange-beschreibung">
+                                    @Html.Raw(Model.References.Replace("<a ", "<a target='_blank' "))
+                                </div>
+                            </div>
+                        }
+                        @*   @if (!string.IsNullOrWhiteSpace(Model.References))
+                    {
+                    <strong> Verweise:</strong>
+
+                    <a href="@Model.References" target="_blank">@Model.References</a>
+
+                    } *@
+                    </li>
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(Model.Media))
+                        {
+                            <div class="lange-beschreibung-container">
+                                <h6>Medien:</h6>
+                                <div class="lange-beschreibung">
+                                    @Html.Raw(Model.Media.Replace("<a ", "<a target='_blank' "))
+                                </div>
+                            </div>
+                        }
+                        @*     @if (!string.IsNullOrWhiteSpace(Model.Media))
+                    {
+                    <strong>Medien:</strong>
+                    <a href="@Model.Media" target="_blank">@Model.Media</a>
+
+                    } *@
+                    </li>
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(Model.DokuLink))
+                        {
+                            <div class="lange-beschreibung-container">
+                                <h6>Dokumentationslink:</h6>
+                                <div class="lange-beschreibung">
+                                    @Html.Raw(Model.DokuLink.Replace("<a ", "<a target='_blank' "))
+                                </div>
+                            </div>
+                        }
+                        @*    @if (!string.IsNullOrWhiteSpace(Model.DokuLink))
+                    {
+                    <strong>Dokumentationslink:</strong>
+                    <a href="@Model.DokuLink" target="_blank">@Model.DokuLink</a>
+                    } *@
+                    </li>
+                </ul>
+                <div class="fancy-hidden-content" id="weiterfuhrendeInfosMore">
+                    @* Add more fields here if needed *@
+                </div>
+            </div>
+
+        </div>
+    }
+    <!-- ======================
+       DOWNLOAD BUTTON
+    ====================== -->
+    <!-- Action Buttons: Download and Share -->
+    <div class="text-center mt-4">
+        @if (!string.IsNullOrWhiteSpace(Model.DownloadURL))
+        {
+            <!-- Download Button -->
+            <a href="@Model.DownloadURL" target="_blank" class="btn btn-success btn-custom">
+                <i class="fas fa-download"></i> Herunterladen
+            </a>
+        }
+
+        <!-- Share Button -->
+        <button class="btn btn-outline-primary btn-custom" onclick="shareProject('@Url.Action("Details", "Home", new { area = "User", id = Model.Id }, protocol: ViewContext.HttpContext.Request.Scheme)')">
+            <i class="fas fa-share-alt"></i> Teilen
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+            // Select all anchor tags within elements having the class 'lange-beschreibung'
+            document.querySelectorAll('.lange-beschreibung a').forEach(function (link) {
+                link.setAttribute('target', '_blank');
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleButtons = document.querySelectorAll(".toggle-link");
+            const hiddenContents = document.querySelectorAll(".fancy-hidden-content");
+
+            hiddenContents.forEach((content, index) => {
+                const btn = toggleButtons[index];
+
+                if (!btn || !content) return;
+
+                // Check if the content exceeds the visible height
+                const contentHeight = content.scrollHeight; // Full height
+                content.style.maxHeight = "0"; // Collapse it initially
+
+                if (contentHeight <= 0) {
+                    // Hide toggle button if there's nothing to expand
+                    btn.style.display = "none";
+                } else {
+                    // Show toggle button only if content is collapsible
+                    btn.style.display = "inline-block";
+                }
+            });
+        });
+
+        function goToSlide(index) {
+            // Get the carousel element by its ID
+            var carouselElement = document.getElementById('projectCarousel');
+
+            // Get the existing Bootstrap Carousel instance; if it doesn't exist, create one.
+            var carousel = bootstrap.Carousel.getInstance(carouselElement);
+            if (!carousel) {
+                carousel = new bootstrap.Carousel(carouselElement);
+            }
+
+            // Use the Bootstrap API to go to the specified slide index.
+            carousel.to(index);
+        }
+
+        /**
+         * Toggles visibility of a content div.
+         * Switches button text between “Mehr anzeigen” and “Weniger anzeigen”.
+         */
+        function toggleContent(contentId, btn) {
+            const content = document.getElementById(contentId);
+            if (!content) return;
+
+            // Check if it's currently expanded
+            if (content.classList.contains("expanded")) {
+                // -- COLLAPSING --
+                // 1) Set current maxHeight to the scrollHeight so it can animate down
+                content.style.maxHeight = content.scrollHeight + "px";
+
+                // 2) Next frame: animate to 0
+                requestAnimationFrame(() => {
+                    content.style.maxHeight = "0";
+                    content.classList.remove("expanded");
+                    btn.innerText = "Mehr anzeigen";
+                });
+            } else {
+                // -- EXPANDING --
+                // 1) Add "expanded" so we know it's open
+                content.classList.add("expanded");
+
+                // 2) Measure the content’s full height and set maxHeight
+                content.style.maxHeight = content.scrollHeight + "px";
+
+                btn.innerText = "Weniger anzeigen";
+
+                // 3) After animation (~0.4s), remove inline maxHeight so it can auto-adjust if content changes
+                setTimeout(() => {
+                    if (content.classList.contains("expanded")) {
+                        content.style.maxHeight = "none";
+                    }
+                }, 600);
+            }
+        }
+
+        function shareProject(link) {
+            if (navigator.share) {
+                // Use native share API for mobile
+                navigator.share({
+                    title: '',
+                    text: 'Ich möchte Sie auf ein spannendes Projekt des Medialabs der Universität Wuppertal hinweisen. 🌟 Weitere Informationen finden Sie unter den Link!',
+                    url: link,
+                }).then(() => {
+                    console.log('Erfolgreich geteilt');
+                }).catch((error) => {
+                    console.error('Fehler beim Teilen:', error);
+                });
+            } else {
+                // Copy link to clipboard for desktop
+                navigator.clipboard.writeText(link).then(() => {
+                    alert('Link wurde in die Zwischenablage kopiert!');
+                }).catch((error) => {
+                    console.error('Fehler beim Kopieren:', error);
+                });
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById("h5p-container");
+
+            if (container) {
+                new H5PStandalone.H5P(container, {
+                    h5pJsonPath: '/h5p-content/test', // change to actual content folder
+                    frameJs: '/lib/h5p/frame.bundle.js',
+                    frameCss: '/lib/h5p/styles/h5p.css',
+                    frame: true,
+                    copyright: true,
+                    icon: true,
+                    export: true,
+                    fullScreen: true,
+                    embed: true,
+                    embedCode: '<iframe src="YOUR_IFRAME_URL" width="800" height="600"></iframe>',
+                });
+            }
+        });
+    </script>
+}

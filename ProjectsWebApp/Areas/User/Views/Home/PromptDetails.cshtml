@@ -1,0 +1,3716 @@
+﻿@model ProjectsWebApp.Models.PromptTemplate
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using System.Net
+@using Microsoft.AspNetCore.Identity
+@inject Microsoft.AspNetCore.Identity.UserManager<IdentityUser> UserManager
+@{
+    var mainFilters = JsonSerializer.Deserialize<List<JsonElement>>(Model.FilterJson ?? "[]")!;
+    var myId = UserManager.GetUserId(User);   // signed-in user
+    var ownerId = Model.UserId;                  // creator of the prompt
+    var mayEdit = User.IsInRole("Admin") || myId == ownerId;
+    var canDownloadPromptPdf = User.IsInRole("Admin") || User.IsInRole("Dozent") || myId == ownerId;
+    var canSharePrompt = (ViewBag.CanSharePrompt as bool?) ?? false;
+    var promptIsShared = (ViewBag.PromptIsShared as bool?) ?? false;
+
+    string gradient = Model.PromptType.ToLower() switch
+    {
+        "bild" => "#393939",
+        "video" => "#393939",
+        "sound" => "#393939",
+        "Akademisch" => "#393939",
+        "meta" => "#393939",
+        _ => "#393939"
+    };
+    var deleteVariationUrl = Url.Action(
+        "DeleteVariation",         // action
+        "PromptTemplate",          // controller
+        new { area = "Admin" })!;  // area
+  
+
+    string iconClass = Model.PromptType.ToLower() switch
+    {
+        "bild" => "bi-image",
+        "video" => "bi-play-btn",
+        "sound" => "bi-volume-up",
+        "Akademisch" => "bi-journal-bookmark",
+        "meta" => "bi-gear",
+        _ => "bi-text-paragraph"
+    };
+
+    /* liefert z.â€¯B.  /promptcoach   oder  "" bei localhost */
+    var basePath = Context.Request.PathBase.Value ?? "";
+
+    /* Modellâ€Pfad bereinigen */
+    var relPath = (Model.GeneratedImagePath ?? "")
+                   .TrimStart('~')   // "~/uploads/â€¦"  â†’  "/uploads/â€¦"
+                   .TrimStart('/'); //  "uploads/â€¦"    â†’  "uploads/â€¦"
+
+    var imgSrc = $"{basePath}/{relPath}";
+
+    // Helper to resolve any image path with proper basePath handling
+    Func<string, string> resolveImagePath = (path) =>
+    {
+        if (string.IsNullOrEmpty(path)) return "";
+        // External URLs - return as-is
+        if (path.StartsWith("http://") || path.StartsWith("https://")) return path;
+        // Clean up the path
+        var cleaned = path.TrimStart('~').TrimStart('/');
+        return $"{basePath}/{cleaned}";
+    };
+
+    var hasImages = Model.PromptImages != null && Model.PromptImages.Any();
+    bool canManageImages = ViewBag.CanManageImages is bool b ? b : mayEdit;
+
+    // Prepare payload for export JSON and inline models
+    var payload = JsonSerializer.Serialize(new
+    {
+        type = Model.PromptType.ToLower(),
+        thema = Model.Thema,
+        ziele = Model.Ziele,
+        beschreibung = Model.Beschreibung,
+        schluesselbegriffe = Model.Schluesselbegriffe,
+        temperatur = Model.Temperatur,
+        maxZeichen = Model.MaxZeichen,
+        promptHtml = Model.PromptHtml,
+        checkedItems = mainFilters.Select(f => new
+        {
+            value = f.GetProperty("value").GetString(),
+            instruction = f.GetProperty("instruction").GetString()
+                                              ?? f.GetProperty("value").GetString()
+        }).ToList()
+    });
+
+    string CleanTag(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return string.Empty;
+        // Remove HTML tags
+        var noTags = Regex.Replace(raw, "<.*?>", string.Empty);
+        // Decode HTML entities like &nbsp; &amp; etc.
+        var decoded = WebUtility.HtmlDecode(noTags);
+        return decoded.Trim();
+    }
+}
+
+<style>
+    :root {
+        --clr-main: #191919;
+        --clr-accent: #89ba17;
+        --radius: 1rem;
+        --shadow: 0 .5rem 1.5rem rgba(0,0,0,.06);
+        --btn-copy-bg: #000;
+        --btn-pdf-bg: #304c3c;
+        --btn-json-bg: #8c5164;
+        --btn-tokens-bg: #89ba17;
+        --btn-models-bg: #89ba17;
+        --btn-bib-bg: #ec5c44;
+        --rail-pad: 2.5rem;
+        --accent: #89ba17;
+    }
+
+    body {
+        background: #ffffff;
+        font-family: Segoe UI, sans-serif;
+        color: #191919;
+    }
+
+    .card-detail {
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 2rem;
+        overflow: visible;
+        background: #ffffff;
+        border: 1px solid #d4d4d4;
+    }
+
+    .icon-lg {
+        font-size: 2rem;
+        color: #fff;
+    }
+
+    .badge-tag {
+        background: #336633;
+        color: white;
+        cursor: pointer;
+        margin: .25rem .25rem 0 0;
+        padding: .3rem .7rem;
+        border-radius: .5rem;
+        display: inline-block;
+        transition: all 0.2s;
+    }
+
+        .badge-tag:hover {
+            background: #89ba17;
+            color: #fff;
+        }
+
+        .badge-tag.active {
+            background: #89ba17;
+            color: #fff;
+        }
+
+    .prompt-box {
+        background: white;
+        border-radius: .5rem;
+        padding: 1rem;
+        font-family: monospace;
+        white-space: pre-wrap;
+        overflow: auto;
+        resize: vertical;
+        min-height: 200px;
+        color: #191919;
+        border: 1px solid #191919;
+    }
+
+    .highlight {
+        background: rgba(27, 187, 57, 0.3);
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+
+    /* Buttons at bottom, PromptEngineering style */
+    .prompt-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+        .prompt-actions .btn {
+            border-radius: .5rem;
+            font-size: .95rem;
+            color: #fff;
+            transition: filter .15s, background .15s;
+            padding: .5rem 1rem;
+            min-width: 140px;
+        }
+
+    .btn-copy {
+        background: #89ba17;
+    }
+
+    .btn-pdf {
+        background: #89ba17;
+    }
+
+    .btn-json {
+        background: var(--btn-json-bg);
+    }
+
+    .btn-tokens {
+        background: var(--btn-tokens-bg);
+    }
+
+    .btn-models {
+        background: var(--btn-models-bg);
+    }
+
+    .btn-Bib {
+        background: var(--btn-bib-bg);
+    }
+
+    .btn-bib {
+        background: #004f72;
+        color: #fff;
+        border: 1px solid #004f72;
+        transition: all .25s;
+        text-decoration: none;
+    }
+
+        .btn-bib:hover {
+            border: 1px solid #7d8791;
+            color: black;
+            background: #f8f9fa;
+            text-decoration: none;
+        }
+
+        .btn-bib:focus {
+            outline: 2px solid #004f72;
+            outline-offset: 2px;
+        }
+
+    .btn-neuPrompt {
+        background: #393939;
+        color: #fff;
+        border: 1px solid #393939;
+        transition: all .25s;
+        text-decoration: none;
+    }
+
+        .btn-neuPrompt:hover {
+            border: 1px solid #7d8791;
+            color: black;
+            background: #f8f9fa;
+            text-decoration: none;
+        }
+
+        .btn-neuPrompt:focus {
+            outline: 2px solid #393939;
+            outline-offset: 2px;
+        }
+
+    .btn-export {
+        background: #ed5d41;
+    }
+
+    .prompt-actions .btn:hover {
+        filter: brightness(1.1);
+        text-decoration: none;
+    }
+
+    /* Inline models panel */
+    #inlineModelsContainer {
+        display: none;
+        margin-top: 1rem;
+    }
+
+    .delete-variation {
+        background: none;
+        border: none;
+        padding: 0; /* avoid stretching circle */
+        margin-left: 0.5rem;
+        color: gray;
+        font-size: 1.25rem;
+        transition: color .2s;
+    }
+
+    .accordion-button {
+        background-color: #f8f8f8;
+    }
+
+    .accordion-item {
+        border: 1px solid #d4d4d4;
+    }
+
+    /* Variationen accordion: more contrast + clear arrow */
+    #variationsAccordion .accordion-item {
+        border-radius: .75rem;
+        border-color: #d1d5db;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, .08);
+        overflow: visible; /* let round action buttons render fully inside the card */
+    }
+
+        #variationsAccordion .accordion-button {
+            background-color: #f1f5f9;
+            color: #111827;
+            font-weight: 500;
+            padding-right: 9rem;
+            position: relative;
+        }
+
+        #variationsAccordion .accordion-header {
+            position: relative;
+        }
+
+        #variationsAccordion .variation-actions {
+            position: absolute;
+            right: 2.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            z-index: 2;
+        }
+
+            #variationsAccordion .accordion-button:not(.collapsed) {
+                background-color: #e2e8f0;
+            }
+
+            #variationsAccordion .accordion-button::after,
+            #variationsAccordion .accordion-button.collapsed::after {
+                /* keep chevron dark and high-contrast on both states */
+                filter: none !important;
+                opacity: .95;
+            }
+
+    /* Spezielles Styling nur fÃ¼r den Bild-Upload-Accordion */
+    #promptImagesAccordion .accordion-button {
+        background-color: #ffffff;
+        color: #222222;
+        font-weight: 500;
+        border-radius: .75rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,.04);
+    }
+
+        #promptImagesAccordion .accordion-button:not(.collapsed) {
+            background-color: #f5f5f5;
+        }
+
+        #promptImagesAccordion .accordion-button::after,
+        #promptImagesAccordion .accordion-button.collapsed::after {
+            filter: none !important; /* Pfeil immer schwarz */
+        }
+
+    #promptImagesAccordion .accordion-item {
+        border-radius: .75rem;
+        overflow: hidden;
+        border-color: #e0e0e0;
+    }
+
+    /* Spezielles Styling fÃ¼r Reflexions-Accordion */
+    #promptReflektionAccordion .accordion-button {
+        background-color: #f8fafc;
+        color: #1e293b;
+        font-weight: 600;
+        border-radius: .75rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,.05);
+        border: 1px solid #cbd5e1;
+    }
+
+        #promptReflektionAccordion .accordion-button:not(.collapsed) {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            border-color: #94a3b8;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        #promptReflektionAccordion .accordion-button::after,
+        #promptReflektionAccordion .accordion-button.collapsed::after {
+            filter: none !important; /* Pfeil immer schwarz */
+        }
+
+    #promptReflektionAccordion .accordion-item {
+        border-radius: .75rem;
+        overflow: hidden;
+        border: 1px solid #cbd5e1;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-body {
+        margin-top: -15px;
+    }
+
+    .card-body {
+        margin-bottom: -15px;
+    }
+
+    .prompt-actions > button:hover {
+        border: 1px solid #7d8791;
+        color: black;
+    }
+
+    /*  #exportDropdown:hover{
+                border: 1px solid #7d8791;
+                color: black;
+            } */
+
+    /* Grundlegendes Styling fÃ¼r den Export-Button */
+    .btn-export {
+        background: #ed5d41; /* z.B. #054d74 */
+        color: #fff;
+        border: 1px solid transparent;
+        transition: background .15s, color .15s, border .15s;
+    }
+
+        /* Hover-Zustand */
+        .btn-export:hover {
+            border: 1px solid #7d8791;
+            color: #000;
+        }
+
+        /* Wenn das Dropdown geÃ¶ffnet ist bzw. der Button aktiv/fokussiert ist */
+        .btn-export:focus,
+        .btn-export:active,
+        .btn-export.show {
+            background: var(--btn-export-bg);
+            color: #000;
+            border: 1px solid #7d8791;
+            box-shadow: none; /* falls Bootstrap hier einen Shadow reinpackt */
+        }
+
+        /* Damit die Pfeil-Raute auch korrekt gefÃ¤rbt bleibt */
+        .btn-export.dropdown-toggle::after {
+            border-top-color: currentColor;
+        }
+
+    .generated-thumb {
+        max-width: 200px; /* gewÃ¼nschte Breite */
+        max-height: 200px; /* gewÃ¼nschte HÃ¶he */
+        object-fit: cover; /* beschneidet, nicht verzerrt */
+        cursor: pointer; /* Hand-Cursor fÃ¼r â€œklickbarâ€ */
+    }
+
+    .edit-variation {
+        background: transparent;
+        border: none;
+        font-size: 1.25rem; /* gleiche GrÃ¶ÃŸe wie editâ€‘/deleteâ€‘btn */
+        color: #828282; /* dezent grau */
+        transition: color .2s;
+        padding: 0; /* circle size controlled by width/height below */
+        line-height: 1;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    /*   .edit-variation:hover {
+                    color: #33cc66; /* leichtes Blau beim Hover */
+    }
+
+    */
+
+    .edit-variation,
+    .delete-variation {
+        /* reset */
+        background: none;
+        border: none;
+        color: inherit;
+    }
+
+
+
+    /* shared base */
+    .edit-variation,
+    .delete-variation {
+        width: 34px;
+        height: 34px;
+        aspect-ratio: 1 / 1;
+        border-radius: 50%;
+        box-sizing: border-box;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        font-size: 1.05rem;
+        line-height: 1;
+        transition: background .18s, box-shadow .18s, transform .18s;
+        box-shadow: 0 2px 6px rgba(0,0,0,.18);
+        border: 1px solid transparent;
+        color: #fff;
+    }
+
+
+    /* individual colors */
+    .edit-variation {
+        background: #336633;
+    }
+    /* blue */
+    .delete-variation {
+        background: red;
+    }
+
+    .accordion-button.collapsed::after {
+        filter: brightness(0) invert(1); /* macht das Bootstrapâ€‘SVG weiss */
+    }
+
+    /* ----------------- Pfeil schwarz (offen) ------------- */
+    .accordion-button:not(.collapsed)::after {
+        filter: none; /* Originalâ€‘SVG bleibt schwarzÂ */
+    }
+
+    .ref-field {
+        background: white;
+    }
+    /* pressed */
+    .edit-variation:active,
+    .delete-variation:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0,0,0,.18) inset;
+    }
+
+    .edit-variation:hover,
+    .delete-variation:hover {
+        transform: translateY(-2px);
+    }
+
+    /* smaller on phones */
+    @@media (max-width:576px) {
+        .edit-variation, .delete-variation {
+            width: 30px;
+            height: 30px;
+            font-size: .9rem;
+        }
+
+        #variationsAccordion .accordion-button {
+            padding-right: 7.5rem;
+        }
+
+        #variationsAccordion .variation-actions {
+            right: .5rem;
+            gap: .35rem;
+        }
+    }
+
+
+    /* dark (danger)        */
+    .edit-btn,
+    .delete-btn,
+    .publish-btn {
+        /* reset old look */
+        background: none;
+        border: none;
+        color: inherit;
+    }
+
+    .edit-btn,
+    .delete-btn,
+    .publish-btn,
+    .btn-share {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        max-width: 40px !important;
+        max-height: 40px !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer;
+        font-size: 1.1rem; /* icon size */
+        line-height: 1;
+        transition: background .18s, box-shadow .18s, transform .18s;
+        box-shadow: 0 2px 6px rgba(0,0,0,.18);
+        border: 1px solid transparent !important;
+        background: #fff;
+        color: #333;
+        padding: 0 !important;
+        aspect-ratio: 1 / 1 !important;
+        box-sizing: border-box !important;
+    }
+
+        .edit-btn:hover,
+        .delete-btn:hover,
+        .publish-btn:hover,
+        .btn-share {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,.22);
+            filter: brightness(1.05);
+        }
+
+
+        .delete-btn:hover {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-share:hover {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+            color: white !important;
+            border: 1px solid gray !important;
+        }
+
+    .btn-share {
+        color: #333 !important;
+    }
+
+    .edit-btn:hover,
+    .publish-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,.22);
+        filter: brightness(1.05);
+        background: #004f72;
+        color: white;
+    }
+
+    .edit-btn:focus-visible,
+    .delete-btn:focus-visible,
+    .publish-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255,255,255,.4), 0 0 0 6px rgba(0,0,0,.25);
+    }
+
+    /* pressed */
+    .edit-btn:active,
+    .delete-btn:active,
+    .publish-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0,0,0,.18) inset;
+    }
+
+    /* dark header contrast tweak (optional) */
+    header .edit-btn,
+    header .delete-btn,
+    header .publish-btn {
+        border-color: rgba(255,255,255,.15);
+    }
+
+    /* smaller on phones */
+    @@media (max-width:576px) {
+        .edit-btn, .delete-btn, .publish-btn, .btn-share {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            max-width: 36px !important;
+            max-height: 36px !important;
+            font-size: 1rem;
+        }
+    }
+
+
+    /* Three-dots menu container */
+    .rail-actions {
+        padding: 0;
+        padding-left: var(--rail-pad);
+        margin: 0 0 1rem 0;
+        display: flex;
+        justify-content: flex-end;
+        gap: .75rem;
+    }
+
+        /* Three-dots menu button - scoped to .rail-actions */
+        .rail-actions .btn-dots-menu {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            color: #333;
+            padding: 0.5rem 0.85rem;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+            .rail-actions .btn-dots-menu:hover {
+                background: #f8f9fa;
+                border-color: #ccc;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            }
+
+            .rail-actions .btn-dots-menu:focus {
+                box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1);
+                outline: none;
+            }
+
+            .rail-actions .btn-dots-menu.show {
+                background: #f0f0f0;
+                border-color: #bbb;
+            }
+
+        /* Dropdown menu styling - scoped to .rail-actions */
+        .rail-actions .dots-dropdown-menu {
+            min-width: 240px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
+            margin-top: 0.5rem !important;
+            position: absolute !important;
+            right: 0 !important;
+            left: auto !important;
+            top: 100% !important;
+            transform: none !important;
+            background: #fff;
+        }
+
+            .rail-actions .dots-dropdown-menu .dropdown-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.65rem 1rem;
+                border-radius: 8px;
+                color: #333;
+                font-weight: 500;
+                transition: all 0.15s ease;
+            }
+
+                .rail-actions .dots-dropdown-menu .dropdown-item:hover {
+                    background-color: #f0f2f5;
+                    color: #000;
+                    transform: translateX(3px);
+                }
+
+                .rail-actions .dots-dropdown-menu .dropdown-item i {
+                    font-size: 1rem;
+                    width: 20px;
+                    text-align: center;
+                    color: #555;
+                }
+
+                .rail-actions .dots-dropdown-menu .dropdown-item:hover i {
+                    color: #004f72;
+                }
+
+            .rail-actions .dots-dropdown-menu .dropdown-divider {
+                margin: 0.5rem 0;
+            }
+
+    /* Share Button Styling (Bibliothek prompt share) */
+    .btn-share {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        max-width: 40px !important;
+        max-height: 40px !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(16,24,40,.06);
+        padding: 0 !important;
+        aspect-ratio: 1 / 1 !important;
+        box-sizing: border-box !important;
+    }
+
+        .btn-share.inactive {
+            background: #fff;
+            border-color: #d0d7e2;
+            color: #64748b;
+        }
+
+            .btn-share.inactive:hover {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+                color: #475569;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16,24,40,.1);
+            }
+
+        .btn-share.active {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+        }
+
+            .btn-share.active:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+                filter: brightness(1.05);
+            }
+
+    /* Share Modal Styling */
+    .share-modal-header {
+        border-bottom: 0;
+        padding: 1.5rem 1.5rem 0.5rem;
+    }
+
+    .share-modal-body {
+        padding: 1.5rem;
+    }
+
+    .share-modal-footer {
+        border-top: 0;
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    .share-option-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 0.75rem;
+        background: #fff;
+        position: relative;
+    }
+
+        .share-option-card:hover {
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .share-option-card:has(.share-option-input:checked) {
+            border-color: var(--accent);
+            background: #f0fdf4;
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+    .share-option-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .share-option-card:has(.share-option-input:checked) .share-option-icon {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .share-option-info {
+        flex: 1;
+    }
+
+    .share-option-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 0.1rem;
+        display: block;
+    }
+
+    .share-option-desc {
+        font-size: 0.85rem;
+        color: #64748b;
+        display: block;
+        line-height: 1.3;
+    }
+
+    .share-option-input {
+        appearance: none;
+        width: 1.2em;
+        height: 1.2em;
+        border: 2px solid #cbd5e1;
+        border-radius: 50%;
+        margin: 0;
+        display: grid;
+        place-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+        .share-option-input::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em var(--accent);
+        }
+
+        .share-option-input:checked {
+            border-color: var(--accent);
+        }
+
+            .share-option-input:checked::before {
+                transform: scale(1);
+            }
+
+    .btn-accent {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        padding: .5rem .9rem;
+        font-weight: 700;
+    }
+
+        .btn-accent:hover {
+            filter: brightness(0.98);
+            border: 1px solid black;
+        }
+
+    /* ========== RESPONSIVE DESIGN ========== */
+
+    /* Large Desktop (1200px+) - Default styles above */
+
+    /* iPad Pro Landscape & Large Tablets (1024px - 1199px) */
+    @@media (max-width: 1199px) {
+        .card-detail {
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+        }
+
+        .icon-lg {
+            font-size: 1.75rem;
+        }
+
+        .prompt-box {
+            min-height: 180px;
+            font-size: .95rem;
+        }
+
+        .prompt-actions {
+            gap: .85rem;
+        }
+
+        .prompt-actions .btn {
+            min-width: 130px;
+            font-size: .9rem;
+        }
+    }
+
+    /* iPad Pro Portrait & Medium Tablets (768px - 1023px) */
+    @@media (max-width: 1023px) {
+        :root {
+            --rail-pad: 2rem;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+        }
+
+        .h4 {
+            font-size: 1.3rem;
+        }
+
+        .icon-lg {
+            font-size: 1.6rem;
+        }
+
+        /* Card header - stack on tablets */
+        .card-detail > div:first-child {
+            padding: 1.5rem !important;
+        }
+
+        .card-detail .d-flex.align-items-center.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start !important;
+        }
+
+        .action-buttons {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+        }
+
+        /* Card body */
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Prompt box */
+        .prompt-box {
+            min-height: 160px;
+            font-size: .9rem;
+            padding: .9rem;
+        }
+
+        /* Action buttons */
+        .prompt-actions {
+            gap: .75rem;
+            flex-wrap: wrap;
+        }
+
+        .prompt-actions .btn {
+            min-width: 120px;
+            font-size: .88rem;
+            padding: .45rem .85rem;
+        }
+
+        /* Badge tags */
+        .badge-tag {
+            font-size: .85rem;
+            padding: .28rem .65rem;
+            margin: .2rem .2rem 0 0;
+        }
+
+        /* Generated images */
+        .prompt-image-main {
+            max-height: 200px !important;
+        }
+
+        .prompt-image-card {
+            width: 70px !important;
+            height: 70px !important;
+        }
+
+        /* Accordion */
+        .accordion-button {
+            font-size: .95rem;
+            padding: .85rem 1rem;
+        }
+
+        /* Three-dots menu */
+        .rail-actions {
+            padding-left: 1.5rem;
+        }
+
+        .dots-dropdown-menu {
+            min-width: 220px;
+        }
+
+        .dots-dropdown-menu .dropdown-item {
+            padding: .6rem .9rem;
+            font-size: .9rem;
+        }
+    }
+
+    /* iPad Mini/Air & Tablets (600px - 767px) */
+    @@media (max-width: 767px) {
+        :root {
+            --rail-pad: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+        }
+
+        .h4 {
+            font-size: 1.2rem;
+        }
+
+        .icon-lg {
+            font-size: 1.5rem;
+            margin-right: .75rem !important;
+        }
+
+        /* Card */
+        .card-detail {
+            border-radius: .75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-detail > div:first-child {
+            padding: 1.25rem !important;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        /* Header buttons */
+        .edit-btn,
+        .delete-btn,
+        .publish-btn,
+        .btn-share {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+            max-width: 38px !important;
+            max-height: 38px !important;
+            font-size: 1.05rem;
+        }
+
+        /* Prompt box */
+        .prompt-box {
+            min-height: 150px;
+            font-size: .88rem;
+            padding: .85rem;
+        }
+
+        /* Action buttons - stack on small tablets */
+        .prompt-actions {
+            gap: .65rem;
+        }
+
+        .prompt-actions .btn {
+            flex: 1 1 calc(50% - .35rem);
+            min-width: auto;
+            font-size: .85rem;
+            padding: .5rem .75rem;
+        }
+
+        /* Ensure dropdown spans full width when needed */
+        .prompt-actions .dropdown {
+            flex: 1 1 calc(50% - .35rem);
+        }
+
+        .prompt-actions .dropdown .btn {
+            width: 100%;
+        }
+
+        /* Generated images */
+        .prompt-image-gallery {
+            max-width: 100% !important;
+        }
+
+        .prompt-image-main img {
+            max-height: 180px !important;
+        }
+
+        .prompt-image-card {
+            width: 65px !important;
+            height: 65px !important;
+        }
+
+        /* Accordion */
+        .accordion-button {
+            font-size: .9rem;
+            padding: .75rem .9rem;
+        }
+
+        .accordion-body {
+            padding: .9rem;
+        }
+
+        /* Variation buttons */
+        .edit-variation,
+        .delete-variation {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
+
+        /* Three-dots menu */
+        .rail-actions {
+            padding-left: 1rem;
+            margin-bottom: .75rem;
+        }
+
+        .dots-dropdown-menu {
+            min-width: 200px;
+        }
+
+        /* Share modal */
+        .share-option-card {
+            padding: .85rem;
+        }
+
+        .share-option-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+        }
+
+        .share-option-title {
+            font-size: .9rem;
+        }
+
+        .share-option-desc {
+            font-size: .8rem;
+        }
+    }
+
+    /* Mobile Phones (< 576px) */
+    @@media (max-width: 575px) {
+        :root {
+            --rail-pad: 1rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+        }
+
+        .h4 {
+            font-size: 1.1rem;
+        }
+
+        .icon-lg {
+            font-size: 1.35rem;
+            margin-right: .5rem !important;
+        }
+
+        /* Card */
+        .card-detail {
+            border-radius: .65rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-detail > div:first-child {
+            padding: 1rem !important;
+        }
+
+        /* Header - full stack */
+        .card-detail .d-flex.align-items-center.justify-content-between {
+            gap: .75rem;
+        }
+
+        .card-detail .d-flex.align-items-center {
+            flex-wrap: wrap;
+        }
+
+        .action-buttons {
+            gap: .4rem;
+        }
+
+        .card-body {
+            padding: .85rem;
+            margin-top: -10px;
+            margin-bottom: -10px;
+        }
+
+        /* Header buttons - smaller */
+        .edit-btn,
+        .delete-btn,
+        .publish-btn,
+        .btn-share {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            max-width: 36px !important;
+            max-height: 36px !important;
+            font-size: 1rem;
+        }
+
+        /* Badge tags - smaller */
+        .badge-tag {
+            font-size: .8rem;
+            padding: .25rem .55rem;
+            margin: .15rem .15rem 0 0;
+            border-radius: .4rem;
+        }
+
+        /* Prompt box - more compact */
+        .prompt-box {
+            min-height: 140px;
+            font-size: .85rem;
+            padding: .75rem;
+            border-radius: .4rem;
+        }
+
+        /* Action buttons - full stack on mobile */
+        .prompt-actions {
+            gap: .5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .prompt-actions .btn {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: auto;
+            font-size: .85rem;
+            padding: .5rem .85rem;
+        }
+
+        .prompt-actions .dropdown {
+            flex: 1 1 100%;
+        }
+
+        .prompt-actions .dropdown .btn {
+            width: 100%;
+        }
+
+        /* Generated images - smaller */
+        .prompt-image-main img {
+            max-height: 160px !important;
+        }
+
+        .prompt-image-card {
+            width: 60px !important;
+            height: 60px !important;
+        }
+
+        .prompt-image-delete button {
+            width: 22px !important;
+            height: 22px !important;
+            font-size: .75rem !important;
+        }
+
+        /* Accordion - more compact */
+        .accordion-button {
+            font-size: .88rem;
+            padding: .65rem .75rem;
+        }
+
+        .accordion-body {
+            padding: .75rem;
+            font-size: .88rem;
+        }
+
+        /* Variation buttons */
+        .edit-variation,
+        .delete-variation {
+            width: 30px;
+            height: 30px;
+            font-size: .9rem;
+        }
+
+        /* Three-dots menu */
+        .rail-actions {
+            padding: 0;
+            padding-left: .75rem;
+            margin-bottom: .5rem;
+        }
+
+        .btn-dots-menu {
+            padding: .4rem .7rem;
+            font-size: 1rem;
+            border-radius: 8px;
+        }
+
+        .dots-dropdown-menu {
+            min-width: 180px;
+            padding: .4rem;
+        }
+
+        .dots-dropdown-menu .dropdown-item {
+            padding: .55rem .85rem;
+            font-size: .88rem;
+            gap: .6rem;
+        }
+
+        .dots-dropdown-menu .dropdown-item i {
+            font-size: .95rem;
+        }
+
+        /* Share modal */
+        .share-modal-header,
+        .share-modal-body,
+        .share-modal-footer {
+            padding: 1rem;
+        }
+
+        .share-option-card {
+            padding: .75rem;
+            gap: .75rem;
+        }
+
+        .share-option-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 1rem;
+        }
+
+        .share-option-title {
+            font-size: .88rem;
+        }
+
+        .share-option-desc {
+            font-size: .78rem;
+        }
+
+        .btn-accent {
+            padding: .5rem .8rem;
+            font-size: .88rem;
+        }
+
+        /* Inline models container */
+        #inlineModelsContainer .form-label {
+            font-size: .88rem;
+        }
+
+        #inlineModelsContainer .form-control,
+        #inlineModelsContainer .form-select {
+            font-size: .88rem;
+            padding: .5rem .75rem;
+        }
+    }
+
+    /* Extra Small Mobile (< 400px) */
+    @@media (max-width: 399px) {
+        h2 {
+            font-size: 1.15rem;
+        }
+
+        .h4 {
+            font-size: 1.05rem;
+        }
+
+        .icon-lg {
+            font-size: 1.25rem;
+        }
+
+        .card-detail > div:first-child {
+            padding: .85rem !important;
+        }
+
+        .card-body {
+            padding: .75rem;
+        }
+
+        .edit-btn,
+        .delete-btn,
+        .publish-btn,
+        .btn-share {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            max-width: 34px !important;
+            max-height: 34px !important;
+            font-size: .95rem;
+        }
+
+        .badge-tag {
+            font-size: .75rem;
+            padding: .22rem .5rem;
+        }
+
+        .prompt-box {
+            font-size: .82rem;
+            padding: .65rem;
+        }
+
+        .prompt-actions .btn {
+            font-size: .82rem;
+            padding: .45rem .75rem;
+        }
+
+        .accordion-button {
+            font-size: .85rem;
+            padding: .6rem .65rem;
+        }
+
+        .accordion-body {
+            padding: .65rem;
+            font-size: .85rem;
+        }
+
+        .prompt-image-card {
+            width: 55px !important;
+            height: 55px !important;
+        }
+    }
+
+    /* Touch device optimizations */
+    @@media (hover: none) and (pointer: coarse) {
+        /* Ensure all touch targets are at least 44px */
+        .btn,
+        .edit-btn,
+        .delete-btn,
+        .publish-btn,
+        .btn-share,
+        .badge-tag,
+        .accordion-button,
+        .edit-variation,
+        .delete-variation {
+            min-height: 44px;
+        }
+
+        /* Remove hover effects on touch devices */
+        .card-detail:hover {
+            transform: none;
+        }
+
+        .badge-tag:hover {
+            background: #336633;
+        }
+
+        /* Make click areas more obvious */
+        .prompt-box {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+    }
+
+    /* iPad Pro specific (1024x1366 portrait, 1366x1024 landscape) */
+    @@media (min-width: 1024px) and (max-width: 1366px) {
+        .card-detail {
+            max-width: 95%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .prompt-actions .btn {
+            min-width: 135px;
+        }
+    }
+
+    /* Landscape phone optimization */
+    @@media (max-width: 896px) and (orientation: landscape) {
+        h2 {
+            font-size: 1.25rem;
+        }
+
+        .card-detail > div:first-child {
+            padding: 1rem !important;
+        }
+
+        .prompt-box {
+            min-height: 120px;
+        }
+
+        .prompt-actions {
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .prompt-actions .btn {
+            flex: 1 1 calc(33.33% - .5rem);
+            min-width: auto;
+        }
+
+        .accordion-button {
+            padding: .6rem .8rem;
+        }
+
+        .accordion-body {
+            padding: .75rem;
+        }
+    }
+
+    /* Specific fixes for tables and forms on small screens */
+    @@media (max-width: 767px) {
+        /* Make tables scrollable horizontally */
+        .table-responsive {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Form controls full width */
+        .form-control,
+        .form-select {
+            width: 100%;
+        }
+
+        /* Modal dialogs - fit screen */
+        .modal-dialog {
+            margin: .5rem;
+            max-width: calc(100% - 1rem);
+        }
+
+        .modal-content {
+            border-radius: .65rem;
+        }
+
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            padding: .85rem;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+        }
+    }
+
+    @@media (max-width: 575px) {
+        /* Stack form rows */
+        .row > [class*="col-"] {
+            width: 100%;
+            margin-bottom: .75rem;
+        }
+
+        /* Full width inputs */
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        textarea,
+        select {
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+
+        /* Modal full screen on very small devices */
+        .modal-dialog {
+            margin: 0;
+            max-width: 100%;
+            height: 100%;
+        }
+
+        .modal-content {
+            height: 100%;
+            border-radius: 0;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+
+</style>
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="d-flex gap-2">
+        <a asp-area="User"
+           asp-controller="Home"
+           asp-action="Bibliothek"
+           class="btn btn-bib">
+            <i class="fa fa-university me-1" aria-hidden="true"></i> Zur Bibliothek
+        </a>
+        <a asp-area="User"
+           asp-controller="Home"
+           asp-action="Assistenten"
+           class="btn btn-bib">
+            <i class="bi bi-robot me-1"></i> KI-Assistenten
+        </a>
+        <a asp-area="User"
+           asp-controller="Home"
+           asp-action="PromptAssistent"
+           asp-route-type="text"
+           class="btn btn-neuPrompt">
+            <i class="bi bi-plus-circle me-1"></i> Prompt
+        </a>
+    </div>
+</div>
+
+    <h2 class="mb-0"><i class="fa fa-university me-1" aria-hidden="true"></i> Prompt analysieren</h2>
+
+    <div class="py-5">
+
+        <!-- MAIN TEMPLATE CARD -->
+        <div class="card card-detail">
+            
+            <div style="background:@gradient; padding:2rem;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center ms-lg-0">
+                        <i class="bi @iconClass icon-lg me-3"></i>
+                        <h2 class="h4 text-white mb-0">Akronym: @Model.Akronym</h2>
+                    </div>
+
+                    @* â–¸ Adminâ€‘Aktionen â€” Edit / Delete / Share *@
+                   
+                        <div class="action-buttons ms-2">
+                            @if (canSharePrompt)
+                            {
+                                if (promptIsShared)
+                                {
+                                    <button id="promptShareBtn" type="button" class="btn-share active" title="Prompt ist extern freigegeben">
+<i class="bi bi-share-fill fs-6"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button id="promptShareBtn" type="button" class="btn-share inactive" title="Prompt extern teilen">
+<i class="bi bi-share-fill fs-6"></i>
+                                    </button>
+                                }
+                            }
+                            @if (mayEdit)
+                            {
+                                <button id="edit-main" class="edit-btn ms-2" title="Bearbeiten">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                            }
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <button id="delete-template" class="delete-btn ms-2" title="LÃ¶schen">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            }
+                        </div>
+                  
+                </div>
+            </div>
+
+            <div class="card-body">
+                @if (hasImages || canManageImages || !string.IsNullOrEmpty(Model.GeneratedImagePath))
+                {
+                    <div class="mb-4 text-center">
+                        <div class="generated-container">
+
+                            @* â”€â”€â”€ Bild schon vorhanden? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ *@
+                            @if (hasImages)
+                            {
+                                var orderedImages = Model.PromptImages
+                                    .OrderBy(pi => pi.CreatedAt)
+                                    .ToList();
+
+                                var cover = orderedImages.FirstOrDefault();
+
+                                <div class="prompt-image-gallery" style="max-width:640px;margin:0 auto 1.5rem auto;text-align:center;">
+                                    @if (cover != null)
+                                    {
+                                        <div class="prompt-image-main" style="border-radius:12px;overflow:hidden;background:#f6f6f6;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,.08);">
+                                            <img src="@resolveImagePath(cover.ImagePath)"
+                                                 class="prompt-main-img"
+                                                 alt="Generiertes Bild"
+                                                 style="width:100%;max-height:220px;object-fit:contain;cursor:zoom-in;display:block;"
+                                                 onclick="window.open(this.src,'_blank','width=900,height=700')" />
+                                        </div>
+                                    }
+
+                                    <div class="mt-2" style="display:flex;justify-content:center;gap:0.4rem;overflow-x:auto;padding-bottom:0.25rem;">
+                                        @foreach (var img in orderedImages)
+                                        {
+                                            <div class="prompt-image-card"
+                                                 style="position:relative;flex:0 0 auto;width:76px;height:76px;border-radius:10px;overflow:hidden;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12);border:1px solid transparent;background:#fff;"
+                                                 onmouseover="var d=this.querySelector('.prompt-image-delete');if(d)d.style.opacity='1';"
+                                                 onmouseout="var d=this.querySelector('.prompt-image-delete');if(d)d.style.opacity='0';">
+                                                <img src="@resolveImagePath(img.ImagePath)"
+                                                     alt="Prompt Bild"
+                                                     style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .18s,filter .18s;"
+                                                     onclick="var g=this.closest('.prompt-image-gallery');var m=g && g.querySelector('.prompt-main-img');if(m){m.src=this.src;}" />
+
+                                                @* â¶  Bild LÃ–SCHEN  â†’ Besitzer **oder** Admin/Dozent (gruppenbasiert) *@
+                                                @if (canManageImages)
+                                                {
+                                                    <div class="prompt-image-delete" style="position:absolute;top:4px;right:4px;opacity:0;transition:opacity .18s;">
+                                                        <form asp-area="User"
+                                                              asp-controller="Home"
+                                                              asp-action="DeleteImage"
+                                                              asp-route-id="@Model.Id"
+                                                              asp-route-imageId="@img.Id"
+                                                              method="post"
+                                                              data-image-delete="true">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="submit" title="Bild lÃ¶schen" style="border:none;border-radius:999px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);color:#fff;font-size:.8rem;box-shadow:0 2px 6px rgba(0,0,0,.35);">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else if (!string.IsNullOrEmpty(Model.GeneratedImagePath))
+                            {
+                                <img src="@imgSrc"
+                                     class="generated-thumb mb-3"
+                                     alt="Generiertes Bild"
+                                     onclick="window.open('@imgSrc','_blank','width=800,height=600')" />
+                            }
+
+                            @* â·  Bild HOCHLADEN  â†’ Besitzer/Admin/Dozent *@
+                            @if (canManageImages)
+                            {
+                                <div class="mt-3" style="max-width:640px;margin:0 auto;">
+                                    <div class="accordion" id="promptImagesAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header" id="headingUploadImages">
+                                                <button class="accordion-button collapsed" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#collapseUploadImages"
+                                                        aria-expanded="false"
+                                                        aria-controls="collapseUploadImages">
+                                                    Bilder hochladen / verlinken
+                                                </button>
+                                            </h2>
+                                            <div id="collapseUploadImages" class="accordion-collapse collapse"
+                                                 aria-labelledby="headingUploadImages"
+                                                 data-bs-parent="#promptImagesAccordion">
+                                                <div class="accordion-body">
+                                                    <form asp-area="User"
+                                                          asp-controller="Home"
+                                                          asp-action="UploadImage"
+                                                          asp-route-id="@Model.Id"
+                                                          method="post"
+                                                          enctype="multipart/form-data">
+
+                                                        @Html.AntiForgeryToken()
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold mb-1">Bilddateien</label>
+                                                            <input type="file"
+                                                                   name="imageFiles"
+                                                                   class="form-control form-control-sm"
+                                                                   accept="image/*"
+                                                                   multiple />
+                                                            <div class="form-text">Mehrere Dateien auswählbar.</div>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold mb-1">Bild-URL</label>
+                                                            <input type="url"
+                                                                   name="imageUrl"
+                                                                   class="form-control form-control-sm"
+                                                                   placeholder="https://beispiel.de/bild.png" />
+                                                            <div class="form-text">Optional: externes Bild per URL verlinken.</div>
+                                                        </div>
+
+                                                        <div class="text-center">
+                                                            <small class="text-muted d-block mb-2">Bestehende Bilder bleiben erhalten.</small>
+                                                            <button type="submit" class="btn btn-sm btn-dark">
+                                                                <i class="bi bi-upload me-1"></i> Speichern
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (hasImages || !string.IsNullOrEmpty(Model.GeneratedImagePath))
+                        {
+                            <hr />
+                        }
+                    </div>
+                }
+
+@if (Model.PromptType.Equals("Video", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="mb-4">
+        @if (!string.IsNullOrWhiteSpace(Model.GeneratedVideoUrl))
+        {
+          
+                var vurl   = Model.GeneratedVideoUrl.Trim();
+                var lower  = vurl.ToLowerInvariant();
+                // direct file?
+                bool isDirect = System.Text.RegularExpressions.Regex.IsMatch(
+                    vurl, @"\.(mp4|webm|ogg|mov|m4v)(\?|$)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                bool isHls = vurl.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase);
+
+                string? iframe = null;
+
+                if (!isDirect && !isHls)
+                {
+                    // YouTube
+                    if (lower.Contains("youtu.be/"))
+                    {
+                        var id = vurl.Substring(vurl.LastIndexOf('/') + 1);
+                        var q = id.IndexOf('?'); if (q >= 0) id = id.Substring(0, q);
+                        iframe = $"https://www.youtube.com/embed/{id}";
+                    }
+                    else if (lower.Contains("youtube.com/watch?v="))
+                    {
+                        var i = lower.IndexOf("watch?v=", StringComparison.OrdinalIgnoreCase);
+                        var id = vurl.Substring(i + 8);
+                        var q = id.IndexOf('&'); if (q >= 0) id = id.Substring(0, q);
+                        iframe = $"https://www.youtube.com/embed/{id}";
+                    }
+                    // Vimeo
+                    else if (lower.Contains("vimeo.com/"))
+                    {
+                        var m = System.Text.RegularExpressions.Regex.Match(vurl, @"vimeo\.com/(\d+)");
+                        if (m.Success) iframe = $"https://player.vimeo.com/video/{m.Groups[1].Value}";
+                    }
+                    // VEED
+                    else if (lower.Contains("veed.io/view/"))
+                    {
+                        // https://www.veed.io/view/{id}[?...]
+                        var parts = vurl.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                        var last = parts.LastOrDefault() ?? "";
+                        var q = last.IndexOf('?'); if (q >= 0) last = last.Substring(0, q);
+                        if (!string.IsNullOrWhiteSpace(last))
+                            iframe = $"https://www.veed.io/embed/{last}";
+                    }
+                }
+
+
+            
+
+            if (isDirect)
+            {
+                <video class="w-100 mb-2" controls src="@vurl"></video>
+            }
+            else if (!string.IsNullOrEmpty(iframe))
+            {
+                <div class="ratio ratio-16x9 mb-2">
+                    <iframe src="@iframe"
+                            style="border:0"
+                            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                            allowfullscreen></iframe>
+                </div>
+            }
+            else if (isHls)
+            {
+                <div class="alert alert-info">
+                    Dieses Video ist ein HLS-Stream (.m3u8). Wir kÃ¶nnen hls.js integrieren, falls gewÃ¼nscht.
+                    Bis dahin: <a href="@vurl" target="_blank" rel="noopener">im neuen Tab Ã¶ffnen</a>.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    Dieser Link kann nicht direkt eingebettet werden.
+                    <a href="@vurl" target="_blank" rel="noopener">Hier Ã¶ffnen</a>.
+                </div>
+            }
+
+            <div><a href="@vurl" target="_blank" rel="noopener">@vurl</a></div>
+            <hr />
+        }
+
+        @if (mayEdit)
+        {
+            <form asp-area="User"
+                  asp-controller="Home"
+                  asp-action="UpdateVideoUrl"
+                  asp-route-id="@Model.Id"
+                  method="post"
+                  class="mt-2">
+                @Html.AntiForgeryToken()
+                <label class="form-label mb-1 fw-semibold">Video URL</label>
+                <div class="input-group input-group-sm" style="max-width:560px;">
+                    <input type="url"
+                           name="videoUrl"
+                           class="form-control"
+                           value="@Model.GeneratedVideoUrl"
+                           placeholder="https://" />
+                    <button type="submit" class="btn btn-sm btn-dark">Speichern</button>
+                </div>
+                <small class="text-muted">Feld leer speichern, um die URL zu entfernen.</small>
+            </form>
+        }
+    </div>
+}
+
+@if (Model.PromptType.Equals("Sound", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="mb-4">
+        @if (!string.IsNullOrWhiteSpace(Model.GeneratedAudioUrl))
+        {
+            <audio class="w-100 mb-2" controls src="@Model.GeneratedAudioUrl"></audio>
+            <div><a href="@Model.GeneratedAudioUrl" target="_blank" rel="noopener">@Model.GeneratedAudioUrl</a></div>
+            <hr />
+        }
+
+        @if (mayEdit)
+        {
+            <form asp-area="User"
+                  asp-controller="Home"
+                  asp-action="UpdateAudioUrl"
+                  asp-route-id="@Model.Id"
+                  method="post"
+                  class="mt-2">
+                @Html.AntiForgeryToken()
+                <label class="form-label mb-1 fw-semibold">Audioâ€‘URL</label>
+                <div class="input-group input-group-sm" style="max-width:560px;">
+                    <input type="url"
+                           name="audioUrl"
+                           class="form-control"
+                           value="@Model.GeneratedAudioUrl"
+                           placeholder="https://â€¦" />
+                    <button type="submit" class="btn btn-sm btn-dark">Speichern</button>
+                </div>
+                <small class="text-muted">Feld leer speichern, um die URL zu entfernen.</small>
+            </form>
+        }
+    </div>
+}
+
+              
+
+                    <!-- Title on its own line -->
+                    <p class="fw-semibold mb-3 mt-3" style="font-size:20px;">Title: @Model.Title</p>
+
+                    <!-- UsedModels section, indented with a left border -->
+                 
+                    <div id="usedModelsWrapper" class="ps-3 border-start border-secondary mb-4">
+                        @if (!string.IsNullOrWhiteSpace(Model.UsedModels))
+                        {
+                            <p id="usedModelsDisplay" class="mb-2">
+                                <strong>Verwendete Modelle:</strong> @Model.UsedModels
+                            </p>
+                        }
+
+                        @if (User.IsInRole("Admin") || (string)ViewData["CurrentUserId"] == (string)ViewData["PromptUserId"])
+                        {
+                            <form id="usedModelsForm" method="post"
+                                  asp-area="User"
+                                  asp-controller="Home"
+                                  asp-action="UpdateUsedModels"
+                                  class="mb-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Id" />
+
+                                <div class="input-group input-group-sm" style="max-width:360px;">
+                                    <input type="text"
+                                           name="usedModels"
+                                           class="form-control"
+                                           placeholder="z. B. GPT-4, DALL·E 3"
+                                           value="@Model.UsedModels" />
+                                    <button type="submit" class="btn btn-sm btn-dark">
+                                        Speichern
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                      @*   else if (!string.IsNullOrWhiteSpace(Model.UsedModels))
+                        {
+                            <p class="text-muted mt-2">
+                                <i>Nur der Ersteller kann verwendete Modelle bearbeiten</i>
+                            </p>
+                        } *@
+                    </div>
+
+                
+
+                    
+                <hr />
+                <h6 style="font-size:18px;">Filter-Kriterien analysieren: </h6>
+                <div id="filters-main" class="mb-3">
+                    @foreach (var f in mainFilters)
+                    {
+                        var val = CleanTag(f.GetProperty("value").GetString());
+                        var ins = CleanTag(f.GetProperty("instruction").GetString() ?? val);
+
+                        <span class="badge-tag filter-badge"
+                              data-prompt="main"
+                              data-term="@val"
+                              data-instr="@ins">
+                            @val
+                        </span>
+                    }
+
+
+
+                </div>
+
+                <hr />
+                <h6 style="font-size:18px;">Prompt-Inhalt:</h6>
+                <pre id="prompt-main" class="prompt-box">@Html.Raw(Model.PromptHtml)</pre>
+                @* Reflexion zum Prompt *@
+                <div class="mt-3">
+                    <div class="accordion" id="promptReflektionAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingPromptReflektion">
+                                <button class="accordion-button collapsed" type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#collapsePromptReflektion"
+                                        aria-expanded="false"
+                                        aria-controls="collapsePromptReflektion">
+                                    Reflexion zum Prompt
+                                </button>
+                            </h2>
+                            <div id="collapsePromptReflektion" class="accordion-collapse collapse"
+                                 aria-labelledby="headingPromptReflektion"
+                                 data-bs-parent="#promptReflektionAccordion">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrWhiteSpace(Model.Reflektion))
+                                    {
+                                        <div class="position-relative mb-3">
+                                            @if (canManageImages)
+                                            {
+                                                <button type="button"
+                                                        id="prompt-reflektion-edit-btn"
+                                                        class="btn btn-sm btn-dark position-absolute top-0 end-0 m-1">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                            }
+                                            <div id="prompt-reflektion-readonly" class="border rounded p-2 ref-field" style="background-color: white;">
+                                                @Html.Raw(Model.Reflektion)
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted mb-3">
+                                            Noch keine Reflexion hinterlegt.
+                                        </p>
+                                    }
+
+                                    @if (canManageImages)
+                                    {
+                                        <div id="prompt-reflektion-edit-container" class="mt-2 @(string.IsNullOrWhiteSpace(Model.Reflektion) ? string.Empty : "d-none")">
+                                            <form asp-area="User"
+                                                  asp-controller="Home"
+                                                  asp-action="UpdatePromptReflektion"
+                                                  method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@Model.Id" />
+                                                <textarea id="promptReflektionEditor"
+                                                          name="reflektion"
+                                                          class="form-control"
+                                                          rows="5">@Html.Raw(Model.Reflektion ?? "")</textarea>
+                                                <div class="text-end mt-2">
+                                                    <button type="submit" class="btn btn-sm btn-dark">
+                                                        <i class="bi bi-save me-1"></i> Speichern
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="autorLizenzWrapper" class="ps-3 border-start border-secondary mb-4">
+    @if (!string.IsNullOrWhiteSpace(Model.Autorin))
+    {
+                    <p id="autorDisplay" class="mb-3 ms-lg-3">
+            <strong>Autor*in:</strong> @Model.Autorin
+        </p>
+    }
+
+    @if (User.IsInRole("Admin") || (string)ViewData["CurrentUserId"] == (string)ViewData["PromptUserId"])
+    {
+        <form id="autorForm" method="post"
+              asp-area="User"
+              asp-controller="Home"
+              asp-action="UpdateAutorin"
+                          class="mb-4 mt-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="input-group input-group-sm ms-lg-3" style="max-width:360px;">
+                <input type="text"
+                       name="autorin"
+                       class="form-control"
+                       placeholder="Autorin (optional)"
+                       value="@Model.Autorin" />
+                <button type="submit"
+                        class="btn btn-sm btn-dark">
+                    Speichern
+                </button>
+            </div>
+        </form>
+    }
+
+   @if (!string.IsNullOrWhiteSpace(Model.Lizenz))
+{
+                    <p id="lizenzDisplay" class="mb-3 ms-lg-3">
+        <strong>Lizenz (Ink. Re-Prompting):</strong> @Model.Lizenz
+    </p>
+}
+
+                @if (mayEdit)
+{
+    <form id="lizenzForm" method="post"
+          asp-area="User"
+          asp-controller="Home"
+          asp-action="UpdateLizenz"
+          class="mb-3 mt-2">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="input-group input-group-sm ms-lg-3" style="max-width:360px;">
+                            <select name="lizenz" class="form-select">
+                                <option value="">Lizenz wählen...</option>
+
+                                @foreach (var lizenz in new[] {
+                                                        "Public Domain Dedication (CC0)",
+                                                        "Namensnennung (CC BY)",
+                                                        "Attribution-ShareAlike (CC BY-SA)"
+                                                        })
+                                {
+                                    if (Model.Lizenz == lizenz)
+                                    {
+                                        <option value="@lizenz" selected="selected">@lizenz</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@lizenz">@lizenz</option>
+                                    }
+                                }
+                            </select>
+            <button type="submit" class="btn btn-sm btn-dark">
+                Speichern
+            </button>
+        </div>
+    </form>
+}
+</div>
+
+            <div class="prompt-actions">
+                <button id="copy-prompt" class="btn btn-copy shadow-sm">
+                <i class="fa fa-files-o me-1"></i> Kopieren
+                </button>
+            
+                <button id="calculate-tokens" class="btn btn-tokens shadow-sm">
+                    <i class="bi bi-calculator me-1"></i> Tokens
+                </button>
+                <button id="show-inline-models" class="btn btn-models shadow-sm">
+                    <i id="models-icon" class="bi bi-lightbulb me-1"></i>
+                    <span id="models-button-text">Modelle</span>
+                </button>
+
+                <div class="btn-group" role="group" aria-label="Export actions">
+                    <button id="exportDropdown"
+                            type="button"
+                            class="btn btn-export px-4 py-2 fw-semibold shadow-sm dropdown-toggle"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                        <i class="bi bi-file-earmark me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        @if (canDownloadPromptPdf)
+                        {
+                            <li>
+                                <button class="dropdown-item" id="export-pdf">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                                </button>
+                            </li>
+                        }
+                        <li>
+                            <button class="dropdown-item" id="export-json">
+                                <i class="bi bi-download me-1"></i> JSON
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+             <!-- PromptEngineeringâ€“style buttons at bottom -->
+        <!-- Inline models container -->
+        <div id="inlineModelsContainer" class="row g-4">
+            <div class="col-12">
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input id="inlineModelSearch" type="text" class="form-control" placeholder="Modelle durchsuchen" />
+                </div>
+            </div>
+            <div id="inlineModelCards" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4"></div>
+            <nav class="col-12">
+                <ul id="inlineModelPagination" class="pagination justify-content-center mb-0"></ul>
+            </nav>
+        </div>
+
+        <!-- VARIATIONS ACCORDION -->
+        @if (Model.PromptVariations?.Any() == true)
+        {
+            <h5 class="mb-3"><i class="bi bi-card-list me-1"></i>Variationen</h5>
+            <div class="accordion" id="variationsAccordion">
+                @for (int idx = 0; idx < Model.PromptVariations.Count; idx++)
+                {
+                    var v = Model.PromptVariations.ElementAt(idx);
+                    var json = JsonDocument.Parse(v.VariationJson ?? "{}");
+                    var root = json.RootElement;
+                    var data = root.TryGetProperty("data", out var d) ? d : root;
+                    var html = data.TryGetProperty("promptHtml", out var ph) ? ph.GetString() : "";
+                    var filtersVar = new List<JsonElement>();
+                    if (data.TryGetProperty("checkedItems", out var ci) && ci.ValueKind == JsonValueKind.Array)
+                    {
+                        filtersVar = ci.EnumerateArray().ToList();
+                    }
+                    else if (data.TryGetProperty("filterJson", out var fj) && fj.ValueKind == JsonValueKind.String)
+                    {
+                        try
+                        {
+                            using var docF = JsonDocument.Parse(fj.GetString() ?? "[]");
+                            if (docF.RootElement.ValueKind == JsonValueKind.Array)
+                                filtersVar = docF.RootElement.EnumerateArray().ToList();
+                        }
+                        catch { }
+                    }
+
+                    var collapseId = $"collapse-{v.Id}";
+                    var headingId = $"heading-{v.Id}";
+                    var promptId = $"prompt-var-{v.Id}";
+
+                    <div class="accordion-item mb-3"
+                         data-var-id="@v.Id"
+                         data-payload='@Html.Raw(data.GetRawText())'>
+                        <h2 class="accordion-header d-flex align-items-center" id="@headingId">
+                            <button class="accordion-button collapsed flex-grow-1"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#@collapseId"
+                                    aria-expanded="false"
+                                    aria-controls="@collapseId">
+                                Variation @(idx + 1)
+                                <span class="variation-actions">
+                                    @if (mayEdit)
+                                    {
+                                        <span role="button"
+                                              tabindex="0"
+                                              class="edit-variation"
+                                              title="Bearbeiten"
+                                              onclick="event.preventDefault(); event.stopPropagation();">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </span>
+                                    }
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <span role="button"
+                                              tabindex="0"
+                                              class="delete-variation"
+                                              title="Variation lÃ¶schen"
+                                              onclick="event.preventDefault(); event.stopPropagation();">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </span>
+
+                                    }
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="@collapseId"
+                             class="accordion-collapse collapse"
+                             aria-labelledby="@headingId">
+                            <!-- â† no data-bs-parent -->
+                            <div class="accordion-body">
+
+                                <h6>Filter-Kriterien</h6>
+                                <div id="filters-var-@v.Id">
+                                @{
+                                    var hadAny = false;
+                                    if (filtersVar != null && filtersVar.Count > 0)
+                                    {
+                                        hadAny = true;
+                                        foreach (var item in filtersVar)
+                                        {
+                                            var val2 = CleanTag(item.GetProperty("value").GetString());
+                                            var ins2 = CleanTag(item.GetProperty("instruction").GetString() ?? val2);
+                                            <span class="badge-tag filter-badge"
+                                                  data-prompt="var-@v.Id"
+                                                  data-term="@val2"
+                                                  data-instr="@ins2">@val2</span>
+                                        }
+                                    }
+                                    if (!hadAny)
+                                    {
+                                        var parsed = new List<string>();
+                                        try
+                                        {
+                                            var plain = Regex.Replace(html ?? string.Empty, "<.*?>", string.Empty);
+                                            var ms = Regex.Matches(plain, "\\(([^)]+)\\)\\s*:");
+                                            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                                            foreach (Match m in ms)
+                                            {
+                                                var s = (m.Groups[1].Value ?? string.Empty).Trim();
+                                                if (!string.IsNullOrWhiteSpace(s) && seen.Add(s)) parsed.Add(s);
+                                            }
+                                        }
+                                        catch { }
+                                        foreach (var val2 in parsed)
+                                        {
+                                            var ins2 = val2;
+                                            <span class="badge-tag filter-badge"
+                                                  data-prompt="var-@v.Id"
+                                                  data-term="@CleanTag(val2)"
+                                                  data-instr="@CleanTag(ins2)">@CleanTag(val2)</span>
+                                        }
+                                    }
+                                }
+                                </div>
+                                <hr />
+                                <h6>Prompt-Inhalt</h6>
+                                <pre id="@promptId" class="prompt-box">@Html.Raw(html)</pre>
+                                <div class="prompt-actions mt-3" data-owner="var-@v.Id">
+                                    <button class="btn btn-copy  shadow-sm act-copy" data-target="@promptId">
+                                        <i class="bi bi-clipboard-check me-1"></i>Kopieren
+                                    </button>
+                                    <button class="btn btn-tokens shadow-sm act-tokens" data-target="@promptId">
+                                        <i class="bi bi-calculator me-1"></i>Tokens
+                                    </button>
+                                    <!-- Add this new "Modelle" button -->
+                                    <button class="btn btn-models shadow-sm act-models"
+                                            data-var-id="@v.Id">
+                                        <i class="bi bi-lightbulb me-1"></i>Modelle
+                                    </button>
+                                    <div class="btn-group" role="group" aria-label="Export actions">
+                                        <button id="exportDropdown-@v.Id"
+                                                type="button"
+                                                class="btn btn-export px-4 py-2 fw-semibold shadow-sm dropdown-toggle"
+                                                data-bs-toggle="dropdown"
+                                                aria-expanded="false">
+                                            <i class="bi bi-file-earmark me-1"></i> Export
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="exportDropdown-@v.Id">
+                                            @if (canDownloadPromptPdf)
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item act-pdf" href="#" data-target="@promptId">
+                                                        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                                                    </a>
+                                                </li>
+                                            }
+                                            <li>
+                                                <a class="dropdown-item act-json" href="#" data-target="@promptId">
+                                                    <i class="bi bi-download me-1"></i> JSON
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                <div id="inlineModelsContainer-var-@v.Id" class="row g-4 mt-3 mb-3" style="display:none">
+                    <div class="col-12">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control inlineModelSearch" 
+                                   placeholder="Modelle durchsuchen â€¦" />
+                        </div>
+                    </div>
+                    <div class="inlineModelCards row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4"></div>
+                    <nav class="col-12">
+                        <ul class="inlineModelPagination pagination justify-content-center mb-0"></ul>
+                    </nav>
+                </div>
+            
+                }
+            </div>
+        }
+
+        @if (canSharePrompt)
+        {
+            <div class="modal fade" id="promptShareModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                        <div class="modal-header share-modal-header">
+                            <h5 class="modal-title fw-bold">Prompt teilen</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                        </div>
+                        <div class="modal-body share-modal-body">
+                            <form id="promptShareForm" asp-area="User" asp-controller="Home" asp-action="CreatePromptShareLink" asp-route-id="@Model.Id" method="post">
+                                @Html.AntiForgeryToken()
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold mb-3">Sichtbarkeit</label>
+
+                                    <label class="share-option-card">
+                                        <input class="share-option-input" type="radio" name="promptShareVisibility" id="promptShareVisPrivate" value="private" checked />
+                                        <div class="share-option-icon">
+                                            <i class="bi bi-lock"></i>
+                                        </div>
+                                        <div class="share-option-info">
+                                            <span class="share-option-title">Nur ich (Privat)</span>
+                                            <span class="share-option-desc">Der Prompt ist nur für Sie sichtbar.</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="share-option-card">
+                                        <input class="share-option-input" type="radio" name="promptShareVisibility" id="promptShareVisLink" value="link" />
+                                        <div class="share-option-icon">
+                                            <i class="bi bi-globe"></i>
+                                        </div>
+                                        <div class="share-option-info">
+                                            <span class="share-option-title">Jeder mit dem Link</span>
+                                            <span class="share-option-desc">Jeder, der den Link hat, kann den Prompt nutzen.</span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Gruppe zuweisen (Optional)</label>
+                                    <select id="promptShareGroup" name="groupName" class="form-select form-select-lg bg-light border-0">
+                                        @if (ViewBag.ShareGroups is IEnumerable<string> shareGroups)
+                                        {
+                                            foreach (var g in shareGroups)
+                                            {
+                                                <option value="@g">@g</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label fw-bold">Freigabelink</label>
+                                    <div class="input-group input-group-lg">
+                                        <input id="promptShareResult" type="text" class="form-control bg-light border-0" readonly placeholder="Link wird generiert..." />
+                                        <button type="button" id="promptShareGenerate" class="btn btn-outline-secondary border-0 bg-light text-dark fw-medium">
+                                            <i class="bi bi-magic me-2"></i>Generieren
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            <div id="promptShareError" class="text-danger small d-none mt-2"></div>
+                            <div id="promptShareToast" class="alert alert-success small position-fixed bottom-0 end-0 m-3 d-none" role="alert" style="z-index:1080;">
+                                Link wurde in die Zwischenablage kopiert.
+                            </div>
+                        </div>
+                        <div class="modal-footer share-modal-footer">
+                            <button type="button" class="btn btn-light btn-lg border-0" data-bs-dismiss="modal">Schließen</button>
+                            <button type="button" id="promptShareSubmit" class="btn btn-accent btn-lg px-4">Speichern</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+    <!-- Kopier-Toast ---------------------------------------------------->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 11000">
+        <div id="copy-toast"
+             class="toast align-items-center text-bg-success border-0"
+             role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    Prompt wurde kopiert&nbsp;âœ”
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                        data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- _Layout.cshtml -->
+    <script src="@Url.Content("~/js/copyPrompt.js")" type="module" asp-append-version="true"></script>
+    <script type="module">
+        import { copyPromptHtml } from '@Url.Content("~/js/copyPrompt.js")';
+        window.copyPromptHtml = copyPromptHtml;
+    </script>
+
+
+ <script>
+/* --------------------------------------------------
+   PROMPT-DETAIL page â€“ full JavaScript
+   (c) 2025 â€“ merge of previous blocks + highlight fix
+-------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ----------  CONSTANTS & HELPERS  ---------- */
+  const state     = /**/ @Html.Raw(payload) /**/;    // razor inject
+  const secretKey = 'uni-wuppertal2025';
+  const workTitleDefault = @Html.Raw(JsonSerializer.Serialize(Model.Title ?? ""));
+  const akronymDefault   = @Html.Raw(JsonSerializer.Serialize(Model.Akronym ?? ""));
+  const authorName = @Html.Raw(JsonSerializer.Serialize(Model.Autorin ?? ""));
+  const licenseVal = @Html.Raw(JsonSerializer.Serialize(Model.Lizenz ?? ""));
+
+  // Prompt sharing (Bibliothek) â€“ GPT-style modal
+  (function(){
+    const shareBtn = document.getElementById('promptShareBtn');
+    const modalEl = document.getElementById('promptShareModal');
+    if (!shareBtn || !modalEl) return;
+
+    const form = document.getElementById('promptShareForm');
+    const groupSelect = document.getElementById('promptShareGroup');
+    const resultInput = document.getElementById('promptShareResult');
+    const errorEl = document.getElementById('promptShareError');
+    const toastEl = document.getElementById('promptShareToast');
+    const generateBtn = document.getElementById('promptShareGenerate');
+    const submitBtn = document.getElementById('promptShareSubmit');
+    const visPrivate = document.getElementById('promptShareVisPrivate');
+    const visLink = document.getElementById('promptShareVisLink');
+    const stateUrl = '@Url.Action("GetPromptShareState", "Home", new { area = "User", id = Model.Id })';
+    const deactivateUrl = '@Url.Action("DeactivatePromptShareLink", "Home", new { area = "User", id = Model.Id })';
+    const tokenInput = form ? form.querySelector('input[name="__RequestVerificationToken"]') : null;
+    let modal = null;
+
+    function setButtonActive(isActive){
+      if (!shareBtn) return;
+      if (isActive){
+        shareBtn.className = 'btn-share active';
+        shareBtn.title = 'Prompt ist extern freigegeben';
+        // Icon remains consistent
+      } else {
+        shareBtn.className = 'btn-share inactive';
+        shareBtn.title = 'Prompt extern teilen';
+        // Icon remains consistent
+      }
+    }
+
+    shareBtn.addEventListener('click', function(){
+      if (typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+      if (!modal) modal = new bootstrap.Modal(modalEl);
+      if (errorEl){
+        errorEl.textContent = '';
+        errorEl.classList.add('d-none');
+      }
+      if (resultInput) resultInput.value = '';
+      if (visPrivate) visPrivate.checked = true;
+      if (visLink) visLink.checked = false;
+      modal.show();
+      if (groupSelect){
+        refreshShareState();
+      }
+    });
+
+    async function refreshShareState(){
+      if (!groupSelect || !stateUrl) return;
+      const group = (groupSelect.value || '').trim();
+      if (!group) return;
+      if (errorEl){
+        errorEl.textContent = '';
+        errorEl.classList.add('d-none');
+      }
+      if (resultInput) resultInput.value = '';
+      try{
+        const url = stateUrl + '?groupName=' + encodeURIComponent(group);
+        const resp = await fetch(url, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await resp.json();
+        if (!data.ok){
+          if (errorEl){
+            errorEl.textContent = data.error || 'Freigabestatus konnte nicht geladen werden.';
+            errorEl.classList.remove('d-none');
+          }
+          return;
+        }
+        if (visPrivate) visPrivate.checked = !data.isActive;
+        if (visLink) visLink.checked = !!data.isActive;
+        if (resultInput && data.isActive && data.url){
+          resultInput.value = data.url;
+        }
+      } catch (e){
+        if (errorEl){
+          errorEl.textContent = 'Freigabestatus konnte nicht geladen werden.';
+          errorEl.classList.remove('d-none');
+        }
+      }
+    }
+
+    if (groupSelect){
+      groupSelect.addEventListener('change', function(){
+        if (resultInput) resultInput.value = '';
+        if (visPrivate) visPrivate.checked = true;
+        if (visLink) visLink.checked = false;
+        refreshShareState();
+      });
+    }
+
+    if (generateBtn && form && groupSelect && resultInput){
+      generateBtn.addEventListener('click', async function(){
+        const group = (groupSelect.value || '').trim();
+        if (!group) return;
+        const wantLink = visLink && visLink.checked;
+        if (!wantLink) return;
+
+        const fd = new FormData(form);
+        try{
+          const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+          if (tokenInput && tokenInput.value) {
+            headers['RequestVerificationToken'] = tokenInput.value;
+          }
+          const resp = await fetch(form.action, {
+            method: 'POST',
+            headers,
+            body: fd
+          });
+
+          if (!resp.ok) {
+            if (errorEl){
+              errorEl.textContent = 'Fehler beim Erzeugen des Links (' + resp.status + ').';
+              errorEl.classList.remove('d-none');
+            }
+            resultInput.value = '';
+            return;
+          }
+
+          const data = await resp.json();
+          if (!data.ok){
+            if (errorEl){
+              errorEl.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+              errorEl.classList.remove('d-none');
+            }
+            resultInput.value = '';
+            return;
+          }
+          if (errorEl){
+            errorEl.textContent = '';
+            errorEl.classList.add('d-none');
+          }
+          const url = data.url || '';
+          resultInput.value = url;
+
+          if (url){
+            if (navigator.clipboard && navigator.clipboard.writeText){
+              navigator.clipboard.writeText(url).catch(function(){});
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = url;
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); } catch {}
+              document.body.removeChild(ta);
+            }
+            if (toastEl){
+              toastEl.classList.remove('d-none');
+              setTimeout(function(){ toastEl.classList.add('d-none'); }, 2200);
+            }
+            setButtonActive(true);
+          }
+        } catch (e){
+          if (errorEl){
+            errorEl.textContent = 'Fehler beim Erzeugen des Links.';
+            errorEl.classList.remove('d-none');
+          }
+        }
+      });
+    }
+
+    if (submitBtn && form && groupSelect && resultInput){
+      submitBtn.addEventListener('click', async function(){
+        const group = (groupSelect.value || '').trim();
+        if (!group) return;
+        const wantLink = visLink && visLink.checked;
+
+        if (wantLink){
+          const fd = new FormData(form);
+          try{
+            const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+            if (tokenInput && tokenInput.value) {
+              headers['RequestVerificationToken'] = tokenInput.value;
+            }
+            const resp = await fetch(form.action, {
+              method: 'POST',
+              headers,
+              body: fd
+            });
+
+            if (!resp.ok) {
+              if (errorEl){
+                errorEl.textContent = 'Fehler beim Erzeugen des Links (' + resp.status + ').';
+                errorEl.classList.remove('d-none');
+              }
+              resultInput.value = '';
+              return;
+            }
+
+            const data = await resp.json();
+            if (!data.ok){
+              if (errorEl){
+                errorEl.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+                errorEl.classList.remove('d-none');
+              }
+              resultInput.value = '';
+              return;
+            }
+            if (errorEl){
+              errorEl.textContent = '';
+              errorEl.classList.add('d-none');
+            }
+            resultInput.value = data.url || '';
+            if (resultInput.value){
+              setButtonActive(true);
+            }
+            if (modal) modal.hide();
+          } catch (e){
+            if (errorEl){
+              errorEl.textContent = 'Fehler beim Erzeugen des Links.';
+              errorEl.classList.remove('d-none');
+            }
+          }
+        } else {
+          if (!deactivateUrl) return;
+          const fd = new FormData();
+          if (tokenInput && tokenInput.value){
+            fd.append('__RequestVerificationToken', tokenInput.value);
+          }
+          fd.append('groupName', group);
+          try{
+            const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+            if (tokenInput && tokenInput.value) {
+              headers['RequestVerificationToken'] = tokenInput.value;
+            }
+            const resp = await fetch(deactivateUrl, {
+              method: 'POST',
+              headers,
+              body: fd
+            });
+
+            if (!resp.ok) {
+              if (errorEl){
+                errorEl.textContent = 'Freigabelink konnte nicht deaktiviert werden (' + resp.status + ').';
+                errorEl.classList.remove('d-none');
+              }
+              return;
+            }
+
+            const data = await resp.json();
+            if (!data.ok){
+              if (errorEl){
+                errorEl.textContent = data.error || 'Freigabelink konnte nicht deaktiviert werden.';
+                errorEl.classList.remove('d-none');
+              }
+              return;
+            }
+            if (errorEl){
+              errorEl.textContent = '';
+              errorEl.classList.add('d-none');
+            }
+            resultInput.value = '';
+            setButtonActive(false);
+            if (modal) modal.hide();
+          } catch (e){
+            if (errorEl){
+              errorEl.textContent = 'Freigabelink konnte nicht deaktiviert werden.';
+              errorEl.classList.remove('d-none');
+            }
+          }
+        }
+      });
+    }
+
+  })();
+
+  // Small helper: strip HTML tags and compress whitespace
+  function cleanHtmlText(input) {
+    if (!input) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = String(input);
+    return (tmp.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Summernote init for prompt reflection (if present)
+  function initPromptReflektionEditor(){
+    try {
+      if (!window.jQuery || !window.jQuery.fn || !window.jQuery.fn.summernote) return;
+      const $ = window.jQuery;
+      const $ta = $('#promptReflektionEditor');
+      if (!$ta.length || $ta.data('sn-init')) return;
+
+      $ta.summernote({
+        height: 220,
+        minHeight: 160,
+        tabsize: 2,
+        placeholder: 'Reflexion zum Prompt eingeben',
+        toolbar: [
+          ['font', ['bold', 'italic', 'underline', 'clear']],
+          ['para', ['ul', 'ol', 'paragraph']],
+          ['insert', ['link']],
+          ['view', ['fullscreen', 'codeview']]
+        ]
+      });
+      $ta.data('sn-init', '1');
+    } catch (e) { }
+  }
+
+  initPromptReflektionEditor();
+  window.addEventListener('load', initPromptReflektionEditor);
+
+  const reflEditBtn = document.getElementById('prompt-reflektion-edit-btn');
+  if (reflEditBtn) {
+    reflEditBtn.addEventListener('click', () => {
+      const editContainer = document.getElementById('prompt-reflektion-edit-container');
+      const readOnly = document.getElementById('prompt-reflektion-readonly');
+      if (editContainer) editContainer.classList.remove('d-none');
+      if (readOnly) readOnly.classList.add('d-none');
+      reflEditBtn.style.display = 'none';
+      initPromptReflektionEditor();
+    });
+  }
+
+  async function buf2hex(buf){
+    return [...new Uint8Array(buf)]
+           .map(b=>b.toString(16).padStart(2,'0'))
+           .join('');
+  }
+  async function sha256(str){
+    const h = await crypto.subtle.digest('SHA-256',
+                new TextEncoder().encode(str));
+    return buf2hex(h);
+  }
+
+  /* keep each <pre>â€™s original HTML for later resets */
+  document.querySelectorAll('.prompt-box')
+          .forEach(pre => pre.dataset.orig = pre.innerHTML);
+
+  /* ==================================================
+       PRIMARY ACTION BUTTONS
+  ================================================== */
+
+  /* COPY ------------------------------------------------ */
+  // document.getElementById('copy-prompt')?.addEventListener('click', () => {
+  //   navigator.clipboard.writeText(
+  //     document.getElementById('prompt-main').innerText.trim()
+  //   ).then(()=>Swal.fire({icon:'success',title:'Kopiert!',timer:1500,showConfirmButton:false}));
+  // });
+          document.getElementById('copy-prompt')?.addEventListener('click', () => {
+            const html = document.getElementById('prompt-main').innerHTML;
+            window.copyPromptHtml(html);
+        });
+
+        
+  /* JSON EXPORT --------------------------------------- */
+  document.getElementById('export-json')?.addEventListener('click', async () => {
+    const hash  = await sha256(secretKey + JSON.stringify(state));
+    const blob  = new Blob([JSON.stringify({data:state,hash},null,2)],
+                           {type:'application/json'});
+    const url   = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'),
+                  {href:url,download:'prompt-export.json'}).click();
+    URL.revokeObjectURL(url);
+    Swal.fire({icon:'success',title:'JSON exportiert',timer:1500,showConfirmButton:false});
+  });
+
+  /* PDF EXPORT ---------------------------------------- */
+  document.getElementById('export-pdf')?.addEventListener('click', () => {
+    exportPromptPdf(state.promptHtml, 'prompt.pdf');
+  });
+ 
+
+
+
+  /* TOKEN COUNT --------------------------------------- */
+  document.getElementById('calculate-tokens')?.addEventListener('click', () => {
+    const div = document.createElement('div'); div.innerHTML = state.promptHtml;
+    const chars  = (div.textContent || '').length;
+    const tokens = Math.ceil(chars/4);
+    Swal.fire({
+      icon:'info',
+              html:`<p><strong>Zeichen (Characters):</strong> ${chars}</p>
+                    <p><strong>Tokens (geschätzt):</strong>  ${tokens}</p>`
+    });
+  });
+
+  /* ==================================================
+       INLINE-MODEL PANEL  (same behaviour as before)
+  ================================================== */
+  const btnModels  = document.getElementById('show-inline-models'),
+        panel      = document.getElementById('inlineModelsContainer'),
+        cards      = document.getElementById('inlineModelCards'),
+        pag        = document.getElementById('inlineModelPagination'),
+        searchIn   = document.getElementById('inlineModelSearch'),
+        iconLight  = document.getElementById('models-icon'),
+        textBtn    = document.getElementById('models-button-text');
+
+  let allModels=[], filtered=[], visible=false;
+
+  btnModels?.addEventListener('click', async()=>{
+    visible=!visible;
+    panel.style.display = visible ? 'block' : 'none';
+    iconLight.className = visible ? 'bi bi-eye-slash me-1'
+                                  : 'bi bi-lightbulb me-1';
+    textBtn.textContent = visible ? 'Modelle ausblenden' : 'Modelle';
+
+    if(visible && !allModels.length){
+      try{ allModels = await (await fetch('@Url.Content("~/api/PromptModel")')).json(); }
+      catch(e){ cards.innerHTML = `<p class="text-danger">Fehler: ${e}</p>`; return;}
+      filtered=[...allModels];
+    }
+    renderModels(1);
+  });
+
+  function renderModels(page=1, per=6){
+    const start=(page-1)*per, slice=filtered.slice(start,start+per);
+    cards.innerHTML = slice.map(m=>`
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">${m.titel}</h5>
+            <a href="${m.redirectUrl}" target="_blank"
+               class="btn mt-auto w-100" style="background:#89ba17;color:#fff">
+              öffnen <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>`).join('') || `<p class="text-center text-muted">Keine Modelle gefunden.</p>`;
+
+    const total=Math.ceil(filtered.length/per);
+    pag.innerHTML='';
+    const li = (lbl,p,dis,act)=>pag.insertAdjacentHTML('beforeend',`
+      <li class="page-item ${dis?'disabled':''} ${act?'active':''}">
+        <a class="page-link" href="#" data-page="${p}">${lbl}</a>
+      </li>`);
+
+    li('&laquo;',1,filtered.length===0,false);
+    for(let p=1;p<=total;p++) li(p,p,false,p===page);
+    li('&raquo;',total,filtered.length===0,false);
+  }
+  pag.addEventListener('click',e=>{
+    const a=e.target.closest('a[data-page]'); if(!a)return;
+    e.preventDefault(); renderModels(+a.dataset.page);
+  });
+  searchIn?.addEventListener('input',e=>{
+    const term=e.target.value.toLowerCase();
+    filtered = allModels.filter(m=>m.titel.toLowerCase().includes(term));
+    renderModels(1);
+  });
+
+          /* ==================================================
+           VARIATION MODELS PANELS
+        ================================================== */
+        document.addEventListener('click', async e => {
+            const btn = e.target.closest('.act-models');
+            if (!btn) return;
+
+            const varId = btn.dataset.varId;
+            if (!varId) return;
+
+            const panelId = `inlineModelsContainer-var-${varId}`;
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+
+            const isVisible = panel.style.display !== 'none';
+            panel.style.display = isVisible ? 'none' : 'block';
+
+            // Load models if not already loaded
+            if (!window.allModels) {
+                try {
+                    window.allModels = await (await fetch('@Url.Content("~/api/PromptModel")')).json();
+                } catch(e) {
+                    console.error('Fehler beim Laden der Modelle:', e);
+                    return;
+                }
+            }
+
+            // Initialize panel if first time
+            if (!panel.dataset.initialized) {
+                panel.dataset.initialized = true;
+                renderModelsForPanel(panel);
+            }
+        });
+
+        function renderModelsForPanel(panel, page = 1, perPage = 6) {
+            const searchInput = panel.querySelector('.inlineModelSearch');
+            const term = (searchInput?.value || '').toLowerCase();
+
+            const filtered = term
+                ? window.allModels.filter(m => m.titel.toLowerCase().includes(term))
+                : [...window.allModels];
+
+            const start = (page - 1) * perPage;
+            const slice = filtered.slice(start, start + perPage);
+
+            const cards = panel.querySelector('.inlineModelCards');
+            cards.innerHTML = slice.map(m => `
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">${m.titel}</h5>
+                            <a href="${m.redirectUrl}" target="_blank"
+                               class="btn mt-auto w-100" style="background:#89ba17;color:#fff">
+                                Ã–ffnen <i class="bi bi-box-arrow-up-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('') || `<p class="text-center text-muted">Keine Modelle gefunden.</p>`;
+
+            const pagination = panel.querySelector('.inlineModelPagination');
+            const totalPages = Math.ceil(filtered.length / perPage);
+
+            pagination.innerHTML = '';
+            if (totalPages > 0) {
+                const prevLi = createPageItem('&laquo;', page - 1, page === 1);
+                pagination.appendChild(prevLi);
+
+                for (let p = 1; p <= totalPages; p++) {
+                    const li = createPageItem(p, p, false, p === page);
+                    pagination.appendChild(li);
+                }
+
+                const nextLi = createPageItem('&raquo;', page + 1, page === totalPages);
+                pagination.appendChild(nextLi);
+            }
+
+            function createPageItem(label, targetPage, disabled, active = false) {
+                const li = document.createElement('li');
+                li.className = `page-item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}`;
+
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.innerHTML = label;
+
+                if (!disabled) {
+                    a.onclick = (e) => {
+                        e.preventDefault();
+                        renderModelsForPanel(panel, targetPage, perPage);
+                    };
+                }
+
+                li.appendChild(a);
+                return li;
+            }
+        }
+
+        // Handle search in variation panels
+        document.addEventListener('input', e => {
+            if (!e.target.classList.contains('inlineModelSearch')) return;
+
+            const panel = e.target.closest('[id^="inlineModelsContainer-var-"]');
+            if (panel && panel.dataset.initialized) {
+                renderModelsForPanel(panel, 1);
+            }
+        });
+    
+
+  /* ==================================================
+       INLINE SAVE FOR UsedModels, Autorin, Lizenz
+       (no full page reload)
+  ================================================== */
+
+  async function postFormAjax(form, displayEl, labelPrefix) {
+    if (!form) return false;
+    const url = form.getAttribute('action') || window.location.href;
+    const method = (form.getAttribute('method') || 'post').toUpperCase();
+    const formData = new FormData(form);
+
+    try {
+      const resp = await fetch(url, {
+        method,
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      if (!data || !data.success) throw new Error(data && data.message ? data.message : 'Speichern fehlgeschlagen');
+
+      if (displayEl) {
+        const value = (data.value || '').toString();
+        const wrapper = displayEl.closest('p');
+        if (value.trim().length === 0) {
+          if (wrapper) wrapper.style.display = 'none';
+        } else {
+          if (wrapper) wrapper.style.display = '';
+          displayEl.innerHTML = `<strong>${labelPrefix}</strong> ${value}`;
+        }
+      }
+
+      if (window.Swal) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Gespeichert',
+          text: data.message || 'Die Ã„nderungen wurden gespeichert.',
+          timer: 1200,
+          showConfirmButton: false
+        });
+      }
+      return true;
+    } catch (e) {
+      console.error('AJAX save failed', e);
+      if (window.Swal) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Fehler',
+          text: e.message || 'Beim Speichern ist ein Fehler aufgetreten.'
+        });
+      }
+      return false;
+    }
+  }
+
+  // UsedModels AJAX + disable Speichern when empty
+  const usedModelsForm = document.getElementById('usedModelsForm');
+  if (usedModelsForm) {
+    const usedModelsInput = usedModelsForm.querySelector('input[name="usedModels"]');
+    const usedModelsBtn = usedModelsForm.querySelector('button[type="submit"]');
+
+    const updateUsedModelsButton = () => {
+      if (!usedModelsInput || !usedModelsBtn) return;
+      const val = (usedModelsInput.value || '').trim();
+      usedModelsBtn.disabled = val.length === 0;
+    };
+
+    updateUsedModelsButton();
+    if (usedModelsInput) {
+      usedModelsInput.addEventListener('input', updateUsedModelsButton);
+    }
+
+    usedModelsForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const displayEl = document.getElementById('usedModelsDisplay');
+      const ok = await postFormAjax(usedModelsForm, displayEl, 'Verwendete Modelle:');
+      if (!ok) usedModelsForm.submit(); // fallback
+    });
+  }
+
+  // Autorin AJAX + disable Speichern when empty
+  const autorForm = document.getElementById('autorForm');
+  if (autorForm) {
+    const autorInput = autorForm.querySelector('input[name="autorin"]');
+    const autorBtn = autorForm.querySelector('button[type="submit"]');
+
+    const updateAutorButton = () => {
+      if (!autorInput || !autorBtn) return;
+      const val = (autorInput.value || '').trim();
+      autorBtn.disabled = val.length === 0;
+    };
+
+    updateAutorButton();
+    if (autorInput) {
+      autorInput.addEventListener('input', updateAutorButton);
+    }
+
+    autorForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const displayEl = document.getElementById('autorDisplay');
+      const ok = await postFormAjax(autorForm, displayEl, 'Autor*in:');
+      if (!ok) autorForm.submit();
+    });
+  }
+
+  // Lizenz AJAX + disable Speichern when no Lizenz selected
+  const lizenzForm = document.getElementById('lizenzForm');
+  if (lizenzForm) {
+    const lizenzSelect = lizenzForm.querySelector('select[name="lizenz"]');
+    const lizenzBtn = lizenzForm.querySelector('button[type="submit"]');
+
+    const updateLizenzButton = () => {
+      if (!lizenzSelect || !lizenzBtn) return;
+      const val = (lizenzSelect.value || '').trim();
+      lizenzBtn.disabled = val.length === 0;
+    };
+
+    updateLizenzButton();
+    if (lizenzSelect) {
+      lizenzSelect.addEventListener('change', updateLizenzButton);
+    }
+
+    lizenzForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const displayEl = document.getElementById('lizenzDisplay');
+      const ok = await postFormAjax(lizenzForm, displayEl, 'Lizenz (Ink. Re-Prompting):');
+      if (!ok) lizenzForm.submit();
+    });
+  }
+
+  /* ==================================================
+       FILTER-BADGE â†’ HIGHLIGHT in Prompt
+  ================================================== */
+         /* utilÂ â€” RegExpâ€‘Escaping einmal zentral */
+        const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        /* Highlightâ€‘Logik */
+        document.querySelectorAll('.filter-badge').forEach(badge => {
+          badge.addEventListener('click', () => {
+
+            /* 1) ResetÂ â€“ alte Markierungen & aktive Badges */
+            document.querySelectorAll('.filter-badge.active')
+                    .forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.prompt-box')
+                    .forEach(pre => pre.innerHTML = pre.dataset.orig);
+
+            /* 2) Zielâ€‘<pre> finden */
+            const box = document.getElementById('prompt-' + badge.dataset.prompt);
+            if (!box) return;
+
+            /* 3) exakten Titel suchenÂ + hervorheben */
+            const term = badge.dataset.term?.trim();
+            if (!term) return;
+
+            const rx   = new RegExp(`\\b${escRe(term)}\\b`, 'gi');   // WortÂ­grenzen
+            box.innerHTML = box.innerHTML.replace(rx,
+               '<span class="highlight">$&</span>');
+
+            badge.classList.add('active');
+          });
+        });
+
+        // Variationen Funktionen
+
+                        (() => {
+                  const deleteVariationUrl = '@deleteVariationUrl';
+
+                  document.querySelectorAll('.delete-variation').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+
+                      const item  = btn.closest('.accordion-item');
+                      const varId = item?.dataset.varId;
+                      if (!varId) return;
+
+                      const confirmed = await Swal.fire({
+                        title:'Variation löschen?',
+                        text:'Diese Aktion kann nicht rÃ¼ckgÃ¤ngig gemacht werden.',
+                        icon:'warning',showCancelButton:true,
+                        confirmButtonText:'LÃ¶schen',cancelButtonText:'Abbrechen',
+                        confirmButtonColor:'#d33'
+                      }).then(r => r.isConfirmed);
+
+                      if (!confirmed) return;
+
+                      try {
+                        const res = await fetch(
+                          `${deleteVariationUrl}?id=${encodeURIComponent(varId)}`,
+                          {
+                            method: 'POST',
+                            headers: {
+                              'RequestVerificationToken':
+                                document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? ''
+                            },
+                            // antiforgery likes *some* body â€“ even empty:
+                            body: ''
+                          });
+
+                        if (!res.ok) throw await res.text();
+
+                        item.remove();   // drop accordion item on success
+                        Swal.fire({ icon:'success', title:'GelÃ¶scht', timer:1500, showConfirmButton:false });
+
+                      } catch (err) {
+                        Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
+                      }
+                    });
+                  });
+                })();
+
+                        /* ---------- HELPER fÃ¼r einzelne <pre> ---------- */
+                function plainTextOf(preId){
+                  const div = document.createElement('div');
+                  div.innerHTML = document.getElementById(preId).innerHTML;
+                  return (div.textContent || '').trim();
+                }
+
+                /* ---------- Kopieren ---------- */
+                      /* ---------- Kopieren als HTMLâ€¯+â€¯Plainâ€‘Text ---------- */
+                async function copyPrompt(preId) {
+                  const pre   = document.getElementById(preId);
+                  if (!pre) throw 'Element nicht gefunden';
+
+                  /* 1) HTML wie im Editor (CKEditor produziert <p>/<br> etc.) */
+                  const html = pre.innerHTML.trim();
+
+                  /* 2) Plainâ€‘Text â€“Â ZeilenumbrÃ¼che beibehalten              */
+                  const tmp = document.createElement('div');
+                  tmp.innerHTML = html;
+                  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+                  tmp.querySelectorAll('p,div').forEach(el => el.append('\n'));
+                  const plain = (tmp.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+
+                  /* 3) in die Zwischenablage schreiben (moderner Weg)        */
+                  if (navigator.clipboard && window.ClipboardItem) {
+                    const item = new ClipboardItem({
+                      'text/html' : new Blob([html],  { type:'text/html'  }),
+                      'text/plain': new Blob([plain], { type:'text/plain' })
+                    });
+                    await navigator.clipboard.write([item]);
+                  } else {
+                    /* FallbackÂ fÃ¼r sehr alte Browser â‡’Â execCommand */
+                    const area = Object.assign(document.createElement('textarea'), {
+                      value: html, style:'position:absolute;left:-9999px'
+                    });
+                    document.body.append(area);
+                    area.select(); document.execCommand('copy'); area.remove();
+                  }
+                }
+
+
+                        function showCopyToast () {
+          const el = document.getElementById('copy-toast');
+          if (el) {
+            bootstrap.Toast.getOrCreateInstance(el, { delay: 2500 }).show();
+          }
+        }
+                 /* Variationsâ€‘Copy */
+                        document.addEventListener('click', async e => {
+          const btn = e.target.closest('.act-copy');   // nur Buttons mit .act-copy
+          if (!btn) return;
+
+          try {
+            await copyPrompt(btn.dataset.target);      // prompt kopieren
+            showCopyToast();                           // **Toast zeigen**
+          } catch (err) {
+            // nur noch Fehler via Swal melden
+            Swal.fire('Fehler', String(err), 'error');
+          }
+        });
+
+
+                /* ---------- Tokens ---------- */
+                document.addEventListener('click',e=>{
+                  const btn = e.target.closest('.act-tokens');
+                  if(!btn) return;
+
+                  const txt    = plainTextOf(btn.dataset.target);
+                  const tokens = Math.ceil(txt.length/4);
+                  Swal.fire({icon:'info',
+                    html:`<p><strong>Zeichen:</strong> ${txt.length}</p>
+                          <p><strong>Tokens:</strong>  ${tokens}</p>`});
+                });
+
+                        /* ---------- JSONâ€‘Export fÃ¼r VARIATIONEN ---------- */
+                  document.addEventListener('click', async e => {
+                    const a = e.target.closest('.act-json');
+                    if (!a) return;             // kein JSONâ€‘Button getroffen
+                    e.preventDefault();
+
+                    const preId   = a.dataset.target;
+                    const content = document.getElementById(preId).innerHTML;
+                    const payload = { html: content, exportedAt: new Date().toISOString() };
+
+                    const hash = await sha256('uni-wuppertal2025' + JSON.stringify(payload));
+                    const blob = new Blob(
+                      [JSON.stringify({ data: payload, hash }, null, 2)],
+                      { type: 'application/json' }
+                    );
+                    const url = URL.createObjectURL(blob);
+                    Object.assign(document.createElement('a'),
+                                  { href: url, download: `${preId}.json` }).click();
+                    URL.revokeObjectURL(url);
+                  });
+
+
+                       /* ---------- PDFâ€‘Export fÃ¼r Variationen ---------- */
+                document.addEventListener('click', e => {
+                  const a = e.target.closest('.act-pdf');
+                  if (!a) return;   // nicht unser Link
+                  e.preventDefault();
+
+                  const pre = document.getElementById(a.dataset.target);
+                  if (!pre) return Swal.fire('Fehler', 'Prompt nicht gefunden', 'error');
+
+                  exportPromptPdf(pre.innerHTML, `${a.dataset.target}.pdf`);
+                });
+
+                        function exportPromptPdf(html, fileName = 'prompt.pdf') {
+                  if (!window.jspdf) {
+                    alert('PDF-Export ist derzeit nicht verfÃ¼gbar.');
+                    return;
+                  }
+
+                  const { jsPDF } = window.jspdf;
+                  const pdf   = new jsPDF('p', 'mm', 'a4');
+                  const margin = 15;
+                  const pageWidth = pdf.internal.pageSize.getWidth();
+                  const maxWidth  = pageWidth - 2 * margin;
+                  let   y     = margin;
+
+                  const workTitle = (workTitleDefault || '').trim() || 'Prompt';
+                  const akr       = (akronymDefault || '').trim();
+                  const author    = (authorName || '').trim() || 'Name';
+                  const lic       = (licenseVal || '').trim() || 'â€“';
+
+                  // âžœ HTML in logische Abschnitte zerlegen
+                  const tmp = document.createElement('div');
+                  tmp.innerHTML = html || '';
+                  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+
+                  const sections = [];
+                  tmp.childNodes.forEach(node => {
+                    const txt = (node.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (!txt) return;
+
+                    const m = txt.match(/^(Thema|Ziele|Beschreibung|SchlÃ¼sselbegriffe):/i);
+                    if (m) {
+                      sections.push({ title: m[0], content: txt.replace(m[0], '').trim() });
+                    } else {
+                      sections.push({ title: null, content: txt });
+                    }
+                  });
+
+                  // âžœ Meta: Titel, Akronym, Filter-Kriterien
+                  pdf.setFont('helvetica', 'bold').setFontSize(16);
+                  pdf.setTextColor(0, 90, 170);
+                  pdf.text('Prompt Inhalt', margin, y); y += 8;
+
+                  pdf.setFont('helvetica', 'normal').setFontSize(11);
+                  pdf.setTextColor(40, 40, 40);
+
+                  // helper to draw a bold label with normal value on same line
+                  const drawLabelLine = (label, value) => {
+                    const v = (value || '').trim();
+                    if (!v) return;
+                    if (y > 280) { pdf.addPage(); y = margin; }
+                    pdf.setFont('helvetica', 'bold').setFontSize(11);
+                    pdf.text(label, margin, y);
+                    const labelW = pdf.getTextWidth(label + ' ');
+                    pdf.setFont('helvetica', 'normal').setFontSize(11);
+                    pdf.text(v, margin + labelW, y);
+                    y += 6;
+                  };
+
+                  drawLabelLine('Titel:', workTitle);
+                  drawLabelLine('Akronym:', akr);
+
+                  const filters = Array.isArray(state?.checkedItems) ? state.checkedItems : [];
+                  if (filters.length) {
+                    if (y > 260) { pdf.addPage(); y = margin; }
+                    pdf.setFont('helvetica', 'bold').setFontSize(12);
+                    pdf.text('Filter-Kriterien:', margin, y); y += 5;
+
+                    const filterLabels = filters
+                      .map(f => cleanHtmlText(f?.value || ''))
+                      .filter(v => v && v.length > 0);
+
+                    pdf.setFont('helvetica', 'normal').setFontSize(10);
+
+                    let chipX = margin;
+                    let chipY = y + 2;
+                    const chipPadX = 2;
+                    const chipPadY = 1.5;
+                    const chipGapX = 2;
+                    const chipGapY = 3;
+                    const chipH     = 6;
+                    let lastChipBottom = chipY + chipH;
+
+                    filterLabels.forEach(lbl => {
+                      const text = lbl;
+                      const textWidth = pdf.getTextWidth(text);
+                      const chipW = textWidth + chipPadX * 2;
+
+                      // Wrap to next line if chip would exceed page width
+                      if (chipX + chipW > margin + maxWidth) {
+                        chipX = margin;
+                        chipY += chipH + chipGapY;
+                      }
+                      // Start new page if we are too close to the bottom
+                      if (chipY + chipH > 285) {
+                        pdf.addPage();
+                        chipX = margin;
+                        chipY = margin;
+                      }
+
+                      pdf.setFillColor(137, 186, 23);   // green bubble
+                      pdf.setDrawColor(137, 186, 23);
+                      if (pdf.roundedRect) {
+                        pdf.roundedRect(chipX, chipY, chipW, chipH, 2, 2, 'FD');
+                      } else {
+                        pdf.rect(chipX, chipY, chipW, chipH, 'FD');
+                      }
+
+                      pdf.setTextColor(255, 255, 255);
+                      pdf.text(text, chipX + chipPadX, chipY + chipH - chipPadY);
+
+                      lastChipBottom = Math.max(lastChipBottom, chipY + chipH);
+                      chipX += chipW + chipGapX;
+                    });
+
+                    y = lastChipBottom + 10;   // ensure clear gap below chips
+                    pdf.setTextColor(40, 40, 40);
+                  }
+
+                  // âžœ Prompt-Inhalt (Thema, Ziele, Beschreibung, ...)
+                  if (y > 260) { pdf.addPage(); y = margin; }
+                  pdf.setFont('helvetica', 'bold').setFontSize(13);
+                  pdf.text('Prompt-Inhalt', margin, y); y += 7;
+                  pdf.setFont('helvetica', 'normal').setFontSize(11);
+
+                  sections.forEach(sec => {
+                    if (sec.title) {
+                      if (y > 260) { pdf.addPage(); y = margin; }
+                      pdf.setFont('helvetica', 'bold').setFontSize(12);
+                      pdf.text(sec.title, margin, y); y += 7;
+                      pdf.setFont('helvetica', 'normal').setFontSize(11);
+                    }
+                    const lines = pdf.splitTextToSize(sec.content, maxWidth);
+                    lines.forEach(line => {
+                      if (y > 280) { pdf.addPage(); y = margin; }
+                      pdf.text(line, margin, y); y += 6;
+                    });
+                    y += 4;
+                  });
+
+                  // âžœ ErklÃ¤rung zur Freigabe unter Open-Source-Lizenz
+                  pdf.addPage();
+                  y = margin;
+                  pdf.setFont('helvetica', 'bold').setFontSize(16);
+                  pdf.setTextColor(0, 90, 170);
+                  pdf.text('ErklÃ¤rung zur Freigabe unter Open-Source-Lizenz', margin, y); y += 10;
+
+                  pdf.setFont('helvetica', 'normal').setFontSize(11);
+                  pdf.setTextColor(40, 40, 40);
+
+                  const expl1 = 'Ich / Wir, die unterzeichnende(n) Autor:in(nen), erklÃ¤re(n) hiermit, dass der hier dokumentierte Prompt sowie das daraus erstellte Lernmaterial von mir / uns erstellt wurde und frei von Rechten Dritter ist.';
+                  const expl2 = 'Ich / Wir stelle(n) diese Werke hiermit unter die unten genannte Lizenz. Damit werden die Werke der Allgemeinheit zur freien Nutzung, Verbreitung, Bearbeitung und VerÃ¶ffentlichung zugÃ¤nglich gemacht. Eine Nutzung ist ohne EinschrÃ¤nkungen gemÃ¤ÃŸ der Lizenzbestimmung erlaubt.';
+
+                  [expl1, expl2].forEach(p => {
+                    const lines = pdf.splitTextToSize(p, maxWidth);
+                    lines.forEach(line => {
+                      if (y > 280) { pdf.addPage(); y = margin; }
+                      pdf.text(line, margin, y); y += 6;
+                    });
+                    y += 4;
+                  });
+
+                  const titleLine = `Titel des Werks: ${workTitle}`;
+                  const licLine = `Lizenzbestimmung: ${lic}`;
+                  [titleLine, licLine].forEach(l => {
+                    if (y > 280) { pdf.addPage(); y = margin; }
+                    pdf.text(l, margin, y); y += 6;
+                  });
+
+                  y += 10;
+                  pdf.setFont('helvetica', 'bold').setFontSize(11);
+                  pdf.text('Autor:in / Autor:innen:', margin, y); y += 7;
+                  pdf.setFont('helvetica', 'normal');
+
+                  const authorDisplay = author || 'Name';
+                  if (y > 280) { pdf.addPage(); y = margin; }
+                  pdf.text(`â€¢ ${authorDisplay}`, margin, y); y += 10;
+
+                  // ZusÃ¤tzliche Kontaktdaten-Felder fÃ¼r die Freigabe
+                  if (y > 260) { pdf.addPage(); y = margin; }
+                  pdf.setFont('helvetica', 'bold');
+                  pdf.text('Kontaktdaten der Autor:in / Autor:innen:', margin, y); y += 7;
+                  pdf.setFont('helvetica', 'normal');
+
+                  const contactLines = [
+                    'Anschrift (Ort, StraÃŸe): ____________________________________________',
+                    'E-Mail-Adresse: _________________________________________________',
+                    'Telefonnummer: _________________________________________________'
+                  ];
+                  contactLines.forEach(line => {
+                    if (y > 280) { pdf.addPage(); y = margin; }
+                    pdf.text(line, margin, y); y += 6;
+                  });
+                  y += 6;
+
+                  if (y > 260) { pdf.addPage(); y = margin; }
+                  pdf.text('Ort, Datum, Unterschrift', margin, y); y += 6;
+                  y += 12;
+
+                  // Footer mit Seitenzahlen
+                  const totalPages = pdf.getNumberOfPages();
+                  const pageHeight = pdf.internal.pageSize.getHeight();
+                  for (let p = 1; p <= totalPages; p++) {
+                    pdf.setPage(p);
+                    pdf.setFontSize(8);
+                    pdf.text(`Seite ${p} / ${totalPages}`, margin + maxWidth, pageHeight - 10, { align: 'right' });
+                  }
+
+                  pdf.save(fileName);
+                }
+
+        // const secretKey = 'uni-wuppertal2025';
+        async function exportAndGo(payload){
+          const serialized = JSON.stringify(payload);
+          const hash       = await sha256(secretKey+serialized);
+          localStorage.setItem('import_payload',
+                               JSON.stringify({data:payload,hash}));
+          const editUrlBase = '@Url.Action("PromptAssistent", "Home", new { area = "User" })';
+          window.location.href = `${editUrlBase}?type=${encodeURIComponent(payload.type)}`;
+        }
+
+        /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+           1) EDITÂ â€”Â Hauptâ€‘Prompt
+        â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        document.getElementById('edit-main')?.addEventListener('click',()=>{
+                 const payload = {
+            ...state,
+            akronym: @Html.Raw(JsonSerializer.Serialize(Model.Akronym ?? "")),
+            title:   @Html.Raw(JsonSerializer.Serialize(Model.Title ?? ""))
+        };
+          exportAndGo(payload);
+        });
+
+        /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+           2) DELETEÂ â€”Â Hauptâ€‘Prompt
+        â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        document.getElementById('delete-template')?.addEventListener('click',async()=>{
+          const ok = await Swal.fire({
+            title:'Vorlage lÃ¶schen?',
+            text:'Diese Aktion kann nicht rÃ¼ckgÃ¤ngig gemacht werden.',
+            icon:'warning',showCancelButton:true,
+            confirmButtonText:'LÃ¶schen',cancelButtonText:'Abbrechen',
+            confirmButtonColor:'#d33'
+          }).then(r=>r.isConfirmed);
+          if(!ok) return;
+
+          try{
+            const url='@Url.Action("Delete", "PromptTemplate", new { area = "Admin" })';
+            const res=await fetch(`${url}?id=@Model.Id`,{method:'POST',body:''});
+            if(!res.ok) throw await res.text();
+            Swal.fire({icon:'success',title:'GelÃ¶scht',timer:1500,showConfirmButton:false})
+                .then(()=>window.location.href='@Url.Action("Bibliothek", "Home")');
+          }catch(err){
+            Swal.fire({icon:'error',title:'Fehler',text:String(err)});
+          }
+        });
+
+        /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+           3) EDITÂ â€”Â Variationen
+        â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+        document.querySelectorAll('.edit-variation').forEach(btn=>{
+          btn.addEventListener('click',async()=>{
+            const item = btn.closest('.accordion-item');
+            if(!item) return;
+            const payload = JSON.parse(item.dataset.payload);   // â† aus Razor
+            /* ergÃ¤nze noch Titel & Akronym */
+                    payload.title   = item.querySelector('.accordion-button')?.textContent.trim() || '';
+        payload.akronym = @Html.Raw(JsonSerializer.Serialize(Model.Akronym ?? ""));
+            exportAndGo(payload);
+          });
+        });
+
+                /* ==================================================
+               EXTRA VALIDATION â€“Â â€œUsedÂ Modelsâ€ form
+          ================================================== */
+          const usedModelsForm2 = document.querySelector('form[action*="UpdateUsedModels"]');
+          if (usedModelsForm2) {
+            usedModelsForm2.addEventListener('submit', e => {
+              if (e.defaultPrevented) return;
+              const input = usedModelsForm2.querySelector('input[name="usedModels"]');
+              if (!input || !input.value.trim()) {
+                e.preventDefault();                            // stop empty submits
+                Swal.fire({                                    // nice error modal
+                  icon: 'error',
+                  title: 'Eingabe fehlt',
+                  text: 'Bitte geben Sie mindestens ein verwendetes Modell an!'
+                });
+              }
+            });
+          }
+          // BestÃ¤tigungsdialog fÃ¼r Bild-LÃ¶schung (SweetAlert2)
+          document.querySelectorAll('form[data-image-delete="true"]').forEach(form => {
+            form.addEventListener('submit', async e => {
+              e.preventDefault();
+              const result = await Swal.fire({
+                title: 'Bild lÃ¶schen?',
+                text: 'Dieses Bild wird dauerhaft entfernt.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'LÃ¶schen',
+                cancelButtonText: 'Abbrechen',
+                confirmButtonColor: '#d33'
+              });
+              if (result.isConfirmed) {
+                form.submit();
+              }
+            });
+          });
+
+          document.querySelectorAll('form[action*="UploadImage"]').forEach(form => {
+
+            form.addEventListener('submit', e => {
+              // Legacy single-file field (falls noch vorhanden)
+              const single = form.querySelector('input[name="imageFile"]')?.files[0];
+              // New multi-file field
+              const multi  = form.querySelector('input[name="imageFiles"]')?.files;
+              const fileCount = multi && multi.length ? multi.length : (single ? 1 : 0);
+              const urlInput = form.querySelector('input[name="imageUrl"]');
+              const url  = urlInput ? urlInput.value.trim() : '';
+
+              if (fileCount === 0 && !url) {
+                e.preventDefault();          // Server-Post unterbinden
+                Swal.fire({
+                  icon:  'error',
+                  title: 'Fehler',
+                  text:  'Bitte eine Bild-Datei auswÃ¤hlen oder eine Bild-URL eingeben.',
+                  confirmButtonColor: '#d33'
+                });
+              }
+            });
+
+          });
+
+}); /* DOMContentLoaded */
+
+
+</script>
+

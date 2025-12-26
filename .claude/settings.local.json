@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(while read f)",
+      "Bash(do if grep -q \"max-width.*px\\|width.*[0-9]%\\|\\.container\\|margin.*auto\" $f)",
+      "Bash(then echo $f)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(dotnet build:*)"
+    ]
+  }
+}

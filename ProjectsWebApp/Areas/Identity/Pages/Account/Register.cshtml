@@ -1,0 +1,263 @@
+﻿@page
+@model ProjectsWebApp.Areas.Identity.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Registrierung";
+}
+
+<style>
+    /* Einheitlicher Look für alle Formularfelder in der Registrierungskarte */
+    .register-card .form-floating > .form-control {
+        border-radius: 10px;
+        border: 0;
+        box-shadow: 0 .25rem .75rem rgba(15,23,42,.12);
+    }
+
+    /* Password Strength Meter */
+    .password-strength-meter {
+        height: 6px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-top: 8px;
+        overflow: hidden;
+    }
+    .password-strength-bar {
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease, background-color 0.3s ease;
+    }
+    .password-requirements {
+        font-size: 0.85rem;
+        list-style: none;
+        padding-left: 0;
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+    .password-requirements li {
+        margin-bottom: 4px;
+        color: #9ca3af; /* Tailwind gray-400 */
+        transition: color 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+    .password-requirements li.valid {
+        color: #10b981; /* Tailwind emerald-500 */
+    }
+    .password-requirements li i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+        font-size: 0.8em;
+    }
+</style>
+
+<div class="mt-5 d-flex justify-content-center align-items-center px-3" style="min-height: 80vh;">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+        <div class="card shadow-lg border-0 register-card" style="border-radius: 15px; overflow: hidden;">
+            <div class="card-header text-white text-center p-4" style="background-color: black;">
+                <h2>@ViewData["Title"]</h2>
+            </div>
+            <div class="card-body p-5">
+                <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                    <div asp-validation-summary="ModelOnly"
+                         class="text-danger mb-3"
+                         role="alert"></div>
+
+                    <!-- Einladungscode -->
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.InviteCode"
+                               class="form-control border-0 shadow-sm"
+                               placeholder="Einladungscode"
+                               style="border-radius: 10px;" />
+                        <label asp-for="Input.InviteCode">Einladungscode</label>
+                        <span asp-validation-for="Input.InviteCode"
+                              class="text-danger"></span>
+                    </div>
+
+                    <!-- Name -->
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Name"
+                               class="form-control border-0 shadow-sm"
+                               autocomplete="given-name"
+                               placeholder="Max Mustermann"
+                               style="border-radius: 10px;" />
+                        <label asp-for="Input.Name">Name</label>
+                        <span asp-validation-for="Input.Name"
+                              class="text-danger"></span>
+                    </div>
+
+                    <!-- E-Mail -->
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Email"
+                               class="form-control border-0 shadow-sm"
+                               autocomplete="username"
+                               placeholder="mail@beispiel.de"
+                               style="border-radius: 10px;" />
+                        <label asp-for="Input.Email">E-Mail</label>
+                        <span asp-validation-for="Input.Email"
+                              class="text-danger"></span>
+                    </div>
+
+                    <!-- Passwort -->
+                    <div class="form-floating mb-3">
+                        <input asp-for="Input.Password"
+                               type="password"
+                               class="form-control border-0 shadow-sm"
+                               autocomplete="new-password"
+                               placeholder="Passwort"
+                               style="border-radius: 10px;" />
+                        <label asp-for="Input.Password">Passwort</label>
+                        <span asp-validation-for="Input.Password"
+                              class="text-danger"></span>
+                        
+                        <!-- Password Strength Meter -->
+                        <div class="mt-2 px-1" id="passwordStrengthContainer" style="display:none;">
+                            <div class="password-strength-meter">
+                                <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                            </div>
+                            <ul class="password-requirements mt-3">
+                                <li id="req-length"><i class="fas fa-circle"></i> Mindestens 8 Zeichen</li>
+                                <li id="req-lower"><i class="fas fa-circle"></i> Kleinbuchstabe (a-z)</li>
+                                <li id="req-upper"><i class="fas fa-circle"></i> Großbuchstabe (A-Z)</li>
+                                <li id="req-digit"><i class="fas fa-circle"></i> Ziffer (0-9)</li>
+                                <li id="req-special"><i class="fas fa-circle"></i> Sonderzeichen (!?#...)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Passwort bestätigen -->
+                    <div class="form-floating mb-4">
+                        <input asp-for="Input.ConfirmPassword"
+                               type="password"
+                               class="form-control border-0 shadow-sm"
+                               autocomplete="new-password"
+                               placeholder="Passwort wiederholen"
+                               style="border-radius: 10px;" />
+                        <label asp-for="Input.ConfirmPassword">Passwort bestätigen</label>
+                        <span asp-validation-for="Input.ConfirmPassword"
+                              class="text-danger"></span>
+                    </div>
+
+                    <!-- Abschicken -->
+                    <button id="registerSubmit"
+                            type="submit"
+                            class="btn btn-success w-100 py-2"
+                            style="border-radius: 10px; background-color: black; border: none;">
+                        <i class="fas fa-user-plus me-1"></i>Registrieren
+                    </button>
+
+                    <div class="mt-3 text-center">
+                        <a asp-page="./Login"
+                           asp-route-returnUrl="@Model.ReturnUrl"
+                           class="text-muted d-block">
+                            Hast du schon ein Konto? Einloggen
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ExternalLogins?.Any() == true)
+    {
+        <div class="col-md-6 mt-4">
+            <div class="card shadow-lg border-0"
+                 style="border-radius: 15px;">
+                <div class="card-header bg-secondary text-white text-center p-4">
+                    <h3>Mit externem Dienst registrieren</h3>
+                </div>
+                <div class="card-body text-center">
+                    <form id="external-account"
+                          asp-page="./ExternalLogin"
+                          asp-route-returnUrl="@Model.ReturnUrl"
+                          method="post">
+                        @foreach (var provider in Model.ExternalLogins)
+                        {
+                            <button type="submit"
+                                    name="provider"
+                                    value="@provider.Name"
+                                    class="btn btn-primary w-100 mb-2 py-2"
+                                    style="border-radius: 10px;">
+                                Registrieren mit @provider.DisplayName
+                            </button>
+                        }
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    @if (TempData["RegisterError"] != null)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Registrierung fehlgeschlagen',
+                text: '@TempData["RegisterError"]',
+                confirmButtonColor: '#3acc59'
+            });
+        </script>
+    }
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const passwordInput = document.getElementById('Input_Password');
+            const container = document.getElementById('passwordStrengthContainer');
+            const bar = document.getElementById('passwordStrengthBar');
+            
+            if (!passwordInput || !container || !bar) return;
+
+            const reqs = {
+                length: { regex: /.{8,}/, el: document.getElementById('req-length') },
+                lower: { regex: /[a-z]/, el: document.getElementById('req-lower') },
+                upper: { regex: /[A-Z]/, el: document.getElementById('req-upper') },
+                digit: { regex: /[0-9]/, el: document.getElementById('req-digit') },
+                special: { regex: /[^a-zA-Z0-9]/, el: document.getElementById('req-special') }
+            };
+
+            passwordInput.addEventListener('input', function () {
+                const val = passwordInput.value;
+                
+                // Show container if user started typing
+                if (val.length > 0) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+
+                let score = 0;
+                let total = Object.keys(reqs).length;
+
+                for (const key in reqs) {
+                    const req = reqs[key];
+                    const isValid = req.regex.test(val);
+                    const icon = req.el.querySelector('i');
+
+                    if (isValid) {
+                        score++;
+                        req.el.classList.add('valid');
+                        icon.className = 'fas fa-check-circle';
+                    } else {
+                        req.el.classList.remove('valid');
+                        icon.className = 'fas fa-circle'; // or fa-times-circle
+                    }
+                }
+
+                const pct = (score / total) * 100;
+                bar.style.width = pct + '%';
+
+                if (score <= 2) {
+                    bar.style.backgroundColor = '#ef4444'; // red-500
+                } else if (score <= 4) {
+                    bar.style.backgroundColor = '#f59e0b'; // amber-500
+                } else {
+                    bar.style.backgroundColor = '#10b981'; // emerald-500
+                }
+            });
+        });
+    </script>
+}

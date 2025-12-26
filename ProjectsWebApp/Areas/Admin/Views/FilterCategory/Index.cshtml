@@ -1,0 +1,946 @@
+@model IEnumerable<ProjectsWebApp.Models.FilterCategory>
+@using ProjectsWebApp.Models
+@using System.Linq
+@{
+    ViewData["Title"] = "Kategorien-Management";
+    var currentType = (PromptType)ViewBag.Type;
+    var currentTypeStr = currentType.ToString();
+
+    // Feste Anzeige-Reihenfolge analog zur Prompt-Entwicklung
+    // Text, Bild, Video, Sound, Domäne, KI-Agent, Szenarien, Framework, Meta
+    var orderedPromptTypes = new[]
+    {
+        PromptType.Text,
+        PromptType.Bild,
+        PromptType.Video,
+        PromptType.Sound,
+        PromptType.Eigenfilter, // Domäne
+        PromptType.Bildung,     // Szenarien
+        PromptType.Beruf,       // KI-Agent
+        PromptType.Framework,
+        PromptType.Meta
+    };
+
+    var allTypes = Enum.GetValues(typeof(PromptType)).Cast<PromptType>().ToHashSet();
+
+    // Admin-Tabs: keine Domäne/Framework/Meta (user-only), aber sortiert wie oben
+    var types = orderedPromptTypes
+        .Where(pt => allTypes.Contains(pt)
+                  && pt != PromptType.Eigenfilter
+                  && pt != PromptType.Framework
+                  && pt != PromptType.Meta)
+        .ToList();
+
+    Func<PromptType, string> adminTypeLabel = pt => pt switch
+    {
+        PromptType.Eigenfilter => "Domäne",
+        PromptType.Beruf       => "KI-Agent",
+        PromptType.Bildung     => "Domäne",
+        _                      => pt.ToString()
+    };
+
+    var currentTypeLabel = adminTypeLabel(currentType);
+
+    var readOnly = (bool?)ViewBag.ReadOnly ?? false;
+    var manual = Model.Where(c => !c.IsAiGenerated).ToList();
+    var ai = Model.Where(c => c.IsAiGenerated).ToList();
+    var currentPanel = string.Equals(Context.Request.Query["panel"].ToString(), "ai", StringComparison.OrdinalIgnoreCase)
+        ? "ai" : "manual";
+}
+
+
+@if (readOnly)
+{
+@*     <style>
+        /* hide ALL buttons that mutate data */
+        .btn-success,
+        .btn-warning,
+        .btn-danger,
+        .btn-outline-light,
+        #add-filter,
+        .category-toolbar,
+        form[action*="Upsert"],
+        form.cat-delete-form {
+            display: none !important;
+        }
+    </style> *@
+}
+
+<style>
+    /* ——— Card & Layout ——— */
+    .card {
+        background: #ffffff; /* white surface */
+        border-radius: 10px;
+        border: 1px solid #e4e4e4; /* light border */
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transition: box-shadow .25s ease, transform .25s;
+    }
+
+        .card:hover {
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+    /* ——— Card header styling ——— */
+    .card-header {
+        background: #f1f1f1; /* secondary background */
+        border-bottom: 1px solid #e4e4e4;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+    }
+
+    /* ==== Tabs wie in Prompt-Entwicklung ==== */
+    #promptTypeTabs.custom-pills {
+        border-bottom: none;
+        display: flex;
+        flex-wrap: wrap !important;
+        gap: .4rem;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+    }
+
+        #promptTypeTabs.custom-pills .nav-item {
+            flex: 0 0 auto;
+        }
+
+        #promptTypeTabs.custom-pills .nav-link {
+            background: #f1f3f5;
+            color: #333;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: .45rem 1rem !important;
+            font-weight: 600;
+            white-space: nowrap;
+            font-size: 1rem !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            min-height: 36px;
+            text-align: center;
+            transition: background .2s,color .2s, box-shadow .2s;
+        }
+
+            #promptTypeTabs.custom-pills .nav-link:hover {
+                background: #e9ecef;
+                color: #111;
+            }
+
+            #promptTypeTabs.custom-pills .nav-link.active {
+                background: #89ba17; /* grün */
+                color: #fff;
+                border-color: #89ba17;
+                box-shadow: 0 6px 14px rgba(58,204,89,.25);
+            }
+
+    @@media (max-width: 1199.98px) {
+        #promptTypeTabs.custom-pills {
+            gap: .25rem;
+        }
+
+        #promptTypeTabs.custom-pills .nav-link {
+            padding: .4rem .75rem !important;
+            font-size: .9rem !important;
+            min-height: 34px;
+        }
+    }
+
+
+    /* ——— Table ——— */
+    .table {
+        background: #fff;
+    }
+
+        .table thead th {
+            border-bottom: 2px solid #e4e4e4;
+            color: #333;
+        }
+
+        .table tbody tr:hover {
+            background: #fafafa;
+        }
+
+        .table td, .table th {
+            vertical-align: middle;
+            color: #333;
+        }
+
+    /* ——— Badges ——— */
+    .badge {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .items-btn{
+        background: #004f72;
+        ; /* primary */
+        color: #fff;
+    }
+
+    .display-order-btn{
+       
+        background: black;
+        ; /* primary */
+        color: #fff;
+    }
+        .badge.bg-info {
+            background: black;
+            ; /* primary */
+            color: #fff;
+        }
+
+        .badge.bg-warning {
+            background: black;
+            color: #fff;
+        }
+
+    /* ——— Buttons ——— */
+    .btn-success {
+        background: black;
+        ; /* primary */
+        /* border: 1px solid #4a86e8; */
+        color: #fff;
+        border:none;
+    }
+
+        .btn-success:hover {
+            background: #393939;
+          
+            box-shadow: 0 6px 18px rgba(74, 134, 232, .3);
+        }
+
+    .btn-outline-primary {
+        border-color: #4a86e8;
+        color: #4a86e8;
+    }
+
+        .btn-outline-primary:hover {
+            background: #4a86e8;
+            color: #fff;
+        }
+
+    .btn-outline-danger {
+        border-color: #d9534f;
+        color: #d9534f;
+    }
+
+        .btn-outline-danger:hover {
+            background: #d9534f;
+            color: #fff;
+        }
+
+    .btn-outline-light {
+        border-color: #ccc;
+        color: #333;
+    }
+
+        .btn-outline-light:hover {
+            background: #e6e6e6;
+            color: #333;
+        }
+
+    /* ——— Toolbar at bottom ——— */
+    .category-toolbar {
+        text-align: center;
+        margin-top: 1.5rem;
+    }
+
+        .category-toolbar .btn {
+            margin: 0 .5rem;
+            background: #f1f1f1;
+            border: 1px solid #e4e4e4;
+            color: #333;
+        }
+
+            .category-toolbar .btn:hover {
+                background: #e6e6e6;
+            }
+
+    .card-header .category-toolbar {
+        width: 100%;
+    }
+
+    .card-header.fc-toolbar-header {
+        justify-content: center;
+    }
+
+    /* Segmented toggle (Selbst / KI) */
+    .seg-toggle.btn-group .btn {
+        position: relative;
+        background: #f9f9f9;
+        color: #333;
+        border: 1px solid #e4e4e4;
+        padding: .4rem .9rem;
+        transition: background .2s,color .2s, box-shadow .2s, border-color .2s;
+    }
+
+        .seg-toggle.btn-group .btn + .btn {
+            margin-left: .25rem;
+        }
+
+        .seg-toggle.btn-group .btn.active {
+            background: #89ba17; /* green like elsewhere */
+            color: #fff;
+            border-color: #89ba17;
+            box-shadow: 0 0 0 3px rgba(0,208,132,.15) inset;
+        }
+
+            .seg-toggle.btn-group .btn.active::after {
+                /* subtle green underline indicator */
+                content: "";
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                bottom: -6px;
+                width: 18px;
+                height: 3px;
+                background: #6c9512;
+                border-radius: 2px;
+            }
+
+    /* Space before the "Zeige _MENU_ Einträge" block */
+    .dataTables_wrapper .dataTables_length {
+        margin-left: 1rem;
+        margin-top: .5rem;
+        margin-bottom: .5rem;
+    }
+
+    /* More breathing room around the search field ("Suchen") */
+    .dataTables_wrapper .dataTables_filter {
+        margin-right: 1rem;
+        margin-top: .5rem;
+        margin-bottom: .5rem;
+    }
+
+    .assistent-btn {
+        background: #89ba17;
+        color:white;
+    }
+
+    .assistent-btn:hover {
+       border:1px solid black;
+    }
+
+    /* ===== Vectorizing overlay & blur ===== */
+    .admin-fc-card.position-relative { overflow: hidden; }
+    .loading-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,.75);
+        z-index: 20;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(1px);
+    }
+    .loading-overlay .overlay-box { 
+        background: rgba(255,255,255,.9);
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,.08);
+    }
+    .is-vectorizing .loading-overlay,
+    .is-importing .loading-overlay { display: flex; }
+    .is-vectorizing .card-header,
+    .is-importing .card-header,
+    .is-vectorizing #panelManual,
+    .is-importing #panelManual,
+    .is-vectorizing #panelAi,
+    .is-importing #panelAi,
+    .is-vectorizing .category-toolbar,
+    .is-importing .category-toolbar { filter: blur(3px); pointer-events: none; user-select: none; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 page-title"> @currentTypeLabel-Prompt: Kategorien verwalten</h2>
+    <a class="btn assistent-btn"
+    asp-controller="Home"
+    asp-action="PromptAssistent"
+    asp-route-type="@currentTypeStr"
+      asp-area="user"
+        rel="noopener">
+        <i class="bi bi-arrow-left me-1"></i> Promptentwicklung
+    </a>
+</div>
+
+@if (!readOnly)
+{
+    <!-- ───── Prompt-Typ Tabs ───── -->
+    <div class="d-flex align-items-center mb-3">
+        <ul id="promptTypeTabs" class="nav nav-pills custom-pills ">
+            @foreach (var pt in types)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(pt == currentType ? "active" : "")"
+                       asp-action="Index"
+                       asp-route-type="@pt">
+                        @adminTypeLabel(pt)
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="card shadow-lg rounded-3 admin-fc-card position-relative" id="adminFcCard">
+    <!-- Loading overlay (shown while vectorizing) -->
+    <div class="loading-overlay" id="vectorizeOverlay" aria-live="polite">
+        <div class="overlay-box d-flex flex-column align-items-center gap-3 p-3">
+            <div class="d-flex align-items-center gap-3">
+                <picture>
+                    <source srcset="~/images/eigenfilter-thinking.gif" type="image/gif">
+                    <img src="~/images/eigenfilter-thinking.png" alt="KI denkt …" style="width:42px;height:42px;object-fit:contain;" />
+                </picture>
+                <div class="small text-muted" id="importOverlayMsg">Bitte warten …</div>
+            </div>
+            <div class="w-100" style="min-width:260px;">
+                <div class="fw-semibold mb-1" id="importCounterLine" style="font-size:.95rem;">&nbsp;</div>
+                <div class="progress" style="height:8px;">
+                    <div class="progress-bar" id="importProgressBar" role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="small text-muted mt-2" id="importProgressText"></div>
+            </div>
+        </div>
+    </div>
+    <div class="card-header d-flex justify-content-between align-items-center bg-gradient">
+        <div class="d-flex align-items-center gap-3">
+            <h4 class="mb-0"><i class="bi bi-funnel me-2"></i>@currentTypeLabel Filter-Kategorien</h4>
+            <div class="btn-group btn-group-sm seg-toggle" role="group" aria-label="Filtergruppen">
+                <button type="button" class="btn active" id="toggleManual" data-target="manual">
+                    <i class="bi bi-person-check me-1"></i> Selbst entwickelt
+                </button>
+                <button type="button" class="btn" id="toggleAi" data-target="ai">
+                    <i class="bi bi-stars me-1"></i> KI-generiert
+                </button>
+            </div>
+
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Upsert" asp-route-type="@currentTypeStr" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-lg"></i> Kategorie
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel: Selbst entwickelt -->
+    <div id="panelManual" class="card-body p-0">
+        <table id="tableManual" class="table table-hover table-striped mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th style="width:10%">Reihenfolge</th>
+                    <th style="width:45%">Name</th>
+                    <th style="width:15%" class="text-center">Einträge</th>
+                    <th style="width:30%" class="text-center">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in manual)
+                {
+                    <tr>
+                        <td><span class="badge display-order-btn">@cat.DisplayOrder</span></td>
+                        <td class="fw-semibold">
+                            @cat.Name
+                            @if (cat.IsAiGenerated && cat.CreatedAt.HasValue)
+                            {
+                                <small class="text-muted ms-2" title="Erstellt am">
+                                    @cat.CreatedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            }
+                        </td>
+                        <td class="text-center"><span class="badge items-btn">@cat.FilterItems?.Count</span></td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-4">
+                                <form asp-action="ToggleVisibility" method="post" class="d-inline" onsubmit="ensurePanelField(this)">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@cat.Id" />
+                                    <input type="hidden" name="type" value="@currentTypeStr" />
+                                    <button type="submit" class="btn btn-sm btn-dark" title="@("Sichtbarkeit für Benutzern/Dozenten umschalten: " + (cat.IsHidden ? "Ausgeblendet" : "Sichtbar"))">
+                                        @if (cat.IsHidden)
+                                        {
+                                            <i class="bi bi-eye-slash"></i>
+                                        }
+                                        else
+                                        {
+
+                                            <i class="bi bi-eye"></i>
+                                        }
+                                    </button>
+                                </form>
+                                <a asp-action="Upsert" asp-route-id="@cat.Id" asp-route-type="@currentTypeStr" class="btn btn-sm btn-warning" title="Bearbeiten">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                             
+                                <form asp-action="Delete" asp-route-id="@cat.Id" asp-route-type="@currentTypeStr" asp-route-panel="@currentPanel" method="post" class="d-inline cat-delete-form">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Panel: KI‑generierte Filter -->
+    <div id="panelAi" class="card-body p-0 d-none">
+        <table id="tableAi" class="table table-hover table-striped mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th style="width:10%">Reihenfolge</th>
+                    <th style="width:45%">Name</th>
+                    <th style="width:15%" class="text-center">Einträge</th>
+                    <th style="width:30%" class="text-center">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in ai)
+                {
+                    <tr>
+                        <td><span class="badge display-order-btn">@cat.DisplayOrder</span></td>
+                        <td class="fw-semibold">
+                            @cat.Name
+                            @if (cat.CreatedAt.HasValue)
+                            {
+                                <small class="text-muted ms-2" title="Erstellt am">
+                                    @cat.CreatedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                </small>
+                            }
+                        </td>
+                        <td class="text-center"><span class="badge items-btn">@cat.FilterItems?.Count</span></td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-4">
+                               <form asp-action="ToggleVisibility" method="post" class="d-inline" onsubmit="ensurePanelField(this)">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@cat.Id" />
+                                    <input type="hidden" name="type" value="@currentTypeStr" />
+                                    <button type="submit" class="btn btn-sm btn-outline-light" title="@("Sichtbarkeit umschalten: " + (cat.IsHidden ? "Ausgeblendet" : "Sichtbar"))">
+                                        @if (cat.IsHidden) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
+                                    </button>
+                                </form>
+                                <a asp-action="Upsert" asp-route-id="@cat.Id" asp-route-type="@currentTypeStr" class="btn btn-sm btn-warning" title="Bearbeiten">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                             
+                                <form asp-action="Delete" asp-route-id="@cat.Id" method="post" class="d-inline cat-delete-form">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Toolbar (unchanged behavior) -->
+    <div class="card-header d-flex align-items-center bg-gradient fc-toolbar-header">
+        <div class="category-toolbar mb-0 w-100 text-center">
+            <a asp-action="Export" asp-route-type="@currentTypeStr" class="btn btn-outline-light">
+                <i class="bi bi-download me-1"></i> JSON exportieren
+            </a>
+            <button id="importJsonBtn" type="button" class="btn btn-outline-light">
+                <i class="bi bi-upload me-1"></i> JSON importieren
+            </button>
+            <form id="importJsonForm" asp-action="Import" asp-route-type="@currentTypeStr" method="post" enctype="multipart/form-data" class="d-none">
+                @Html.AntiForgeryToken()
+                <input type="file" name="file" id="jsonFileInput" accept=".json" />
+            </form>
+            <form asp-action="BackfillIndex" asp-route-type="@currentTypeStr" method="post" class="d-inline" id="backfillForm">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-light" title="Embeddings für aktuelle Bibliothek erstellen/aktualisieren">
+                    <i class="bi bi-cpu me-1"></i> Vektorisieren
+                </button>
+            </form>
+            <form asp-action="CleanupIndex" method="post" class="d-inline ms-1">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-light" title="Doppelte Index-Einträge bereinigen">
+                    <i class="bi bi-broom me-1"></i> Index bereinigen
+                </button>
+            </form>
+            <button id="deleteBtn" type="button" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>Löschen
+            </button>
+            <form id="deleteTypeForm" asp-action="DeleteType" asp-route-type="@currentTypeStr" asp-route-panel="@currentPanel" method="post" class="d-none">
+                @Html.AntiForgeryToken()
+            </form>
+            <form id="deleteAllForm" asp-action="DeleteAll" method="post" class="d-none">
+                @Html.AntiForgeryToken()
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom bar: button on the right -->
+<div class="d-flex justify-content-end align-items-center mb-4 mt-3">
+    <a class="btn assistent-btn"
+       href="https://www.apps.xr-adiqu.de/promptcoach/user/Home/PromptAssistent?type=@currentTypeStr"
+       rel="noopener">
+         <i class="bi bi-arrow-left me-1"></i> Promptentwicklung
+    </a>
+</div>
+
+
+@section Scripts {
+    <script>
+        // Ensure current panel is sent with delete requests
+        function ensurePanelField(form){
+            let input = form.querySelector('input[name="panel"]');
+            if(!input){
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'panel';
+                form.appendChild(input);
+            }
+            try{
+                input.value = window.currentPanel || localStorage.getItem('admin_fc_panel') || 'manual';
+            }catch(_){ input.value = 'manual'; }
+        }
+
+              $(document).on('submit', '.cat-delete-form', function (e) {
+          const form = this;
+          // If SweetAlert is missing, don’t block the submit
+          if (typeof Swal === 'undefined' || !Swal.fire) {
+            ensurePanelField(form);
+            return true; // allow normal submit
+          }
+
+          e.preventDefault();
+          Swal.fire({
+            title: 'Kategorie löschen?',
+            text: 'Diese Aktion kann nicht rückgängig gemacht werden.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ja, löschen!',
+            cancelButtonText: 'Abbrechen'
+          }).then(result => {
+            if (result.isConfirmed) {
+              ensurePanelField(form);
+              form.submit();
+            }
+          });
+        });
+        /* ───────── DataTables ───────── */
+              $(function () {
+            const dtOpts = {
+                pagingType: "simple",
+                lengthChange: true,
+                pageLength: 50,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                language: {
+                    lengthMenu: "Zeige _MENU_ Einträge",
+                    search: "Suchen:",
+                    searchPlaceholder: "",
+                    paginate: { previous: "‹", next: "›" },
+                    info: "Zeige _START_ bis _END_ von _TOTAL_ Einträgen",
+                    infoEmpty: "Keine Einträge vorhanden",
+                    infoFiltered: "(gefiltert aus _MAX_ Einträgen)",
+                    zeroRecords: "Keine passenden Einträge gefunden",
+                    loadingRecords: "Lade …",
+                    processing: "Bitte warten …"
+                }
+            };
+
+            const dtManual = $('#tableManual').DataTable(dtOpts);
+            const dtAi     = $('#tableAi').DataTable(dtOpts);
+
+            // Bootstrap-Margin links an die Info-Zeile
+            $('#tableManual_info').addClass('ms-3');
+            $('#tableAi_info').addClass('ms-3');
+
+            // toggle behavior like user view and remember panel
+            function setToggleActive(isManual){
+                $('#toggleManual').toggleClass('active', isManual);
+                $('#toggleAi').toggleClass('active', !isManual);
+            }
+            window.currentPanel = 'manual';
+            function showPanel(which){
+                const isManual = which === 'manual';
+                window.currentPanel = which;
+                $('#panelManual').toggleClass('d-none', !isManual);
+                $('#panelAi').toggleClass('d-none', isManual);
+                setToggleActive(isManual);
+                setTimeout(() => (isManual ? dtManual : dtAi).columns.adjust(), 50);
+            }
+            function savePanel(which){
+                try {
+                    localStorage.setItem('admin_fc_panel', which);
+                    const qs = new URLSearchParams(location.search);
+                    qs.set('panel', which);
+                    const url = `${location.pathname}?${qs.toString()}`;
+                    history.replaceState(null, '', url);
+                } catch {}
+            }
+            $('#toggleManual').on('click', () => { showPanel('manual'); savePanel('manual'); });
+            $('#toggleAi').on('click', () => { showPanel('ai'); savePanel('ai'); });
+            const qsInit = new URLSearchParams(location.search);
+            const initialPanel = (qsInit.get('panel') || localStorage.getItem('admin_fc_panel') || 'manual');
+            showPanel(initialPanel === 'ai' ? 'ai' : 'manual');
+        });
+
+
+        /* ───────── Konstanten ───────── */
+        const exportUrl = '@Url.Action("Export", "FilterCategory",
+                                                                          new { area = "Admin", type = currentTypeStr })';
+
+    /* ───────── JSON-Import ───────── */
+
+        // 1) Dialog zum Dateiauswahldialog öffnen
+        document.getElementById('importJsonBtn')
+                .addEventListener('click', () =>
+                    document.getElementById('jsonFileInput').click());
+
+        // 2) Datei prüfen → Bestätigungs-Popup → ggf. abschicken (AJAX + SignalR progress)
+        document.getElementById('jsonFileInput')
+                .addEventListener('change', async function (e) {
+
+            const file = e.target.files[0];
+            if (!file) return;
+
+            /* --- JSON einlesen & Hash verifizieren wie bisher --- */
+            const text = await file.text();
+            let obj;
+            try { obj = JSON.parse(text); }
+            catch { return Swal.fire('Fehler', 'Ungültiges JSON-Format.', 'error'); }
+
+            const data = obj.data ?? obj.Data,
+                  hash = obj.hash ?? obj.Hash;
+            if (!data || !hash)
+                return Swal.fire('Fehler', 'JSON muss „data“ und „hash“ enthalten.', 'error');
+
+            const secret  = 'uni-wuppertal2025';
+            const digest  = await crypto.subtle.digest(
+                                'SHA-256',
+                                new TextEncoder().encode(secret + JSON.stringify(data)));
+            // const hex = Array.from(new Uint8Array(digest))
+            //                   .map(b => b.toString(16).padStart(2,'0'))
+            //                   .join('');
+            // if (hex !== hash)
+            //     return Swal.fire('Fehler', 'Integritätsprüfung fehlgeschlagen.', 'error');
+
+            /* --- Bestätigung anzeigen ---------------------------------- */
+            Swal.fire({
+                title: 'Import bestätigen',
+                html: `Der <b>aktuelle Inhalt</b> wird vollständig ersetzt.<br>
+                       Möchten Sie fortfahren?`,
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Ja, importieren',
+                denyButtonText: 'Vorher sichern (Download)',
+                cancelButtonText: 'Abbrechen'
+            }).then(async result => {
+                if (result.isConfirmed) {
+                    const form = document.getElementById('importJsonForm');
+                    const formData = new FormData(form);
+                    formData.set('file', file);
+
+                    // Show overlay & reset progress
+                    const card = document.getElementById('adminFcCard');
+                    const msgEl = document.getElementById('importOverlayMsg');
+                    const bar = document.getElementById('importProgressBar');
+                    const txt = document.getElementById('importProgressText');
+                    card.classList.add('is-importing');
+                    msgEl.textContent = 'Datei wird hochgeladen …';
+                    bar.style.width = '0%';
+                    bar.setAttribute('aria-valuenow','0');
+                    txt.textContent = '';
+
+                    try {
+                        await ensureImportHub(); // make sure SignalR connection is running
+                    } catch(_) {}
+
+                    try {
+                        const resp = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        });
+                        // We rely on SignalR to report progress and completion.
+                        if (!resp.ok) {
+                            throw new Error('Upload fehlgeschlagen');
+                        }
+                    } catch (err) {
+                        card.classList.remove('is-importing');
+                        Swal.fire('Fehler', (err && err.message) || 'Import fehlgeschlagen', 'error');
+                    } finally {
+                        // reset input to allow re-select same file later
+                        e.target.value = '';
+                    }
+                } else if (result.isDenied) {
+                    // vorherige Daten herunterladen
+                    window.location.href = exportUrl;
+                } else {
+                    // Abbruch ⇒ Dateiauswahl zurücksetzen
+                    e.target.value = '';
+                }
+            });
+        });
+
+               /* ───────── Löschen‑Dialog ───────── */
+        document.getElementById('deleteBtn').addEventListener('click', () => {
+
+            // bei Eigenfilter nur einfache Bestätigung …
+            if ('@currentTypeStr' === 'Eigenfilter') {
+
+                Swal.fire({
+                    title: 'Eigenfilter löschen?',
+                    text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
+                    icon : 'warning',
+                    showCancelButton : true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText : 'Ja, löschen',
+                    cancelButtonText  : 'Abbrechen'
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        const f = document.getElementById('deleteTypeForm');
+                        ensurePanelField(f);
+                        f.submit();   // nur den aktuellen Typ löschen
+                    }
+                });
+
+            // … für alle anderen Typen bleibt der alte Dialog bestehen
+            } else {
+
+                Swal.fire({
+                    title: 'Löschen',
+                    html : 'Möchten Sie nur Kategorien vom Typ <b>‘' + '@currentTypeStr' +
+                           '’</b> löschen oder <b>alle</b> Kategorien?',
+                    icon : 'warning',
+                    showCancelButton : true,
+                    showDenyButton   : true,
+                    confirmButtonText: 'Nur ‘' + '@currentTypeStr' + '’ löschen',
+                    denyButtonText   : 'Alle Typen löschen',
+                    cancelButtonText : 'Abbrechen'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        const f = document.getElementById('deleteTypeForm');
+                        ensurePanelField(f);
+                        f.submit();
+                    } else if (result.isDenied) {
+                        document.getElementById('deleteAllForm').submit();
+                    }
+                });
+
+            }
+        });
+
+
+        /* ───────── TempData Meldungen ───────── */
+    @if (TempData["ImportError"] != null)
+        {
+                <text>Swal.fire('Fehler','@TempData["ImportError"]','error');</text>
+        }
+        @if (TempData["ImportSuccess"] != null)
+        {
+                <text>Swal.fire('Erfolg','@TempData["ImportSuccess"]','success');</text>
+        }
+        @if (TempData["DeleteSuccess"] != null)
+        {
+                <text>Swal.fire('Erfolg','@TempData["DeleteSuccess"]','success');</text>
+        }
+
+
+              (function () {
+          const btnManual = document.getElementById('toggleManual');
+          const btnAi     = document.getElementById('toggleAi');
+
+          if (!btnManual || !btnAi) return;
+
+          function setActive(isManual){
+            btnManual.classList.toggle('active', isManual);
+            btnAi.classList.toggle('active', !isManual);
+
+            // Optional: show/hide panels if you have them
+            const panelManual = document.getElementById('panelManual');
+            const panelAi     = document.getElementById('panelAi');
+            if (panelManual && panelAi){
+              panelManual.classList.toggle('d-none', !isManual);
+              panelAi.classList.toggle('d-none', isManual);
+            }
+          }
+
+          btnManual.addEventListener('click', () => setActive(true));
+          btnAi.addEventListener('click',     () => setActive(false));
+
+          // initial state
+          setActive(true);
+        })();
+    </script>
+    <script>
+        // Show blur overlay while vectorizing
+        (function(){
+            const backfillForm = document.getElementById('backfillForm');
+            const card = document.getElementById('adminFcCard');
+            if(backfillForm && card){
+                backfillForm.addEventListener('submit', function(){
+                    card.classList.add('is-vectorizing');
+                    const btn = backfillForm.querySelector('button[type="submit"]');
+                    if(btn){ btn.disabled = true; }
+                });
+            }
+        })();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        let importConnection;
+        async function ensureImportHub(){
+            if (importConnection && importConnection.state === signalR.HubConnectionState.Connected) return;
+            const basePath = '@Url.Content("~/")'; // e.g. /promptcoach/
+            const hubUrl = (basePath.endsWith('/') ? basePath.slice(0,-1) : basePath) + '/hubs/admin-import';
+            if (!importConnection){
+                importConnection = new signalR.HubConnectionBuilder()
+                    .withUrl(hubUrl)
+                    .withAutomaticReconnect()
+                    .build();
+
+                importConnection.on('ImportProgress', payload => {
+                    const card = document.getElementById('adminFcCard');
+                    const msgEl = document.getElementById('importOverlayMsg');
+                    const bar = document.getElementById('importProgressBar');
+                    const txt = document.getElementById('importProgressText');
+                    const counter = document.getElementById('importCounterLine');
+
+                    if (!payload) return;
+                    if (payload.phase === 'embedding'){
+                        card.classList.add('is-importing');
+                        const cur = Number(payload.current||0), total = Number(payload.total||0);
+                        const pct = total > 0 ? Math.round(cur*100/total) : 0;
+                        bar.style.width = pct + '%';
+                        bar.setAttribute('aria-valuenow', String(pct));
+                        msgEl.textContent = 'Vektorisierung läuft …';
+                        counter.textContent = total > 0 ? `Einbetten ${cur} von ${total}` : '';
+                        txt.textContent = (payload && payload.message)
+                            ? String(payload.message).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+                            : '';
+                    } else if (payload.phase === 'done'){
+                        bar.style.width = '100%';
+                        bar.setAttribute('aria-valuenow','100');
+                        msgEl.textContent = 'Fertig';
+                        counter.textContent = `Einbetten ${payload.total||0} von ${payload.total||0}`;
+                        txt.textContent = '';
+                        setTimeout(() => { window.location.reload(); }, 600);
+                    } else if (payload.phase === 'error'){
+                        card.classList.remove('is-importing');
+                        Swal.fire('Fehler', payload.message || 'Import fehlgeschlagen', 'error');
+                    }
+                });
+            }
+            if (importConnection.state !== signalR.HubConnectionState.Connected){
+                try { await importConnection.start(); } catch(_) {}
+            }
+        }
+        // Prepare hub early
+        (async()=>{ try { await ensureImportHub(); } catch(_){} })();
+    </script>
+}
+

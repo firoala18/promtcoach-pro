@@ -1,0 +1,164 @@
+﻿@model EventEntry
+
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Neues Event" : "Event bearbeiten";
+}
+
+<style>
+    .event-upsert-container {
+        width: 100%;
+        margin: 2rem 0;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-section-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-control,
+    textarea {
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+    }
+
+    textarea {
+        min-height: 150px;
+    }
+
+    .btn-submit-event {
+        background: linear-gradient(135deg, #90bc14 0%, #76a614 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.8rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: transform 0.2s ease;
+    }
+
+        .btn-submit-event:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(144, 188, 20, 0.3);
+        }
+
+    /* Back button uses global .btn-zurueck from site.css */
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+
+<div class="event-upsert-container">
+    <h2 class="form-section-title">@ViewData["Title"]</h2>
+
+    <form asp-action="Upsert" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="Termin" class="form-label"></label>
+            <input asp-for="Termin" type="date" class="form-control" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="Startzeit" class="form-label">Beginn</label>
+                <input asp-for="Startzeit" class="form-control" type="time" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="Endzeit" class="form-label">Ende</label>
+                <input asp-for="Endzeit" class="form-control" type="time" />
+            </div>
+        </div>
+
+
+        <div class="mb-3">
+            <label asp-for="Titel" class="form-label"></label>
+            <input asp-for="Titel" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Art" class="form-label"> Event Art</label>
+            <input asp-for="Art" class="form-control" placeholder="z.B. Workshop, Vortrag" />
+
+        </div>
+
+
+        <div class="mb-3">
+            <label asp-for="Referent" class="form-label">Referent*innen</label>
+            <input asp-for="Referent" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Beschreibung" class="form-label"></label>
+            <textarea asp-for="Beschreibung" class="form-control"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Arbeitseinheiten" class="form-label"></label>
+            <input asp-for="Arbeitseinheiten" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Veranstaltungsort" class="form-label"></label>
+            <input asp-for="Veranstaltungsort" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Organisation" class="form-label"></label>
+            <input asp-for="Organisation" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Hinweis" class="form-label"></label>
+            <input asp-for="Hinweis" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="InfosFuerTeilnehmer" class="form-label">Infos Für Teilnehmer </label>
+            <input asp-for="InfosFuerTeilnehmer" class="form-control" />
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-submit-event">
+                <i class="bi bi-save2 me-1"></i> Speichern
+            </button>
+            <a asp-action="Index" class="btn-zurueck">
+                <i class="bi bi-arrow-left"></i>
+                <span>Zurück</span>
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        ClassicEditor.create(document.querySelector('textarea[name="Beschreibung"]'), {
+            toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']
+        }).catch(error => {
+            console.error(error);
+        });
+    </script>
+}

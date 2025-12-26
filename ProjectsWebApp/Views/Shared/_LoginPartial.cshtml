@@ -1,0 +1,906 @@
+@using Microsoft.AspNetCore.Identity
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<style>
+    /* ============================================================
+       MEGA MENU - Horizontal Admin Dropdown
+       ============================================================ */
+    .mega-menu-wrapper {
+        position: relative;
+    }
+
+    .mega-menu {
+        position: fixed;
+        top: auto;
+        background: #ffffff;
+        border: none;
+        border-radius: 0 0 16px 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        padding: 0;
+        margin: 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1050;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        /* Width will be set dynamically by JavaScript */
+    }
+
+    .mega-menu.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .mega-menu-inner {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(200px, 1fr));
+        gap: 0;
+        padding: 1.5rem 2rem 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .mega-menu-column {
+        padding: 0 1.25rem;
+        border-right: 1px solid #e5e7eb;
+    }
+
+    .mega-menu-column:first-child {
+        padding-left: 0;
+    }
+
+    .mega-menu-column:last-child {
+        border-right: none;
+        padding-right: 0;
+    }
+
+    .mega-menu-header {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #89ba17;
+        font-weight: 700;
+        padding: 0.4rem 0;
+        margin-bottom: 0.6rem;
+        border-bottom: 2px solid #89ba17;
+        display: block;
+        white-space: nowrap;
+    }
+
+    .mega-menu-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .mega-menu-item {
+        margin-bottom: 0.15rem;
+    }
+
+    .mega-menu-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.5rem;
+        border-radius: 6px;
+        color: #374151;
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* .mega-menu-link::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        background: linear-gradient(135deg, #89ba17, #a3e635);
+        transition: width 0.2s ease;
+        border-radius: 8px;
+        z-index: -1;
+    } */
+
+    .mega-menu-link:hover {
+        color: #000;
+        transform: translateX(4px);
+    }
+
+    .mega-menu-link:hover::before {
+        width: 100%;
+        opacity: 0.1;
+    }
+
+    .mega-menu-link:hover .mega-menu-icon {
+        color: #89ba17;
+        transform: scale(1.1);
+    }
+
+    .mega-menu-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .mega-menu-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Responsive */
+    @@media (max-width: 992px) {
+        .mega-menu-inner {
+            grid-template-columns: repeat(2, 1fr);
+            max-width: 600px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .mega-menu-column {
+            padding: 0 1rem;
+            border-right: none;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .mega-menu-column:nth-child(2n) {
+            border-right: none;
+        }
+
+        .mega-menu-column:nth-last-child(-n+2) {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .mega-menu-inner {
+            grid-template-columns: 1fr;
+            max-width: 100%;
+            padding: 1rem;
+        }
+
+        .mega-menu-column {
+            padding: 0 0.5rem;
+        }
+
+        .mega-menu-column:nth-last-child(-n+2) {
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .mega-menu-column:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+
+    /* ============================================================
+       Standard Dropdown Styles (for other dropdowns)
+       ============================================================ */
+    .custom-dropdown-menu {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border-radius: 12px;
+        padding: 0.75rem;
+        min-width: 260px;
+        animation: fadeInDropdown 0.2s ease-out;
+    }
+
+    @@keyframes fadeInDropdown {
+        from { opacity: 0; margin-top: 10px; }
+        to { opacity: 1; margin-top: 0; }
+    }
+
+    .custom-dropdown-header {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6c757d;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .custom-dropdown-header:first-child {
+        margin-top: 0;
+    }
+
+    .custom-dropdown-item {
+        display: flex;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        color: #333;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        gap: 0.75rem;
+    }
+
+    .custom-dropdown-item:hover, .custom-dropdown-item:focus {
+        background-color: #f0f2f5;
+        color: #000;
+        transform: translateX(3px);
+    }
+
+    .custom-dropdown-item.active {
+        background-color: #e9ecef;
+        color: #000;
+    }
+
+    .menu-icon-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: #555;
+        transition: color 0.15s ease;
+    }
+
+    .custom-dropdown-item:hover .menu-icon-wrapper {
+        color: var(--bs-primary);
+    }
+
+    .dropdown-divider {
+        margin: 0.5rem 0;
+        border-top: 1px solid #e9ecef;
+    }
+
+    /* Navbar icon styling - override Bootstrap */
+    .navbar-nav .nav-icon-link,
+    .navbar-nav .nav-icon-link.nav-link,
+    .navbar-nav .nav-icon-link.dropdown-toggle,
+    .navbar-nav a.nav-icon-link,
+    .navbar-nav button.nav-icon-link {
+        color: rgba(255,255,255,0.7) !important;
+        transition: color 0.25s ease !important;
+        padding: 0 !important;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        aspect-ratio: 1 / 1;
+        border-radius: 50% !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative;
+        box-shadow: none !important;
+    }
+
+    /* Remove Bootstrap dropdown caret */
+    .navbar-nav .nav-icon-link.dropdown-toggle::after {
+        display: none !important;
+    }
+
+    /* The underline indicator */
+    .navbar-nav .nav-icon-link::before {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: #89ba17;
+        border-radius: 1px;
+        transform: translateX(-50%);
+        transition: width 0.25s ease;
+        border: none !important;
+    }
+
+    .navbar-nav .nav-icon-link i {
+        transition: transform 0.25s ease, color 0.25s ease;
+    }
+
+    .navbar-nav .nav-icon-link:hover,
+    .navbar-nav .nav-icon-link:focus,
+    .navbar-nav .nav-icon-link.nav-link:hover,
+    .navbar-nav .nav-icon-link.nav-link:focus {
+        color: #fff !important;
+        outline: none !important;
+        background: transparent !important;
+    }
+
+    .navbar-nav .nav-icon-link:hover::before,
+    .navbar-nav .nav-icon-link:focus::before {
+        width: 18px;
+    }
+
+    .navbar-nav .nav-icon-link:hover i,
+    .navbar-nav .nav-icon-link:focus i {
+        transform: translateY(-2px);
+    }
+
+    .navbar-nav .nav-icon-link:active i {
+        transform: translateY(0) scale(0.9);
+    }
+
+    .navbar-nav .nav-icon-link.show,
+    .navbar-nav .nav-icon-link.show.nav-link {
+        color: #fff !important;
+        background: transparent !important;
+    }
+
+    .navbar-nav .nav-icon-link.show::before {
+        width: 18px;
+        background: #89ba17;
+    }
+
+    /* Admin trigger button styling */
+    .navbar-nav .admin-menu-trigger,
+    .navbar-nav button.admin-menu-trigger,
+    .navbar-nav .btn.admin-menu-trigger {
+        color: rgba(255,255,255,0.7) !important;
+        transition: color 0.25s ease !important;
+        padding: 0 !important;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        aspect-ratio: 1 / 1;
+        border-radius: 50% !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer;
+        box-shadow: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative;
+    }
+
+    .navbar-nav .admin-menu-trigger::before {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: #89ba17;
+        border-radius: 1px;
+        transform: translateX(-50%);
+        transition: width 0.25s ease;
+    }
+
+    .navbar-nav .admin-menu-trigger i {
+        transition: transform 0.3s ease, color 0.25s ease;
+    }
+
+    .navbar-nav .admin-menu-trigger:hover,
+    .navbar-nav .admin-menu-trigger:focus,
+    .navbar-nav .btn.admin-menu-trigger:hover,
+    .navbar-nav .btn.admin-menu-trigger:focus {
+        color: #fff !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    .navbar-nav .admin-menu-trigger:hover::before,
+    .navbar-nav .admin-menu-trigger:focus::before {
+        width: 18px;
+    }
+
+    .navbar-nav .admin-menu-trigger:hover i,
+    .navbar-nav .admin-menu-trigger:focus i {
+        transform: translateY(-2px) rotate(45deg);
+    }
+
+    .navbar-nav .admin-menu-trigger:active i {
+        transform: translateY(0) rotate(90deg) scale(0.9);
+    }
+
+    .navbar-nav .admin-menu-trigger.active {
+        color: #fff !important;
+        background: transparent !important;
+    }
+
+    .navbar-nav .admin-menu-trigger.active::before {
+        width: 18px;
+    }
+
+    .navbar-nav .admin-menu-trigger.active i {
+        transform: rotate(90deg);
+    }
+</style>
+
+<ul class="navbar-nav d-flex flex-row align-items-center gap-2">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        var user = await UserManager.GetUserAsync(User) as AplicationUser;
+
+        <!-- WORKSPACE DROPDOWN -->
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle nav-icon-link d-flex align-items-center justify-content-center"
+               href="#" data-bs-toggle="dropdown" aria-expanded="false" title="Arbeitsbereich">
+                <i class="bi bi-briefcase fs-5"></i>
+            </a>
+            
+            <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu" aria-label="Arbeitsbereich-Menü">
+                
+                <!-- Gruppe 1: Arbeitsbereich -->
+                <li><h6 class="custom-dropdown-header">Arbeitsbereich</h6></li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Eigenfilter">
+                        <span class="menu-icon-wrapper"><i class="bi bi-funnel"></i></span>
+                        <span>Szenarien entwickeln</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Eigenfilter">
+                        <span class="menu-icon-wrapper"><i class="bi bi-magic"></i></span>
+                        <span>Szenarien anwenden</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Framework">
+                        <span class="menu-icon-wrapper"><i class="bi bi-grid-3x3"></i></span>
+                        <span>Framework entwickeln</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Framework">
+                        <span class="menu-icon-wrapper"><i class="bi bi-cpu"></i></span>
+                        <span>Framework anwenden</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Meta">
+                        <span class="menu-icon-wrapper"><i class="bi bi-layers"></i></span>
+                        <span>Meta-Filter entwickeln</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Meta">
+                        <span class="menu-icon-wrapper"><i class="bi bi-gear-wide-connected"></i></span>
+                        <span>Meta anwenden</span>
+                    </a>
+                </li>
+
+                <li><hr class="dropdown-divider" /></li>
+
+                <!-- Gruppe 2: Prompt-Arten -->
+                <li><h6 class="custom-dropdown-header">Prompt-Arten</h6></li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Text">
+                        <span class="menu-icon-wrapper"><i class="bi bi-fonts"></i></span><span>Text</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Bild">
+                        <span class="menu-icon-wrapper"><i class="bi bi-image"></i></span><span>Bild</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Video">
+                        <span class="menu-icon-wrapper"><i class="bi bi-play-btn"></i></span><span>Video</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Sound">
+                        <span class="menu-icon-wrapper"><i class="bi bi-volume-up"></i></span><span>Sound</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Akademisch">
+                        <span class="menu-icon-wrapper"><i class="bi bi-mortarboard"></i></span><span>Akademisch</span>
+                    </a>
+                </li>
+
+                <li><hr class="dropdown-divider" /></li>
+
+                <!-- Gruppe 3: Ressourcen & Studio -->
+                <li><h6 class="custom-dropdown-header">Ressourcen & Studio</h6></li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="MyPrompts" asp-action="Index">
+                        <span class="menu-icon-wrapper"><i class="bi bi-archive"></i></span><span>Sammlungen</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="Bibliothek">
+                        <span class="menu-icon-wrapper"><i class="bi bi-collection"></i></span><span>Bibliothek</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="Assistenten">
+                        <span class="menu-icon-wrapper"><i class="bi bi-robot"></i></span><span>KI-Assistent-Studio</span>
+                    </a>
+                </li>
+               
+             
+            </ul>
+        </li>
+
+        <!-- ADMIN MEGA MENU (Admins only, not for Dozent) -->
+        @if (User.IsInRole(SD.Role_Admin) && !User.IsInRole(SD.Role_Dozent))
+        {
+            <li class="nav-item mega-menu-wrapper">
+                <button type="button" class="btn nav-icon-link admin-menu-trigger d-flex align-items-center justify-content-center"
+                        id="adminMegaMenuTrigger" title="Administration" aria-expanded="false">
+                    <i class="bi bi-gear fs-5"></i>
+                </button>
+
+                <!-- Mega Menu Dropdown -->
+                <div class="mega-menu" id="adminMegaMenu" role="menu" aria-labelledby="adminMegaMenuTrigger">
+                    <div class="mega-menu-inner">
+                        <!-- Column 1: Prompt Engineering -->
+                        <div class="mega-menu-column">
+                            <h6 class="mega-menu-header">Prompt Engineering</h6>
+                            <ul class="mega-menu-items">
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="FilterCategory" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-funnel"></i></span>
+                                        <span class="mega-menu-text">Kategorien</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="Assistant" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-robot"></i></span>
+                                        <span class="mega-menu-text">KI‑Assistenten</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="PromptModel" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-grid"></i></span>
+                                        <span class="mega-menu-text">Modelle</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="PromptAiConfig" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-sliders"></i></span>
+                                        <span class="mega-menu-text">System-Prompts</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                          <!-- Column 4: Inhalte -->
+                        <div class="mega-menu-column">
+                            <h6 class="mega-menu-header">Inhalte</h6>
+                            <ul class="mega-menu-items">
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="portalCard" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-card-text"></i></span>
+                                        <span class="mega-menu-text">Prompt Coach</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="LandingItem" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-layout-text-window-reverse"></i></span>
+                                        <span class="mega-menu-text">Prompt Engineering</span>
+                                    </a>
+                                </li>
+
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="PromptWord" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-key"></i></span>
+                                        <span class="mega-menu-text">Prompt Keys</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="MakerSpaceProject" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-tools"></i></span>
+                                        <span class="mega-menu-text">KIBar Projekte</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="MakerSpaceDescription" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-pencil-square"></i></span>
+                                        <span class="mega-menu-text">KIBar Beschreibung</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="MitmachenContent" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-lightbulb"></i></span>
+                                        <span class="mega-menu-text">Tipps & Tricks</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="Kontakt" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-envelope"></i></span>
+                                        <span class="mega-menu-text">Kontakt</span>
+                                    </a>
+                                </li>
+
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="ContactMessageSettings" asp-action="Edit">
+                                        <span class="mega-menu-icon"><i class="bi bi-chat-dots"></i></span>
+                                        <span class="mega-menu-text">Kontakt-Nachricht</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="PromptKeyword" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-tags"></i></span>
+                                        <span class="mega-menu-text">Schlüsselbegriffe</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                     
+                      
+
+                        <!-- Column 3: System -->
+                        <div class="mega-menu-column">
+                            <h6 class="mega-menu-header">Verwaltung</h6>
+                            <ul class="mega-menu-items">
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="ApiKeys" asp-action="Edit">
+                                        <span class="mega-menu-icon"><i class="bi bi-shield-lock"></i></span>
+                                        <span class="mega-menu-text">API‑Schlüssel</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="FeatureFlags" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-toggle-on"></i></span>
+                                        <span class="mega-menu-text">Feature Flags</span>
+                                    </a>
+                                </li>
+                             
+                            
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="RegistrationCodes" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-key"></i></span>
+                                        <span class="mega-menu-text">Einladungscodes</span>
+                                    </a>
+                                </li>
+                            
+                             
+                            </ul>
+
+                            <!-- Column 5: Teilnehmerverwaltung -->
+                            <h6 class="mega-menu-header" style="margin-top: 1rem;">Teilnehmer</h6>
+                            <ul class="mega-menu-items">
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="SiteUsers" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-door-open"></i></span>
+                                        <span class="mega-menu-text">Nach Räumen</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="SiteUsers" asp-action="All">
+                                        <span class="mega-menu-icon"><i class="bi bi-people"></i></span>
+                                        <span class="mega-menu-text">Alle Teilnehmer</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="LockedUsers" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-lock"></i></span>
+                                        <span class="mega-menu-text">Gesperrte Konten</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                    
+
+                        <div class="mega-menu-column">
+                            <h6 class="mega-menu-header">Rechtliches</h6>
+                            <ul class="mega-menu-items">
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="LeichteSprache" asp-action="Edit">
+                                        <span class="mega-menu-icon"><i class="bi bi-translate"></i></span>
+                                        <span class="mega-menu-text">Leichte Sprache</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="Urheberrecht" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-c-circle"></i></span>
+                                        <span class="mega-menu-text">Urheberrecht</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="ImpressumContent" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-file-earmark-text"></i></span>
+                                        <span class="mega-menu-text">Impressum</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="DatenschutzContent" asp-action="Index">
+                                        <span class="mega-menu-icon"><i class="bi bi-shield-lock"></i></span>
+                                        <span class="mega-menu-text">Datenschutz</span>
+                                    </a>
+                                </li>
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="Admin" asp-controller="ContactEmail" asp-action="Edit">
+                                        <span class="mega-menu-icon"><i class="bi bi-envelope-open"></i></span>
+                                        <span class="mega-menu-text">Kontakt-E-Mail</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </li>
+        }
+
+        <!-- Räume-Dashboard -->
+        <li class="nav-item">
+            <a class="nav-link nav-icon-link d-flex align-items-center justify-content-center"
+               asp-area="Admin" asp-controller="Groups" asp-action="Index" title="Räume">
+                <i class="bi bi-people fs-5"></i>
+            </a>
+        </li>
+
+        @* <!-- Dozent quick link -->
+        @if (User.IsInRole("Dozent"))
+        {
+            <li class="nav-item">
+                <a class="nav-link nav-icon-link d-flex align-items-center justify-content-center"
+                   asp-area="Admin" asp-controller="RegistrationCodes" asp-action="Index" title="Einladungscodes">
+                    <i class="bi bi-key fs-5"></i>
+                </a>
+            </li>
+        } *@
+
+        <!-- Manage Profile -->
+        <li class="nav-item">
+            <a id="manage" class="nav-link nav-icon-link d-flex align-items-center justify-content-center"
+               asp-area="Identity" asp-page="/Account/Manage/Index" title="Profil verwalten">
+                <i class="bi bi-person-circle fs-5"></i>
+            </a>
+        </li>
+        
+        <!-- Logout -->
+        <li class="nav-item">
+            <form id="logoutForm" class="form-inline d-flex align-items-center justify-content-center"
+                  asp-area="Identity" asp-page="/Account/Logout"
+                  asp-route-returnUrl="@Url.Action("Home", "Home", new { area = "" })">
+                <button id="logout" type="submit" class="nav-link btn btn-link nav-icon-link border-0" title="Abmelden">
+                    <i class="bi bi-box-arrow-right fs-5"></i>
+                </button>
+            </form>
+        </li>
+    }
+</ul>
+
+<!-- Admin Mega Menu Script -->
+<script>
+    (function() {
+        const trigger = document.getElementById('adminMegaMenuTrigger');
+        const menu = document.getElementById('adminMegaMenu');
+
+        if (!trigger || !menu) return;
+
+        let rafId = 0;
+
+        function positionMenu() {
+            // Find the dark toolbar bar that contains the login partial
+            const darkBar = trigger.closest('.border-top.bg-dark');
+            // Find the main navbar to match its width
+            const navbar = document.querySelector('nav.navbar');
+
+            if (darkBar) {
+                const barRect = darkBar.getBoundingClientRect();
+                menu.style.top = (barRect.bottom) + 'px';
+
+                // Match the navbar width and position
+                if (navbar) {
+                    const navRect = navbar.getBoundingClientRect();
+                    menu.style.left = navRect.left + 'px';
+                    menu.style.width = navRect.width + 'px';
+                } else {
+                    // Fallback to dark bar dimensions
+                    menu.style.left = barRect.left + 'px';
+                    menu.style.width = barRect.width + 'px';
+                }
+            }
+        }
+
+        function closeAllBootstrapDropdowns() {
+            try {
+                if (!(window.bootstrap && typeof bootstrap.Dropdown === 'function')) return;
+                document.querySelectorAll('[data-bs-toggle="dropdown"].show').forEach(function (el) {
+                    var inst = bootstrap.Dropdown.getInstance(el);
+                    if (inst) inst.hide();
+                });
+            } catch { }
+        }
+
+        function openMenu() {
+            positionMenu();
+            closeAllBootstrapDropdowns();
+            menu.classList.add('show');
+            trigger.classList.add('active');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+
+        function schedulePosition() {
+            if (!menu.classList.contains('show')) return;
+            if (rafId) return;
+            rafId = window.requestAnimationFrame(function () {
+                rafId = 0;
+                positionMenu();
+            });
+        }
+
+        function closeMenu() {
+            menu.classList.remove('show');
+            trigger.classList.remove('active');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleMenu() {
+            if (menu.classList.contains('show')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+
+        // Toggle on trigger click
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMenu();
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && menu.classList.contains('show')) {
+                closeMenu();
+            }
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', function(e) {
+            if (menu.classList.contains('show') && !menu.contains(e.target) && !trigger.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        // Close when clicking a menu link
+        menu.querySelectorAll('.mega-menu-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                closeMenu();
+            });
+        });
+
+        // Reposition on scroll/resize
+        window.addEventListener('scroll', schedulePosition, { passive: true });
+
+        window.addEventListener('resize', schedulePosition);
+
+        // When any Bootstrap dropdown (e.g. Arbeitsbereich) opens, close the mega menu
+        try {
+            if (window.bootstrap && typeof bootstrap.Dropdown === 'function') {
+                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (ddToggle) {
+                    ddToggle.addEventListener('show.bs.dropdown', function () {
+                        if (menu.classList.contains('show')) {
+                            closeMenu();
+                        }
+                    });
+                });
+            }
+        } catch { }
+    })();
+</script>

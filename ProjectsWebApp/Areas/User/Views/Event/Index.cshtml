@@ -1,0 +1,198 @@
+﻿@model IEnumerable<EventEntry>
+@{
+    ViewData["Title"] = "Events";
+    string GetBorderColor(string? art) => art?.ToLower() switch {
+        "workshop" => "#90bc14",      // amber
+        "vortrag" => "#90bc14",       // green
+        "webinar" => "#90bc14",       // blue
+        "konferenz" => "#90bc14",     // purple
+        _ => "#90bc14"                // default
+    };
+
+
+}
+
+<style>
+    .event-page-heading {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.6rem;
+        background: linear-gradient(to right, #90bc14, #76a614);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.5px;
+        animation: fadeInDown 0.6s ease;
+    }
+
+    .calendar-icon-green {
+        font-size: 2.2rem;
+        color: #90bc14 !important;
+        animation: popIn 0.8s ease;
+    }
+
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes popIn {
+        0% {
+            transform: scale(0.7);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .event-page-heading {
+            font-size: 2rem;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .calendar-icon-green {
+            font-size: 2rem;
+        }
+    }
+
+    .event-list-container {
+        width: 100%;
+        margin: 0;
+        padding: 1rem;
+    }
+
+    .event-entry {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease;
+        position: relative;
+        border-left: 8px solid var(--border-color);
+    }
+
+    .event-entry:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+    }
+
+    .event-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
+
+    .event-meta {
+        font-size: 0.95rem;
+        color: #6b7280;
+        margin-bottom: 0.4rem;
+    }
+
+    .event-type-badge {
+        display: inline-block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        margin-bottom: 0.5rem;
+    }
+
+    .event-button {
+        background-color: #90bc14;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.25rem;
+        font-weight: 600;
+        color: white;
+        text-decoration: none;
+        margin-top: 1rem;
+        align-self: flex-end;
+        transition: background 0.2s ease;
+    }
+
+    .event-button:hover {
+        background-color: #76a614;
+    }
+
+    .calendar-icon-green {
+        color: #90bc14;
+    }
+
+    @@media (max-width: 768px) {
+        .event-entry {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .event-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<h2 class="event-page-heading">
+    
+    <span>Events – Termine</span>
+    <i class="bi bi-calendar-event calendar-icon-green me-2"></i>
+</h2>
+
+<div class="event-list-container">
+    @foreach (var ev in Model.OrderByDescending(e => e.Termin))
+    {
+        var borderColor = GetBorderColor(ev.Art);
+        var badgeColor = borderColor;
+
+        <div class="event-entry" style="--border-color: @borderColor;">
+            <div class="event-content" style="flex: 1 1 70%;">
+                @if (!string.IsNullOrWhiteSpace(ev.Art))
+                {
+                    <span class="event-type-badge" style="background-color: @badgeColor;">
+                        @ev.Art
+                    </span>
+                }
+                <div class="event-title">@ev.Titel</div>
+                <div class="event-meta">
+                    <i class="bi bi-calendar-event me-1 " style="color:#90bc14;"></i>
+                    @ev.Termin.ToString("dd.MM.yyyy")
+                    @if (ev.Startzeit.HasValue && ev.Endzeit.HasValue)
+                    {
+                        <span> · @ev.Startzeit.Value.ToString(@"hh\:mm") - @ev.Endzeit.Value.ToString(@"hh\:mm")</span>
+                    }
+                    <span> · @(ev.Veranstaltungsort ?? "online")</span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(ev.Referent))
+                {
+                    <div class="event-meta">
+                        <i class="bi bi-person-fill me-1"></i> <strong>Referent*innen:</strong> @ev.Referent
+                    </div>
+                }
+            </div>
+
+            <div class="mt-3 mt-md-0 d-flex align-items-end">
+                <a asp-action="Details" asp-route-id="@ev.Id" class="event-button">Mehr erfahren</a>
+            </div>
+        </div>
+    }
+</div>

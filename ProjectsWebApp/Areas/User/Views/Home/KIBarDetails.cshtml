@@ -1,0 +1,155 @@
+@model MakerSpaceProject
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<style>
+    .details-container {
+        width: 100%;
+        margin: 30px 0;
+        background: #fff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,.08);
+        font-family: 'Segoe UI',sans-serif
+    }
+
+    /* ───── Header ───── */
+    .details-header {
+        text-align: center;
+        margin-bottom: 25px
+    }
+
+        .details-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0
+        }
+
+    .title-underline {
+        width: 70px;
+        height: 4px;
+        background: #89ba17;
+        margin: 10px auto 0;
+        border-radius: 2px
+    }
+
+    /* ───── Bild ───── */
+    .app-image {
+        display: block;
+        margin: 0 auto 30px;
+        width: 100%;
+        max-width: 450px;
+        aspect-ratio: 16/9;
+        object-fit: contain;
+        border-radius: 40px
+    }
+
+    /* ───── Tags + Beschreibung ───── */
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        list-style: none;
+        margin: 0 0 25px;
+        padding: 0
+    }
+
+        .tag-list li {
+            background: #89ba17;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: .85rem
+        }
+
+    .details-description,
+    .details-description p {
+        font-size: 1.2rem !important;
+        line-height: 1.8;
+        color: #555;
+        margin-bottom: 1rem
+    }
+
+    
+    .project-link {
+        border-radius: 9999px;
+        background: #89ba17;
+        padding: 10px 22px;
+        font-weight: 600;
+        border:none;
+    }
+
+    /* Back button uses global .btn-zurueck from site.css */
+ </style>
+
+<div class="zurueck-container">
+    <a class="btn-zurueck" href="@Url.Action("KIBar", "Home", new { area = "User" })">
+        <i class="bi bi-arrow-left"></i>
+        <span>Zurück zur Übersicht</span>
+    </a>
+</div>
+
+<div class="details-container">
+
+    <!-- T I T E L -->
+    <header class="details-header">
+        <h2>@Model.Title</h2>
+        <div class="title-underline"></div>
+    </header>
+
+    <!-- B I L D -->
+    @{
+        var _raw = Model.ImageUrl ?? "";
+        var _s = _raw.Replace("\\", "/");
+        if (string.IsNullOrWhiteSpace(_s)) _s = "/images/default.jpg";
+        var _src = (_s.StartsWith("http", StringComparison.OrdinalIgnoreCase) || _s.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        ? _s
+        : Url.Content(_s.StartsWith("~/") ? _s : _s.StartsWith("/") ? ("~" + _s) : ("~/" + _s));
+    }
+    <img src="@_src"
+         alt="@Model.Title" class="app-image" />
+
+    <!-- T A G S -->
+    @if (!string.IsNullOrWhiteSpace(Model.Tags))
+    {
+        <ul class="tag-list">
+            @foreach (var tag in Model.Tags.Split(',').Select(t => t.Trim()))
+            {
+                <li>@tag</li>
+            }
+        </ul>
+    }
+
+    <!-- B E S C H R E I B U N G -->
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        @* <h5>Prompt‑Idee</h5> *@
+        <div class="details-description">
+            @Html.Raw(Model.Description)
+        </div>
+    }
+
+    <!-- L I N K  Z U R  P R O J E K T S E I T E -->
+    @if (!string.IsNullOrWhiteSpace(Model.ProjectUrl))
+    {
+        <div class="text-center mb-3">
+            <a href="@Model.ProjectUrl"
+               class="btn btn-success btn-lg project-link"
+               target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-box-arrow-up-right"></i>
+                Zur Projektseite
+            </a>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script>
+        // externe Links in der Beschreibung im neuen Tab öffnen
+        document.querySelectorAll('.details-description a')
+                .forEach(a=>a.target='_blank');
+    </script>
+}

@@ -1,0 +1,2749 @@
+@model IEnumerable<PromptTemplate>
+@using System.Text.Json
+@using System.Linq
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Identity
+@inject Microsoft.AspNetCore.Identity.UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = "Bibliothek";
+
+    // counts per PromptType
+    var total = Model.Count();
+    var cntText = Model.Count(p => p.PromptType.Equals("Text", StringComparison.OrdinalIgnoreCase));
+    var cntBild = Model.Count(p => p.PromptType.Equals("Bild", StringComparison.OrdinalIgnoreCase));
+    var cntVideo = Model.Count(p => p.PromptType.Equals("Video", StringComparison.OrdinalIgnoreCase));
+    var cntSound = Model.Count(p => p.PromptType.Equals("Sound", StringComparison.OrdinalIgnoreCase));
+    var cntBildung = Model.Count(p => p.PromptType.Equals("Bildung", StringComparison.OrdinalIgnoreCase));
+    // Domäne‑Bucket: umfasst Eigenfilter UND Agent (Beruf)
+    var cntDomaene = Model.Count(p =>
+        p.PromptType.Equals("Eigenfilter", StringComparison.OrdinalIgnoreCase) ||
+        p.PromptType.Equals("Beruf", StringComparison.OrdinalIgnoreCase));
+    var cntFramework = Model.Count(p => p.PromptType.Equals("Framework", StringComparison.OrdinalIgnoreCase));
+    var cntMeta = Model.Count(p => p.PromptType.Equals("Meta", StringComparison.OrdinalIgnoreCase));
+
+    var myId = UserManager.GetUserId(User);
+    var sharedPromptIds = ViewBag.SharedPromptIds as HashSet<int> ?? new HashSet<int>();
+}
+
+@functions {
+    IEnumerable<string> Tags(string json)
+    {
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<JsonElement>>(json);
+
+            return list
+                .Select(e =>
+                {
+                    var raw = e.GetProperty("value").GetString() ?? "";
+                    // alles zwischen <...> entfernen
+                    var plain = Regex.Replace(raw, "<.*?>", string.Empty);
+                    return plain.Trim();
+                })
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Take(4);
+        }
+        catch { return Enumerable.Empty<string>(); }
+    }
+
+    IEnumerable<string> FilterSearchTerms(string json)
+    {
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<JsonElement>>(json);
+            return list
+                .Select(e =>
+                {
+                    var raw = e.TryGetProperty("value", out var v) ? (v.GetString() ?? "")
+                              : e.TryGetProperty("title", out var t) ? (t.GetString() ?? "")
+                              : e.TryGetProperty("text", out var tx) ? (tx.GetString() ?? "")
+                              : "";
+                    var plain = Regex.Replace(raw, "<.*?>", string.Empty);
+                    return plain.Trim();
+                })
+                .Where(v => !string.IsNullOrWhiteSpace(v));
+        }
+        catch { return Enumerable.Empty<string>(); }
+    }
+
+    string Gradient(string type)
+    {
+        var t = (type ?? string.Empty).ToLower();
+
+        // map legacy/type aliases to canonical keys
+        if (t == "akademisch" || t == "lehr") t = "bildung";
+        if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
+
+        return t switch
+        {
+            "bild" => "#5c5c5c",
+            "video" => "#828282",
+            "sound" => "#aaaaaa",
+            "bildung" => "#393939",
+            "eigenfilter" => "#182b63", // Domäne
+            "framework" => "#182b63",
+            "meta" => "#182b63",
+            _ => "#5c5c5c" // Text / default
+        };
+    }
+
+    string IconClass(string type)
+    {
+        var t = (type ?? string.Empty).ToLower();
+
+        if (t == "akademisch" || t == "lehr") t = "bildung";
+        if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
+
+        return t switch
+        {
+            "bild" => "bi-image",
+            "video" => "bi-play-btn",
+            "sound" => "bi-volume-up",
+            "bildung" => "bi-journal-bookmark",
+            "eigenfilter" => "bi-funnel-fill", // Domäne‑Icon
+            "framework" => "bi-diagram-3",
+            "meta" => "bi-gear",
+            _ => "bi-text-paragraph"
+        };
+    }
+}
+
+
+<style>
+    :root {
+        --clr-main: #191919;
+        --clr-secondary: #5c5c5c;
+        --clr-accent: #5c5c5c;
+        --clr-bg: #ffffff;
+        --clr-card: #ffffff;
+        --clr-text: #191919;
+        --clr-muted: #828282;
+        --clr-border: #d4d4d4;
+        --radius: 1rem;
+        --shadow: 0 .5rem 1rem rgba(0,0,0,0.1);
+        --shadow-hover: 0 1rem 2rem rgba(0,0,0,0.15);
+    }
+
+    body {
+        background: var(--clr-bg);
+        color: var(--clr-text);
+    }
+
+    h2 {
+        color: var(--clr-main);
+        font-weight: 700;
+        letter-spacing: -.5px;
+        margin: 0;
+    }
+
+    .subtitle {
+        color: var(--clr-muted);
+        font-size: 1.1rem;
+    }
+
+    .btn-outline-main {
+        border: 1px solid #336633;
+        color: #336633;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .25s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        text-decoration: none;
+    }
+
+        .btn-outline-main:hover {
+            background: #336633;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 .35rem 1rem rgba(0, 79, 114, .2);
+            text-decoration: none;
+        }
+
+        .btn-outline-main:focus {
+            outline: 2px solid #336633;
+            outline-offset: 2px;
+        }
+
+    /* einmalig definieren – doppelte .TypeTab-Blöcke entfernen */
+    .TypeTab {
+        color: #5c5c5c !important;
+        background: #f0f0f0;
+        cursor: pointer;
+        padding: .5rem 1.25rem;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .2s;
+        border: none;
+        outline: none;
+    }
+
+        .TypeTab:hover {
+            color: #191919;
+        }
+
+        .TypeTab:focus {
+            outline: 2px solid #336633;
+            outline-offset: 2px;
+        }
+
+        .TypeTab.active {
+            background: #336633 !important;
+            color: #fff !important;
+            box-shadow: 0 .35rem 1rem rgba(92,92,92,.2);
+        }
+
+        .TypeTab.active:focus {
+            outline: 2px solid #89ba17;
+            outline-offset: 2px;
+        }
+
+    .search-box {
+        position: relative;
+        max-width: 700px;
+        width: 100%;
+    }
+
+        .search-box input {
+            width: 100%;
+            padding: .5rem 1rem .5rem 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid #004f72;
+        }
+
+        .search-box .bi-search {
+            position: absolute;
+            left: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #004f72;
+            pointer-events: none;
+        }
+
+    input[type=search] {
+        border-radius: 1rem !important;
+        border: 1px solid #004f72;
+        padding: .75rem 1.25rem .75rem 3rem;
+        font-size: 1rem;
+        box-shadow: 0 .15rem .5rem rgba(0,0,0,.03);
+        transition: .3s;
+    }
+
+        input[type=search]:focus {
+            border-color: #004f72;
+            box-shadow: 0 0 0 .25rem rgba(27, 187, 57, .15);
+        }
+
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--clr-muted);
+    }
+
+/*     .stats-card {
+        background: #393939;
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.2);
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .stats-label {
+        font-size: .9rem;
+        opacity: .9;
+    } */
+
+    .stats-card {
+        width: clamp(120px, 16vw, 180px) !important;
+        min-width: clamp(120px, 16vw, 180px) !important;
+        max-width: clamp(120px, 16vw, 180px) !important;
+        min-height: 86px;
+        margin: 0 auto;
+        border-radius: var(--radius);
+        background: #393939;
+        color: #fff;
+        padding: .75rem 1rem;
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .stats-number {
+        font-size: 1.25rem;
+        line-height: 1.1;
+        margin: 0 0 .15rem;
+    }
+
+    .stats-label {
+        font-size: .78rem;
+        opacity: .85;
+    }
+
+    /* tighten gaps a touch */
+    .row.g-3.mb-5.text-center {
+        row-gap: .75rem !important;
+    }
+
+    .empty-state {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 4rem 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #e9ecef;
+        margin-bottom: 1.5rem;
+    }
+
+    /* ── Card Styles ── */
+    .card-glass {
+        background: var(--clr-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform .3s, box-shadow .3s;
+        min-height: 270px;
+    }
+
+    #tplGrid > .tpl-card {
+        display: flex;
+    }
+
+    #tplGrid > .tpl-card > .card-glass {
+        height: 100%;
+        width: 100%;
+    }
+
+        .card-glass:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+    .card-header-gradient {
+        height: 6px;
+        width: 100%;
+    }
+
+    .card-content {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .card-top .icon-wrapper {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            min-width: 2.5rem !important;
+            min-height: 2.5rem !important;
+            max-width: 2.5rem !important;
+            max-height: 2.5rem !important;
+            border-radius: 50% !important;
+            background: rgba(92, 92, 92, 0.1);
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            aspect-ratio: 1 / 1 !important;
+            box-sizing: border-box !important;
+            padding: 0 !important;
+        }
+
+    .prompt-share-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        border: 1px solid #22c55e;
+        background: linear-gradient(135deg,#ecfdf3,#d1fae5);
+        color: #16a34a;
+        box-shadow: 0 0 0 2px rgba(34,197,94,.35);
+        font-size: .9rem;
+    }
+
+        .prompt-share-indicator i {
+            font-size: .95rem;
+        }
+
+    .edit-btn,
+    .delete-btn {
+        background: none;
+        border: none;
+        margin: 0 .15rem;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        max-width: 38px !important;
+        max-height: 38px !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+        background-color: #ffffff;
+        border: 1px solid rgba(148,163,184,.6) !important;
+        box-shadow: 0 2px 6px rgba(15,23,42,.15);
+        color: #374151;
+        transition: background .18s, box-shadow .18s, transform .18s, color .18s, border-color .18s;
+        padding: 0 !important;
+        aspect-ratio: 1 / 1 !important;
+        box-sizing: border-box !important;
+    }
+
+        .edit-btn:hover {
+            background: #004f72;
+            border-color: #004f72;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(15,23,42,.25);
+        }
+
+        /* .delete-btn {
+            color: #7f1d1d;
+        } */
+
+        .delete-btn:hover {
+            background: #dc3545;
+            border-color: #dc2626;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(185,28,28,.35);
+        }
+
+    .tags {
+        margin-top: .75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+    }
+
+        .tags .badge-tag {
+            background: red;
+            color: #191919;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+        }
+
+    .akronym {
+        margin-top: auto;
+        font-weight: 600;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+        font-size: .85rem;
+    }
+
+    .card-title {
+        margin: .25rem 0 .75rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 2.5em;
+    }
+
+    /* ── Filter bar ── */
+    .TypeTab {
+        cursor: pointer;
+        padding: .5rem 1rem;
+        border-radius: .75rem;
+        background: #f0f0f0;
+        transition: background .2s;
+    }
+
+        .TypeTab.active {
+            background: #5c5c5c;
+            color: #fff;
+        }
+
+    .card-glass {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-content {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ─── Tag-slider ─── */
+    .tag-slider-wrapper {
+        position: relative;
+        margin: .75rem 0;
+    }
+
+    .tag-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding-bottom: .25rem;
+    }
+
+        .tag-slider::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tag-slider .badge-tag {
+            flex: 0 0 auto;
+            margin-right: .5rem;
+            background: #336633;
+            color: white;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+            white-space: nowrap;
+            transition: transform .2s;
+        }
+
+    .tag-slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2.2rem;
+        height: 2.2rem;
+        border: none;
+        background: #828282;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 5;
+        transition: background .2s;
+    }
+
+        .tag-slider-btn.prev {
+            left: 0rem;
+        }
+
+        .tag-slider-btn.next {
+            right: 0rem;
+        }
+
+        .tag-slider-btn:hover {
+            background: #5c5c5c;
+        }
+
+    .header-area {
+        height: auto;
+        min-height: 75px;
+    }
+
+    .btn-bib {
+        background: #004f72;
+        color: #fff;
+        border: 1px solid #004f72;
+        transition: all .25s;
+        text-decoration: none;
+        
+    }
+
+        .btn-bib:hover {
+            border: 1px solid #7d8791;
+            color: black;
+            background: #f8f9fa;
+            text-decoration: none;
+        }
+
+        .btn-bib:focus {
+            outline: 2px solid #004f72;
+            outline-offset: 2px;
+        }
+
+    .btn-collection {
+        background: #004f72;
+        color: #fff;
+        border: 1px solid #004f72;
+        transition: all .25s;
+        text-decoration: none;
+    }
+
+        .btn-collection:hover {
+            border: 1px solid #7d8791;
+            color: black;
+            background: #f8f9fa;
+            text-decoration: none;
+        }
+
+        .btn-collection:focus {
+            outline: 2px solid #004f72;
+            outline-offset: 2px;
+        }
+
+    .btn-neuPrompt {
+        background: #393939;
+        color: white;
+        border: 1px solid #393939;
+        transition: all .25s;
+        text-decoration: none;
+    }
+
+        .btn-neuPrompt:hover {
+            border: 1px solid black;
+            background: white;
+            color: black;
+            text-decoration: none;
+        }
+
+        .btn-neuPrompt:focus {
+            outline: 2px solid #393939;
+            outline-offset: 2px;
+        }
+
+    /* ── Keyword accordion styles injected by script reference ─*/
+    .kw-filter-bar {
+        background: #fff;
+        border: 1px solid #e4e4e4;
+        border-radius: .85rem;
+        padding: .75rem;
+        box-shadow: 0 .25rem .75rem rgba(0,0,0,.06)
+    }
+
+    .kw-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .75rem;
+        border: 1px solid #d9d9d9;
+        background: #f4f4f4;
+        color: #333;
+        border-radius: 999px;
+        font-size: .9rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: background .15s ease,border-color .15s ease,transform .05s ease;
+        user-select: none;
+        outline: none;
+    }
+
+        .kw-pill:hover {
+            background: #ececec
+        }
+
+        .kw-pill:focus {
+            outline: 2px solid #587a0f;
+            outline-offset: 2px;
+        }
+
+        .kw-pill:active {
+            transform: scale(.98)
+        }
+
+        .kw-pill.active {
+            background: #587a0f;
+            color: #fff;
+            border-color: #587a0f
+        }
+
+        .kw-pill.active:focus {
+            outline: 2px solid #89ba17;
+            outline-offset: 2px;
+        }
+
+    .kw-ctl {
+        background: #e8f5ee;
+        border-color: #bfe9d5;
+        color: #1b6b4e
+    }
+
+    /* Small counter badge shown inside each keyword chip */
+    .kw-badge {
+        display: inline-block;
+        background: #e9ecef;
+        color: #495057;
+        border-radius: 999px;
+        font-size: .75rem;
+        padding: 0 .4rem;
+        line-height: 1.1rem;
+        margin-left: .4rem;
+    }
+
+    .kw-hidden {
+        display: none !important
+    }
+
+    .kw-accord {
+        /* border: 2px solid #587a0f; */
+        border-radius: .75rem;
+        padding: .75rem;
+        background: #fff
+    }
+
+    /* Chips scroll container: show all keywords with vertical scroll */
+    .kw-chip-wrap {
+        max-height: 260px;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .kw-label {
+        font-weight: 600;
+        color: #1f7d56;
+        display: flex;
+        align-items: center;
+        gap: .5rem; 
+        margin-bottom: .5rem
+    }
+
+    .kw-toggle-wrap {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem
+    }
+
+    .kw-toggle {
+        border: 1px solid #587a0f;
+        color: #1f7d56;
+        background: #f7fffa;
+        box-shadow: 0 .25rem .5rem rgba(0,208,132,.08)
+    }
+
+        .kw-toggle:hover {
+            background: #eafaf2
+        }
+
+    /* Bigger toolbar icons */
+    #tplToolbar .TypeTab i {
+        font-size: 1.85rem; /* tweak 1.5–2rem as you like */
+        line-height: 1;
+    }
+
+    /* optional: give the icon tabs a slightly larger hit area */
+    #tplToolbar .TypeTab {
+        padding: .6rem 1.1rem;
+    }
+
+    /* === Toolbar alignment fix === */
+    #tplToolbar .TypeTab {
+        display: inline-flex; /* center content inside each pill */
+        align-items: center;
+        justify-content: center;
+        height: 48px; /* uniform height for all tabs */
+        min-width: 48px; /* icons become square; "Alle" can grow wider */
+        padding: 0 14px; /* horizontal space for "Alle" text */
+        line-height: 1; /* remove extra baseline gap */
+        vertical-align: middle;
+    }
+
+        #tplToolbar .TypeTab i {
+            font-size: 1.6rem;
+            line-height: 0; /* keeps icon perfectly centered */
+        }
+
+    /* ========== RESPONSIVE DESIGN ========== */
+
+    /* Base responsive adjustments */
+    @@media (max-width: 1399px) {
+        .container {
+            max-width: 100%;
+        }
+    }
+
+    /* Large Desktop (1200px+) - Default styles above */
+
+    /* iPad Pro Landscape & Large Tablets (992px - 1199px) */
+    @@media (max-width: 1199px) {
+        .container {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        .row.g-3.mb-4.text-center {
+            justify-content: center !important;
+        }
+
+        #tplToolbar {
+            justify-content: center !important;
+        }
+
+        #tplToolbar > .d-flex {
+            justify-content: center !important;
+        }
+
+        #tplSearchRow {
+            justify-content: center !important;
+        }
+
+        #tplSearchRow .search-box {
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
+        .stats-card {
+            max-width: 200px;
+            padding: 1rem;
+        }
+
+        .stats-number {
+            font-size: 1.15rem;
+        }
+
+        .stats-label {
+            font-size: .75rem;
+        }
+
+        #tplGrid {
+            gap: 1.25rem !important;
+        }
+
+        .card-glass {
+            min-height: 260px;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+        }
+
+        .subtitle {
+            font-size: 1.05rem;
+        }
+    }
+
+    /* 2 columns for tablets and mobile (400px - 1199px) */
+    @@media (min-width: 400px) and (max-width: 1199px) {
+        #tplGrid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+        }
+
+        #tplGrid > .tpl-card {
+            flex: 0 0 calc(50% - 0.75rem) !important;
+            width: calc(50% - 0.75rem) !important;
+            max-width: calc(50% - 0.75rem) !important;
+            padding: 0;
+        }
+    }
+
+    /* Very small mobile - still 2 columns but tighter */
+    @@media (max-width: 399px) {
+        #tplGrid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: .5rem !important;
+        }
+
+        #tplGrid > .tpl-card {
+            flex: 0 0 calc(50% - .25rem) !important;
+            width: calc(50% - .25rem) !important;
+            max-width: calc(50% - .25rem) !important;
+        }
+    }
+
+    /* 3 columns for Desktop (1200px+) */
+    @@media (min-width: 1200px) {
+        #tplGrid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+
+        #tplGrid > .tpl-card {
+            flex: 0 0 33.333333% !important;
+            width: 33.333333% !important;
+            max-width: 33.333333% !important;
+        }
+    }
+
+    /* Tablets/iPad Portrait (768px - 991px) */
+    @@media (max-width: 991px) {
+        .container {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+
+        .header-area {
+            height: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.6rem;
+            margin-bottom: .75rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+        }
+
+        /* Top action buttons - better spacing */
+        .d-flex.gap-2 {
+            gap: .75rem !important;
+        }
+
+        .btn-bib,
+        .btn-neuPrompt {
+            padding: .6rem 1.25rem;
+            font-size: .95rem;
+        }
+
+        /* Stack toolbar buttons on smaller tablets */
+        #tplToolbar {
+            gap: .5rem !important;
+        }
+
+        #tplToolbar .TypeTab {
+            height: 44px;
+            min-width: 44px;
+            padding: 0 12px;
+        }
+
+        #tplToolbar .TypeTab i {
+            font-size: 1.4rem;
+        }
+
+        /* Stats cards responsive */
+        .row.g-3.mb-4.text-center {
+            gap: .6rem !important;
+        }
+
+        .stats-card {
+            max-width: 180px;
+            padding: .9rem;
+        }
+
+        .stats-number {
+            font-size: 1.1rem;
+        }
+
+        .stats-label {
+            font-size: .72rem;
+        }
+
+        /* Search box */
+        .search-box {
+            max-width: 100%;
+        }
+
+        input[type=search] {
+            padding: .65rem 1rem .65rem 2.75rem;
+            font-size: .95rem;
+        }
+
+        .search-icon {
+            left: 1rem;
+        }
+
+        /* Cards grid - 2 columns */
+        #tplGrid {
+            gap: 1rem !important;
+        }
+
+        .card-glass {
+            min-height: 250px;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+        }
+
+        /* Keyword chips */
+        .kw-pill {
+            font-size: .85rem;
+            padding: .3rem .65rem;
+        }
+
+        .kw-badge {
+            font-size: .7rem;
+        }
+
+        /* Filter bar */
+        .kw-filter-bar {
+            padding: .65rem;
+        }
+
+        /* Toolbar - Better stacking for tablets */
+        .bib-toolbar {
+            padding: .75rem;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .75rem;
+        }
+
+        .bib-toolbar > .d-flex:first-child {
+            justify-content: center;
+        }
+
+        .bib-toolbar > .d-flex:last-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .6rem;
+            width: 100%;
+        }
+
+        .bib-toolbar > .d-flex:last-child form {
+            width: 100%;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .5rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child form .d-flex {
+            flex-direction: column !important;
+            width: 100%;
+            gap: .5rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child form label {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .select-group {
+            min-width: 100% !important;
+            width: 100% !important;
+        }
+
+        .btn-mine {
+            width: 100% !important;
+            justify-content: center;
+            padding: .6rem 1rem;
+        }
+    }
+
+    /* Mobile Phones & Small Tablets (576px - 767px) */
+    @@media (max-width: 767px) {
+        .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: .5rem;
+        }
+
+        /* Top action buttons - full width stack */
+        .d-flex.justify-content-end.mb-4 {
+            justify-content: stretch !important;
+        }
+
+        .d-flex.gap-2 {
+            flex-direction: column;
+            gap: .5rem !important;
+        }
+
+        .btn-bib,
+        .btn-neuPrompt {
+            width: 100%;
+            justify-content: center;
+            padding: .65rem 1rem;
+            font-size: .95rem;
+        }
+
+        /* Stats - smaller cards, more compact */
+        .row.g-3.mb-4.text-center {
+            gap: .5rem !important;
+        }
+
+        .stats-card {
+            max-width: 160px;
+            padding: .75rem;
+        }
+
+        .stats-number {
+            font-size: 1rem;
+        }
+
+        .stats-label {
+            font-size: .7rem;
+        }
+
+        /* Toolbar - wrap better */
+        #tplToolbar {
+            gap: .45rem !important;
+        }
+
+        #tplToolbar .TypeTab {
+            height: 42px;
+            min-width: 42px;
+            padding: 0 10px;
+            font-size: .9rem;
+        }
+
+        #tplToolbar .TypeTab i {
+            font-size: 1.3rem;
+        }
+
+        /* Search */
+        input[type=search] {
+            padding: .6rem .9rem .6rem 2.5rem;
+            font-size: .9rem;
+        }
+
+        .search-icon {
+            left: .85rem;
+            font-size: .95rem;
+        }
+
+        /* Filter bar - Clean mobile layout */
+        .bib-toolbar {
+            padding: .65rem;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .65rem;
+        }
+
+        .bib-toolbar > .d-flex:first-child {
+            justify-content: center;
+            font-size: .95rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .5rem;
+            width: 100%;
+        }
+
+        .bib-toolbar > .d-flex:last-child form {
+            width: 100%;
+        }
+
+        .bib-toolbar > .d-flex:last-child form .d-flex {
+            flex-direction: column !important;
+            width: 100%;
+            gap: .4rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child form label {
+            margin: 0;
+            font-size: .85rem;
+        }
+
+        .select-group {
+            width: 100% !important;
+            min-width: 100% !important;
+            font-size: .9rem;
+        }
+
+        .btn-mine {
+            width: 100% !important;
+            padding: .55rem 1rem;
+            font-size: .9rem;
+            justify-content: center;
+        }
+
+        /* Keyword filter */
+        .kw-filter-bar {
+            padding: .6rem;
+        }
+
+        .kw-pill {
+            font-size: .82rem;
+            padding: .28rem .6rem;
+        }
+
+        .kw-badge {
+            font-size: .68rem;
+            padding: 0 .35rem;
+        }
+
+        .kw-chip-wrap {
+            max-height: 200px;
+        }
+
+        /* Cards - 2 columns, optimized for small tablets */
+        #tplGrid {
+            gap: .65rem !important;
+        }
+
+        .card-glass {
+            min-height: 220px;
+        }
+
+        .card-content {
+            padding: .75rem;
+        }
+
+        .card-title {
+            font-size: .9rem;
+            min-height: 2.1em;
+        }
+
+        .akronym {
+            font-size: .75rem;
+        }
+
+        /* Action buttons in cards - compact */
+        .card-top .icon-wrapper {
+            width: 2rem !important;
+            height: 2rem !important;
+            min-width: 2rem !important;
+            min-height: 2rem !important;
+            max-width: 2rem !important;
+            max-height: 2rem !important;
+        }
+
+        .card-top .icon-wrapper i {
+            font-size: 1rem !important;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            font-size: .9rem;
+        }
+
+        .prompt-share-indicator {
+            width: 32px;
+            height: 32px;
+            font-size: .8rem;
+        }
+
+        /* Tag slider */
+        .tag-slider .badge-tag {
+            font-size: .68rem;
+            padding: .25rem .55rem;
+        }
+
+        .tag-slider-btn {
+            width: 1.9rem;
+            height: 1.9rem;
+            font-size: .95rem;
+        }
+
+        .btn-outline-main {
+            font-size: .8rem;
+            padding: .4rem .7rem;
+        }
+    }
+
+    /* Mobile Phones (< 576px) */
+    @@media (max-width: 575px) {
+        :root {
+            --radius: .85rem;
+        }
+
+        .container {
+            padding-left: .75rem;
+            padding-right: .75rem;
+        }
+
+        h2 {
+            font-size: 1.35rem;
+            margin-bottom: .35rem;
+        }
+
+        .subtitle {
+            font-size: .9rem;
+        }
+
+        .header-area {
+            margin-bottom: 1rem;
+        }
+
+        /* Top buttons - full width, stacked */
+        .d-flex.justify-content-end.mb-4 {
+            justify-content: stretch !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .btn-bib,
+        .btn-neuPrompt {
+            width: 100%;
+            padding: .65rem 1rem;
+            font-size: .9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+        }
+
+        .btn-bib i,
+        .btn-neuPrompt i {
+            font-size: 1rem;
+        }
+
+        /* Stats - compact grid */
+        .row.g-3.mb-4 {
+            gap: .4rem !important;
+            justify-content: center !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .stats-card {
+            max-width: 140px;
+            padding: .6rem .75rem;
+            border-radius: .85rem;
+        }
+
+        .stats-number {
+            font-size: .95rem;
+        }
+
+        .stats-label {
+            font-size: .65rem;
+        }
+
+        /* Toolbar - smaller icons */
+        #tplToolbar {
+            gap: .4rem !important;
+            margin-bottom: .75rem !important;
+        }
+
+        #tplToolbar .TypeTab {
+            height: 40px;
+            min-width: 40px;
+            padding: 0 8px;
+            font-size: .85rem;
+            border-radius: .65rem;
+        }
+
+        #tplToolbar .TypeTab i {
+            font-size: 1.2rem;
+        }
+
+        /* Search */
+        #tplSearchRow {
+            margin-bottom: 1rem !important;
+        }
+
+        .search-box {
+            max-width: 100%;
+        }
+
+        input[type=search] {
+            padding: .6rem .9rem .6rem 2.5rem;
+            font-size: .9rem;
+            border-radius: .85rem !important;
+        }
+
+        .search-icon {
+            left: .85rem;
+            font-size: .9rem;
+        }
+
+        /* Filter toolbar - compact mobile stack */
+        .bib-toolbar {
+            padding: .6rem;
+            border-radius: .75rem;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .6rem;
+        }
+
+        .bib-toolbar > .d-flex:first-child {
+            justify-content: center;
+            font-size: .9rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: .5rem;
+            width: 100%;
+        }
+
+        .bib-toolbar > .d-flex:last-child form {
+            width: 100%;
+        }
+
+        .bib-toolbar > .d-flex:last-child form .d-flex {
+            flex-direction: column !important;
+            width: 100%;
+            gap: .35rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child form label {
+            margin: 0;
+            font-size: .8rem;
+            font-weight: 500;
+        }
+
+        .select-group {
+            width: 100% !important;
+            min-width: 100% !important;
+            font-size: .85rem;
+            border-radius: .65rem;
+        }
+
+        .btn-mine {
+            width: 100% !important;
+            padding: .5rem .85rem;
+            font-size: .85rem;
+            border-radius: .65rem;
+            justify-content: center;
+        }
+
+        /* Keyword chips - smaller */
+        .kw-filter-bar {
+            padding: .6rem;
+            border-radius: .75rem;
+        }
+
+        .kw-accord {
+            border-radius: .75rem;
+            padding: .6rem;
+        }
+
+        .kw-pill {
+            font-size: .8rem;
+            padding: .25rem .5rem;
+        }
+
+        .kw-badge {
+            font-size: .65rem;
+            padding: 0 .3rem;
+        }
+
+        .kw-chip-wrap {
+            max-height: 180px;
+        }
+
+        /* Cards - 2 columns, compact */
+        #tplGrid {
+            gap: .5rem !important;
+        }
+
+        .card-glass {
+            min-height: 200px;
+            border-radius: .75rem;
+        }
+
+        .card-content {
+            padding: .65rem;
+        }
+
+        .card-title {
+            font-size: .85rem;
+            min-height: 2.1em;
+            margin-bottom: .4rem !important;
+            -webkit-line-clamp: 2;
+        }
+
+        .akronym {
+            font-size: .7rem;
+            margin-bottom: .25rem !important;
+        }
+
+        .tag-slider-wrapper {
+            margin: .4rem 0;
+        }
+
+        .tag-slider .badge-tag {
+            font-size: .65rem;
+            padding: .2rem .45rem;
+        }
+
+        .btn-outline-main {
+            font-size: .75rem;
+            padding: .35rem .6rem;
+        }
+
+        .card-top .icon-wrapper {
+            width: 2rem !important;
+            height: 2rem !important;
+            min-width: 2rem !important;
+            min-height: 2rem !important;
+            max-width: 2rem !important;
+            max-height: 2rem !important;
+        }
+
+        .card-top .icon-wrapper i {
+            font-size: 1.1rem !important;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            min-height: 34px !important;
+            max-width: 34px !important;
+            max-height: 34px !important;
+            font-size: .95rem;
+            margin: 0 .1rem;
+        }
+
+        .prompt-share-indicator {
+            width: 34px;
+            height: 34px;
+            font-size: .85rem;
+        }
+
+        /* Tag slider */
+        .tag-slider-wrapper {
+            margin: .5rem 0;
+        }
+
+        .tag-slider {
+            padding-bottom: .15rem;
+        }
+
+        .tag-slider .badge-tag {
+            font-size: .7rem;
+            padding: .3rem .6rem;
+            margin-right: .4rem;
+            border-radius: .65rem;
+        }
+
+        .tag-slider-btn {
+            width: 2rem;
+            height: 2rem;
+            font-size: 1rem;
+        }
+
+        .akronym {
+            font-size: .8rem;
+        }
+
+        .btn-outline-main {
+            font-size: .85rem;
+            padding: .4rem .75rem;
+            border-radius: .65rem;
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 2.5rem 1rem;
+            border-radius: .85rem;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+        }
+    }
+
+    /* Extra Small Mobile (< 400px) */
+    @@media (max-width: 399px) {
+        .container {
+            padding-left: .5rem;
+            padding-right: .5rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+        }
+
+        .row.g-3.mb-4 {
+            gap: .35rem !important;
+        }
+
+        .stats-card {
+            max-width: 120px;
+            padding: .5rem .6rem;
+        }
+
+        .stats-number {
+            font-size: .9rem;
+        }
+
+        .stats-label {
+            font-size: .6rem;
+        }
+
+        #tplToolbar {
+            gap: .35rem !important;
+        }
+
+        #tplToolbar .TypeTab {
+            height: 38px;
+            min-width: 38px;
+            padding: 0 6px;
+            font-size: .8rem;
+        }
+
+        #tplToolbar .TypeTab i {
+            font-size: 1.1rem;
+        }
+
+        input[type=search] {
+            padding: .55rem .75rem .55rem 2.25rem;
+            font-size: .85rem;
+        }
+
+        .search-icon {
+            left: .75rem;
+            font-size: .85rem;
+        }
+
+        /* Cards - extra compact for 2 columns */
+        .card-glass {
+            min-height: 180px;
+        }
+
+        .card-title {
+            font-size: .8rem;
+            min-height: 2em;
+        }
+
+        .card-content {
+            padding: .55rem;
+        }
+
+        .card-top .icon-wrapper {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+            min-width: 1.75rem !important;
+            min-height: 1.75rem !important;
+            max-width: 1.75rem !important;
+            max-height: 1.75rem !important;
+        }
+
+        .card-top .icon-wrapper i {
+            font-size: .95rem !important;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            min-height: 28px !important;
+            max-width: 28px !important;
+            max-height: 28px !important;
+            font-size: .8rem;
+        }
+
+        .prompt-share-indicator {
+            width: 28px;
+            height: 28px;
+            font-size: .75rem;
+        }
+
+        .akronym {
+            font-size: .65rem;
+        }
+
+        .tag-slider .badge-tag {
+            font-size: .6rem;
+            padding: .18rem .4rem;
+        }
+
+        .tag-slider-btn {
+            width: 1.6rem;
+            height: 1.6rem;
+            font-size: .85rem;
+        }
+
+        .btn-outline-main {
+            font-size: .7rem;
+            padding: .3rem .5rem;
+        }
+
+        .btn-bib,
+        .btn-neuPrompt {
+            font-size: .85rem;
+            padding: .55rem .85rem;
+        }
+
+        .kw-pill {
+            font-size: .75rem;
+            padding: .22rem .45rem;
+        }
+
+        .kw-badge {
+            font-size: .6rem;
+        }
+
+        .tag-slider .badge-tag {
+            font-size: .68rem;
+            padding: .28rem .55rem;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            max-width: 32px !important;
+            max-height: 32px !important;
+            font-size: .9rem;
+        }
+
+        .prompt-share-indicator {
+            width: 32px;
+            height: 32px;
+            font-size: .8rem;
+        }
+
+        /* Filter toolbar - extra compact */
+        .bib-toolbar {
+            padding: .5rem;
+            gap: .5rem;
+        }
+
+        .bib-toolbar > .d-flex:first-child {
+            font-size: .85rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child {
+            gap: .4rem;
+        }
+
+        .bib-toolbar > .d-flex:last-child form label {
+            font-size: .75rem;
+        }
+
+        .select-group {
+            font-size: .8rem;
+            padding: .4rem .6rem;
+        }
+
+        .btn-mine {
+            font-size: .8rem;
+            padding: .45rem .75rem;
+        }
+    }
+
+    /* Touch device optimizations */
+    @@media (hover: none) and (pointer: coarse) {
+        /* Ensure all interactive elements are touch-friendly (min 44px) */
+        .TypeTab {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .btn,
+        .btn-bib,
+        .btn-neuPrompt,
+        .btn-mine {
+            min-height: 44px;
+        }
+
+        .edit-btn,
+        .delete-btn,
+        .prompt-share-indicator {
+            min-width: 40px;
+            min-height: 40px;
+        }
+
+        .kw-pill {
+            min-height: 38px;
+            padding: .35rem .65rem;
+        }
+
+        /* Remove hover effects on touch devices */
+        .card-glass:hover {
+            transform: none;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-outline-main:hover {
+            transform: none;
+        }
+
+        .edit-btn:hover,
+        .delete-btn:hover,
+        .TypeTab:hover {
+            transform: none;
+        }
+
+        /* Better touch scrolling */
+        .tag-slider,
+        .kw-chip-wrap {
+            scroll-padding: 1rem;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Larger tap targets for links */
+        a.btn {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+        }
+    }
+
+    /* iPad Pro specific (1024x1366 portrait, 1366x1024 landscape) */
+    @@media (min-width: 1024px) and (max-width: 1366px) {
+        body:not(.admin-area) .section {
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+
+        .container {
+            max-width: 100%;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        #tplGrid {
+            gap: 1.5rem !important;
+        }
+
+        .card-glass {
+            min-height: 280px;
+        }
+
+        .stats-card {
+            max-width: 200px;
+        }
+    }
+
+    /* Landscape phone optimization (all phones in landscape) */
+    @@media (max-width: 896px) and (orientation: landscape) {
+        .header-area {
+            height: auto;
+            margin-bottom: .75rem;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+        }
+
+        /* Reduce vertical spacing in landscape */
+        .row.g-3.mb-4 {
+            margin-bottom: .75rem !important;
+        }
+
+        .stats-card {
+            padding: .6rem .8rem;
+            max-width: 130px;
+        }
+
+        .stats-number {
+            font-size: .95rem;
+        }
+
+        .stats-label {
+            font-size: .68rem;
+        }
+
+        #tplToolbar {
+            margin-bottom: .75rem !important;
+        }
+
+        #tplSearchRow {
+            margin-bottom: .75rem !important;
+        }
+
+        .card-glass {
+            min-height: 220px;
+        }
+
+        .card-content {
+            padding: .8rem;
+        }
+
+        /* Two columns in landscape for better space usage */
+        #tplGrid {
+            gap: .8rem !important;
+        }
+    }
+
+    /* Large landscape phones (iPhone Pro Max, etc) */
+    @@media (min-width: 768px) and (max-width: 896px) and (orientation: landscape) {
+        #tplGrid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 1rem !important;
+        }
+
+        .stats-card {
+            max-width: 150px;
+        }
+    }
+
+
+</style>
+
+
+
+
+<div class="d-flex justify-content-end mb-4 container">
+    <div class="d-flex gap-2">
+        <!-- Bibliothek-Button -->
+        <a asp-area="User"
+           asp-controller="MyPrompts"
+           asp-action="Index"
+           class="btn btn-collection">
+            <i class="bi bi-archive-fill me-2"></i>Zur Sammlung
+        </a>
+
+        <!-- Neuer Prompt -->
+        <a asp-controller="Home"
+           asp-action="PromptAssistent"
+           asp-route-type="text" class="btn btn-neuPrompt">
+            <i class="bi bi-plus-circle me-1"></i>Prompt
+        </a>
+    </div>
+</div>
+
+    <div class="header-area mb-4 container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"> <i class="fa fa-university me-1" aria-hidden="true"></i> Unsere Prompts Bibliothek</h2>
+
+        </div>
+    </div>
+
+
+
+@{
+    var mineSel = (bool)(ViewBag.MineSelected ?? false);
+    var selectedGroup = ViewBag.SelectedGroup as string;
+}
+<style>
+    .bib-toolbar { background:#fff; border:1px solid var(--clr-border); border-radius:.85rem; padding:.75rem 1rem; box-shadow:var(--shadow); }
+    .btn-mine {
+        background: #587a0f;
+        color: #fff;
+        border: 1px solid #587a0f;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        padding: .5rem 1.1rem;
+        font-weight: 500;
+        font-size: .95rem;
+        line-height: 1;
+        box-shadow: 0 .25rem .75rem rgba(0,0,0,.08);
+        transition: all .2s;
+        text-decoration: none;
+    }
+    .btn-mine:hover {
+        color:black;
+        border:1px solid black;
+        filter:brightness(.95);
+        text-decoration: none;
+    }
+    .btn-mine:focus {
+        outline: 2px solid #587a0f;
+        outline-offset: 2px;
+    }
+    .btn-mine.active {
+        background:#393939;
+        border-color:#393939;
+    }
+    .btn-mine.active:focus {
+        outline: 2px solid #89ba17;
+        outline-offset: 2px;
+    }
+    .select-group {
+        min-width:220px;
+        border-radius: .65rem;
+        border: 1px solid #d9d9d9;
+        transition: border-color .2s;
+    }
+    .select-group:focus {
+        border-color: #587a0f;
+        outline: 2px solid #587a0f;
+        outline-offset: 2px;
+    }
+</style>
+
+
+<div class="container">
+
+    <!-- ── Stats: 2 rows × 3 cols responsive ── -->
+    <!-- ── Stats: only show cards for types that actually have ≥1 ── -->
+    <div class="row g-3 mb-4 text-center justify-content-center">
+
+        <div class="col-auto">
+            <div class="stats-card">
+                <div class="stats-number">@total</div>
+                <div class="stats-label">Insgesamt</div>
+            </div>
+        </div>
+
+        @if (cntText > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntText</div>
+                    <div class="stats-label">Text</div>
+                </div>
+            </div>
+        }
+        @if (cntBild > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntBild</div>
+                    <div class="stats-label">Bild</div>
+                </div>
+            </div>
+        }
+        @if (cntVideo > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntVideo</div>
+                    <div class="stats-label">Video</div>
+                </div>
+            </div>
+        }
+        @if (cntSound > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntSound</div>
+                    <div class="stats-label">Sound</div>
+                </div>
+            </div>
+        }
+        @if (cntBildung > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntBildung</div>
+                    <div class="stats-label">Bildung</div>
+                </div>
+            </div>
+        }
+        @if (cntDomaene > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntDomaene</div>
+                    <div class="stats-label">Domäne</div>
+                </div>
+            </div>
+        }
+        @if (cntFramework > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntFramework</div>
+                    <div class="stats-label">Framework</div>
+                </div>
+            </div>
+        }
+        @if (cntMeta > 0)
+        {
+            <div class="col-auto">
+                <div class="stats-card">
+                    <div class="stats-number">@cntMeta</div>
+                    <div class="stats-label">Meta</div>
+                </div>
+            </div>
+        }
+    </div>
+
+
+    <!-- ── Filter bar ── -->
+   
+
+
+
+    <!-- ── Search row (centered and bigger) ── -->
+    <!-- ── Toolbar (icons) ── -->
+    <div id="tplToolbar" class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-3">
+        <div class="d-flex flex-wrap gap-2 justify-content-center">
+            <div class="TypeTab active" data-type="all">Alle</div>
+            <div class="TypeTab" data-type="text" title="Text-prompts"><i class="fa fa-pencil-square" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="bild" title="Bild-prompts"><i class="bi bi-image" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="video" title="Video-prompts"><i class="fa fa-video-camera" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="sound" title="Sound-prompts"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="bildung" title="Bildung & Forschung-prompts"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="eigenfilter" title="Domäne-prompts"><i class="bi bi-funnel-fill" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="framework" title="Framework-prompts"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="meta" title="Meta-prompts"><i class="fa fa-cogs" aria-hidden="true"></i></div>
+        </div>
+    </div>
+
+    <!-- Search row -->
+    <div id="tplSearchRow" class="row justify-content-center mb-4">
+        <div class="col-12 col-xl-6">
+            <div class="search-box mx-auto w-100">
+                <i class="bi bi-search search-icon"></i>
+                <input id="tplSearch" type="search" class="form-control form-control-lg"
+                       placeholder="Bibliothek durchsuchen …" />
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+    <div  id="bibToolbar" class="bib-toolbar d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-funnel" style="color:#587a0f"></i>
+            <span class="fw-semibold">Bibliothek filtern</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @{ var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string> { "Ohne Gruppe" }; }
+            <form asp-area="User" asp-controller="Home" asp-action="Bibliothek" method="get" class="d-flex align-items-center gap-2 mb-0">
+                <input type="hidden" name="mine" value="@(mineSel ? "true" : "false")" />
+                @* <label class="me-1 text-muted">Gruppe</label> *@
+                <select name="group" class="form-select select-group" onchange="this.form.submit()">
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Coach"))
+                    {
+                        <option value="">Alle Gruppen</option>
+                    }
+                    @foreach (var g in groups)
+                    {
+                        var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
+                        if (isSel)
+                        {
+                            <option value="@g" selected="selected">@g</option>
+                        }
+                        else
+                        {
+                            <option value="@g">@g</option>
+                        }
+                    }
+                </select>
+            </form>
+            @if (mineSel)
+            {
+                <a class="btn btn-mine active" asp-area="User" asp-controller="Home" asp-action="Bibliothek" asp-route-group="@selectedGroup" style="color:white;" asp-route-mine="false">Alle anzeigen</a>
+            }
+            else
+            {
+                <a class="btn btn-mine" asp-area="User" asp-controller="Home" asp-action="Bibliothek" asp-route-group="@selectedGroup" asp-route-mine="true"><i class="bi bi-person-check me-1"></i>Meine Prompts</a>
+            }
+        </div>
+    </div>
+</div>
+
+    <!-- Card grid -->
+    <div id="tplGrid" class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-4">
+        @foreach (var t in Model)
+        {
+            var tags = Tags(t.FilterJson);
+            var filterTerms = string.Join(" ", FilterSearchTerms(t.FilterJson));
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = t.PromptType.ToLower(),
+                thema = t.Thema,
+                ziele = t.Ziele,
+                beschreibung = t.Beschreibung,
+                schluesselbegriffe = t.Schluesselbegriffe,
+                filterJson = t.FilterJson,
+                promptHtml = t.PromptHtml,
+                checkedItems = JsonSerializer.Deserialize<object>(t.FilterJson),
+                temperatur = t.Temperatur,
+                maxZeichen = t.MaxZeichen
+            });
+            <div class="col tpl-card"
+                 data-type="@t.PromptType.ToLower()"
+                 data-search="@($"{t.Akronym} {t.Title} {t.Thema} {t.Ziele} {t.Schluesselbegriffe} {filterTerms}".ToLower())"
+                 data-payload='@Html.Raw(payload)'
+                 data-id="@t.Id">
+                <div class="card card-glass">
+                    <div class="card-header-gradient"
+                         style="background:@Gradient(t.PromptType)"></div>
+                    <div class="card-content">
+                        <div class="card-top">
+                            <div class="icon-wrapper">
+                                <i class="bi @(IconClass(t.PromptType))"
+                                   style="font-size:1.25rem; color: #5c5c5c"></i>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                @if (sharedPromptIds.Contains(t.Id))
+                                {
+                                    <span class="prompt-share-indicator" title="Prompt ist extern freigegeben">
+                                        <i class="bi bi-share-fill"></i>
+                                    </span>
+                                }
+                                <div class="action-buttons">
+                                    @if (User.IsInRole("Admin") || t.UserId == myId)
+                                    {
+                                        <button type="button" class="edit-btn" title="Bearbeiten">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </button>
+                                    }
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <button type="button" class="delete-btn delete-template" title="Löschen">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="tag-slider-wrapper my-2">
+                            <button class="tag-slider-btn prev">&lsaquo;</button>
+                            <div class="tag-slider">
+                                @foreach (var tag in tags)
+                                {
+                                    <span class="badge-tag">@tag</span>
+                                }
+                            </div>
+                            <button class="tag-slider-btn next">&rsaquo;</button>
+                        </div>
+                        <p class="akronym mb-1" style="color:#393939">@t.Akronym</p>
+                        <h5 class="card-title mb-3">@t.Title</h5>
+                        <a asp-action="PromptDetails" asp-route-id="@t.Id"
+                           class="btn btn-sm btn-outline-main">
+                            Mehr anzeigen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyMsg" class="text-center mt-5" style="display:none">
+        <i class="bi bi-search fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">Keine Prompts gefunden.</p>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="d-flex gap-2">
+        <!-- Bibliothek-Button -->
+        <a asp-area="User"
+           asp-controller="MyPrompts"
+           asp-action="Index"
+           class="btn btn-bib">
+            <i class="bi bi-archive-fill me-2"></i>Zur Sammlung
+        </a>
+
+        <!-- Neuer Prompt -->
+        <a asp-controller="Home" asp-area="User" asp-action="PromptEngineering" class="btn btn-neuPrompt">
+            <i class="bi bi-plus-circle me-1"></i>Prompts
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        /* ========== Helpers ========== */
+        const onReady = (fn) => (document.readyState !== 'loading')
+          ? fn()
+          : document.addEventListener('DOMContentLoaded', fn);
+
+        const norm = s => (s || '').toString().toLowerCase().trim();
+        // Map aliases so filtering works regardless of label changes
+        const TYPE_ALIAS = {
+          lehr: 'bildung',
+          bildung: 'bildung',
+          akademisch: 'bildung',
+          // Agent (Beruf) wird in der Bibliothek als Domäne (Eigenfilter) geführt
+          beruf: 'eigenfilter',
+          @* domäne: 'eigenfilter', *@
+          domaene: 'eigenfilter'
+        };
+
+        // Feature flag: include filter items (value/title) as keywords in Bibliothek
+        // Default false to avoid unexpected extra chips. Toggle to true if desired later.
+        const INCLUDE_FILTER_ITEMS_IN_KEYWORDS = false;
+
+        // Display helper: mimic Prompt‑Assistent keyword look without CSS changes
+        function formatKw(s){
+          if (!s) return s;
+          // Split by spaces and hyphens but keep delimiters
+          return s.split(/([\s-]+)/).map(part => {
+            if (/^[\s-]+$/.test(part)) return part; // keep delimiters
+            // Keep short all‑caps tokens (e.g., "KI", "API")
+            if (part.length <= 3 && part === part.toUpperCase()) return part;
+            // Uppercase first letter only
+            return part.charAt(0).toUpperCase() + part.slice(1);
+          }).join('');
+        }
+
+        function normalizeType(val){
+          const s = norm(val);
+          if (!s) return '';
+          if (s in TYPE_ALIAS) return TYPE_ALIAS[s];
+          if (['akademische','academic'].includes(s)) return 'bildung';
+          if (['image','images','pic','picture','image-prompt'].includes(s)) return 'bild';
+          if (['videos'].includes(s)) return 'video';
+          if (['audio','audios','musik'].includes(s)) return 'sound';
+          if (['texte','texte-prompt','textprompt'].includes(s)) return 'text';
+          return s;
+        }
+
+        /* ========== Core page filter (tabs + search) ========== */
+        onReady(() => {
+          const toolbar = document.getElementById('tplToolbar');
+          const cards   = Array.from(document.querySelectorAll('.tpl-card'));
+          const tabs    = Array.from(document.querySelectorAll('.TypeTab'));
+          const search  = document.getElementById('tplSearch');
+          const empty   = document.getElementById('emptyMsg');
+
+          if (!toolbar || cards.length === 0) return;
+
+          // derive initial active from current active tab
+          let active = normalizeType(document.querySelector('.TypeTab.active')?.dataset.type || 'all');
+          let term   = '';
+
+                function cardTypeOf(c){
+          // primary: data-type on card
+          let t = normalizeType(c.dataset.type);
+          if (!t) {
+            // fallback: payload.type
+            try {
+              const p = JSON.parse(c.dataset.payload || '{}');
+              t = normalizeType(p.type || '');
+            } catch { /* ignore */ }
+          }
+          // FINAL fallback: treat unknown/empty as "text" (your default)
+          return t || 'text';
+        }
+
+
+          function refresh(){
+            const q = norm(term);
+            const targetType = active || 'all';
+            let shown = 0;
+
+            for (const c of cards){
+              const ct    = cardTypeOf(c);
+              const okType = (targetType === 'all') || (ct === targetType) || ct.startsWith(targetType);
+
+              const okText= !q || norm(c.dataset.search).includes(q);
+              const okKw  = !c.classList.contains('kw-hidden'); // respect keyword chips
+              const vis   = okType && okText && okKw;
+
+              c.style.display = vis ? '' : 'none';
+              if (vis) shown++;
+            }
+
+            if (empty) empty.style.display = shown ? 'none' : '';
+            // let the keyword script update its own empty calc if needed
+            document.dispatchEvent(new CustomEvent('bibliothek:filter-changed'));
+          }
+
+          // Single delegated click handler for tabs (prevents double-binding/races)
+          toolbar.addEventListener('click', (e) => {
+            const tab = e.target.closest('.TypeTab');
+            if (!tab) return;
+
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            active = normalizeType(tab.dataset.type || 'all');
+
+            // handy console hint if no cards match this type
+            if (active !== 'all' && !cards.some(c => cardTypeOf(c) === active)) {
+              console.warn(`[Bibliothek] No cards with type "${active}". First few card types:`,
+                cards.slice(0,5).map(cardTypeOf));
+            }
+            refresh();
+          });
+
+          // Search input
+          if (search){
+            search.addEventListener('input', (e) => {
+              term = e.target.value || '';
+              refresh();
+            });
+          }
+
+          // First paint
+          refresh();
+        });
+
+        /* ========== Keyword chips accordion (unchanged, just listens to our event) ========== */
+        (function(){
+          onReady(() => {
+            const grid = document.getElementById('tplGrid');
+            if(!grid) return;
+            if (document.getElementById('kwAccordionBibl')) return;
+
+            const cards = Array.from(grid.querySelectorAll('.tpl-card'));
+            if(cards.length===0) return;
+
+            // Render up to 4 chips per card, prioritizing FilterJson/checkedItems, fallback to schluesselbegriffe
+            (function renderKeywordChips(){
+              for(const card of cards){
+                try{
+                  const payloadStr = card.getAttribute('data-payload'); if(!payloadStr) continue;
+                  const data = JSON.parse(payloadStr);
+                  const slider = card.querySelector('.tag-slider'); if(!slider) continue;
+
+                  // 1) Collect from FilterJson/checkedItems
+                  const fromFilters = [];
+                  if (Array.isArray(data?.checkedItems)){
+                    for (const it of data.checkedItems){
+                      const raw = (it && (it.value || it.title || it.text)) || '';
+                      const plain = String(raw).replace(/<[^>]*>/g,'').trim();
+                      if (plain) fromFilters.push(plain);
+                    }
+                  } else if (data?.filterJson){
+                    try{
+                      const arr = JSON.parse(data.filterJson);
+                      if (Array.isArray(arr)){
+                        for (const it of arr){
+                          const raw = (it && (it.value || it.title || it.text)) || '';
+                          const plain = String(raw).replace(/<[^>]*>/g,'').trim();
+                          if (plain) fromFilters.push(plain);
+                        }
+                      }
+                    }catch{}
+                  }
+
+                  // 2) Fallback/merge from schluesselbegriffe
+                  const fromKeywords = [];
+                  const rawK = (data && data.schluesselbegriffe) ? String(data.schluesselbegriffe) : '';
+                  const plainK = (()=>{ try{ const d=new DOMParser().parseFromString(rawK,'text/html'); return (d.documentElement.textContent||''); }catch{ return rawK; } })();
+                  plainK.split(/[;|\n\r•·,]+/).map(s=>s.trim()).filter(Boolean).forEach(k=>fromKeywords.push(k));
+
+                  // 3) Merge and dedupe (prefer filters first), max 4
+                  const bag = [];
+                  const seen = new Set();
+                  for (const v of [...fromFilters, ...fromKeywords]){
+                    const key = v.toLowerCase();
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    bag.push(v);
+                  }
+                  const top = bag.slice(0, 4);
+
+                  // Render
+                  slider.innerHTML = '';
+                  for(const kw of top){
+                    const el = document.createElement('span');
+                    el.className = 'badge-tag';
+                    el.dataset.kw = kw;
+                    el.textContent = kw;
+                    slider.appendChild(el);
+                  }
+                  const prevBtn = card.querySelector('.tag-slider-btn.prev');
+                  const nextBtn = card.querySelector('.tag-slider-btn.next');
+                  const overflow = slider.scrollWidth - slider.clientWidth > 1;
+                  if(prevBtn) prevBtn.style.visibility = overflow ? 'visible' : 'hidden';
+                  if(nextBtn) nextBtn.style.visibility = overflow ? 'visible' : 'hidden';
+                }catch{}
+              }
+            })();
+
+            // Build frequency table (include both schluesselbegriffe and filterJson values)
+            const cardKwMap = new Map(); // card => Set(keywords, lowercased)
+            const freq = new Map();
+            const displayMap = new Map(); // lowercased kw -> first-seen original casing
+            for(const card of cards){
+              try{
+                const payloadStr = card.getAttribute('data-payload');
+                if(!payloadStr){ cardKwMap.set(card, new Set()); continue; }
+                const data = JSON.parse(payloadStr);
+
+                // 1) From schluesselbegriffe (commas/semicolons/newlines/pipes/bullets)
+                const rawKw = data?.schluesselbegriffe ? String(data.schluesselbegriffe) : '';
+                const kwPlain = (()=>{ try{ const d=new DOMParser().parseFromString(rawKw,'text/html'); return (d.documentElement.textContent||''); }catch{ return rawKw; } })();
+                const kwItems = kwPlain.split(/[;|\n\r•·,]+/).map(s=>s.trim()).filter(Boolean).filter(s=>s.length>1);
+
+                // 2) From filterJson → array of objects with value/title
+                let filterVals = [];
+                if (INCLUDE_FILTER_ITEMS_IN_KEYWORDS) {
+                  try {
+                    const fj = data?.filterJson;
+                    const parsed = typeof fj === 'string' ? JSON.parse(fj) : fj;
+                    if (Array.isArray(parsed)) {
+                      for (const it of parsed) {
+                        const v = (it?.value ?? it?.Value ?? it?.title ?? it?.Title ?? '').toString();
+                        if (!v) continue;
+                        const doc = new DOMParser().parseFromString(v, 'text/html');
+                        const plain = (doc.documentElement.textContent || '').trim();
+                        if (plain) filterVals.push(plain);
+                      }
+                    }
+                  } catch {}
+                }
+
+                // 3) Fallback: checkedItems (same structure as filterJson)
+                if (INCLUDE_FILTER_ITEMS_IN_KEYWORDS && filterVals.length === 0) {
+                  try {
+                    const ci = data?.checkedItems;
+                    const parsedCI = typeof ci === 'string' ? JSON.parse(ci) : ci;
+                    if (Array.isArray(parsedCI)) {
+                      for (const it of parsedCI) {
+                        const v = (it?.value ?? it?.Value ?? it?.title ?? it?.Title ?? '').toString();
+                        if (!v) continue;
+                        const doc = new DOMParser().parseFromString(v, 'text/html');
+                        const plain = (doc.documentElement.textContent || '').trim();
+                        if (plain) filterVals.push(plain);
+                      }
+                    }
+                  } catch {}
+                }
+
+                const rawItems = [...kwItems, ...filterVals];
+                const kws = rawItems.map(s=>s.toLowerCase());
+                const set = new Set(kws);
+                cardKwMap.set(card, set);
+
+                // remember display casing for each kw once
+                for(let i=0;i<rawItems.length;i++){
+                  const lower = kws[i];
+                  const original = rawItems[i];
+                  if(lower && original && !displayMap.has(lower)) displayMap.set(lower, original);
+                }
+                for(const k of set){ freq.set(k, (freq.get(k)||0)+1); }
+              }catch{ cardKwMap.set(card, new Set()); }
+            }
+
+            // Determine popular keys (top 10% by frequency, min 5) AND at least a minimum count
+            // This avoids marking x1 keywords as popular
+            const byCountDesc = Array.from(freq.entries()).sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0]));
+            const popularLimit = Math.max(5, Math.ceil(byCountDesc.length * 0.10));
+            const minCountPopular = 3; // adjust if needed to match Prompt-Entwicklung
+            const popularCandidates = byCountDesc.filter(([_, c]) => c >= minCountPopular).slice(0, popularLimit);
+            const popularSet = new Set(popularCandidates.map(([k])=>k));
+            const allKeywords = Array.from(freq.keys()).sort((a,b)=> a.localeCompare(b));
+            if(allKeywords.length===0) return;
+
+            // Mount under toolbar if present
+            const toolbar = document.getElementById('tplToolbar');
+
+            const acc = document.createElement('div');
+            acc.id = 'kwAccordionBibl';
+            acc.className = 'kw-accord  mb-4';
+
+            const bar = document.createElement('div');
+            bar.className = 'kw-filter-bar mb-0';
+
+            const labelRow = document.createElement('div');
+            labelRow.className = 'kw-label';
+            // labelRow.innerHTML = '<i class="bi bi-funnel"></i> Schlüsselbegriffe <span class="text-muted small ms-1">(Mehrfachauswahl möglich)</span>';
+
+            const wrap = document.createElement('div');
+            wrap.className = 'kw-chip-wrap d-flex align-items-center justify-content-center gap-2 flex-wrap';
+
+            const btnAll = document.createElement('button');
+            btnAll.type='button'; btnAll.id='kwAll'; btnAll.className='kw-pill kw-ctl';
+            btnAll.innerHTML=' Alle';
+
+            const btnClear = document.createElement('button');
+            btnClear.type='button'; btnClear.id='kwClear'; btnClear.className='kw-pill kw-ctl';
+            btnClear.innerHTML=' Auswahl aufheben';
+
+            wrap.append(btnAll, btnClear);
+
+            const chipEls = new Map();
+            for(const kw of allKeywords){ // kw is lowercased key
+              const chip = document.createElement('button');
+              chip.type='button'; chip.className='kw-pill kw-opt'; chip.dataset.kw = kw;
+              const disp = displayMap.get(kw) || formatKw(kw);
+              chip.textContent = disp; chip.title = 'Filter: ' + disp;
+              // Counter badge (number of prompts containing this keyword)
+              const cnt = freq.get(kw) || 0;
+              const badge = document.createElement('span');
+              badge.className = 'kw-badge';
+              badge.textContent = `×${cnt}`;
+              chip.appendChild(badge);
+              // Popular fire icon for top keywords
+              if (popularSet.has(kw)) {
+                const fire = document.createElement('i');
+                fire.className = 'bi bi-fire text-danger ms-1';
+                fire.setAttribute('title', 'Beliebt');
+                chip.appendChild(fire);
+              }
+              chipEls.set(kw, chip);
+              wrap.appendChild(chip);
+            }
+
+            bar.append(labelRow, wrap);
+            acc.appendChild(bar);
+
+            // const toggleWrap = document.createElement('div');
+            // toggleWrap.className = 'kw-toggle-wrap d-flex justify-content-start';
+            // const btnToggle = document.createElement('button');
+            // btnToggle.type='button';
+            // btnToggle.id='kwToggleBtnBibl';
+            // btnToggle.className='btn btn-sm kw-toggle';
+            // btnToggle.setAttribute('aria-expanded','true');
+            // btnToggle.setAttribute('aria-controls','kwAccordionBibl');
+            // btnToggle.innerHTML = '<i class="bi bi-funnel me-1"></i> Schlüsselbegriffe  <i class="bi bi-caret-up-fill ms-1 caret-icon"></i>';
+            // toggleWrap.appendChild(btnToggle);
+
+     const bibTb = document.getElementById('bibToolbar');
+const searchRow = document.getElementById('tplSearchRow');
+
+if (bibTb) {
+  // ✅ Place “Schlüsselbegriffe” right after the Bibliothek filter bar
+  bibTb.insertAdjacentElement('afterend', acc);
+} else if (searchRow) {
+  // Fallback: under search if toolbar is missing
+  searchRow.insertAdjacentElement('afterend', acc);
+} else if (toolbar) {
+  toolbar.insertAdjacentElement('afterend', acc);
+} else {
+  grid.parentNode.insertBefore(acc, grid);
+}
+
+
+
+
+            const selected = new Set();
+
+            function applyKwFilter(){
+              for(const card of cards){
+                const kws = cardKwMap.get(card) || new Set();
+                let show = true;
+                if(selected.size>0){
+                  for(const need of selected){ if(!kws.has(need)) { show=false; break; } }
+                }
+                card.classList.toggle('kw-hidden', !show);
+              }
+              // notify main script (it uses kw-hidden in its refresh)
+              document.dispatchEvent(new CustomEvent('bibliothek:filter-changed'));
+            }
+
+            // btnToggle.addEventListener('click', ()=>{
+            //   const open = !acc.classList.contains('d-none');
+            //   acc.classList.toggle('d-none');
+            //   btnToggle.setAttribute('aria-expanded', (!open).toString());
+            //   const caret = btnToggle.querySelector('.caret-icon');
+            //   if(caret){
+            //     caret.classList.toggle('bi-caret-up-fill', !open);
+            //     caret.classList.toggle('bi-caret-down-fill', open);
+            //   }
+            // });
+
+            btnAll.addEventListener('click', ()=>{
+              selected.clear();
+              for(const chip of chipEls.values()) chip.classList.remove('active');
+              applyKwFilter();
+            });
+
+            btnClear.addEventListener('click', ()=>{
+              selected.clear();
+              for(const chip of chipEls.values()) chip.classList.remove('active');
+              applyKwFilter();
+            });
+
+            for(const [kw, chip] of chipEls){
+              chip.addEventListener('click', ()=>{
+                if(selected.has(kw)) { selected.delete(kw); chip.classList.remove('active'); }
+                else { selected.add(kw); chip.classList.add('active'); }
+                applyKwFilter();
+              });
+            }
+
+            // Re-apply when page filter/search changes
+            document.addEventListener('bibliothek:filter-changed', () => {
+              // main script will recompute display; we only ensure kw-hidden is applied
+              // (no-op here because it's already applied during selection)
+            });
+
+            // Initial paint
+            applyKwFilter();
+          });
+        })();
+
+        /* ========== Tag slider controls (unchanged) ========== */
+        onReady(() => {
+          document.querySelectorAll('.tag-slider-wrapper').forEach(wrapper => {
+            const slider = wrapper.querySelector('.tag-slider');
+            const btnPrev = wrapper.querySelector('.tag-slider-btn.prev');
+            const btnNext = wrapper.querySelector('.tag-slider-btn.next');
+            const scrollAmount = wrapper.offsetWidth * 0.5;
+
+            btnPrev.addEventListener('click', () => {
+              slider.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+            });
+            btnNext.addEventListener('click', () => {
+              slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            });
+
+            function updateButtons() {
+              btnPrev.style.visibility = slider.scrollLeft > 0 ? 'visible' : 'hidden';
+              btnNext.style.visibility = slider.scrollWidth - slider.clientWidth - slider.scrollLeft > 1
+                ? 'visible' : 'hidden';
+            }
+            slider.addEventListener('scroll', updateButtons);
+            updateButtons();
+            window.addEventListener('resize', updateButtons);
+
+            // Click keyword chip → put text into search and filter
+            slider.addEventListener('click', (e) => {
+              const chip = e.target.closest('.badge-tag');
+              if(!chip) return;
+              const search = document.getElementById('tplSearch');
+              const text = (chip.dataset.kw || chip.textContent || '').trim();
+              if(search){
+                search.value = text;
+                search.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            });
+          });
+        });
+
+        /* ========== Edit/Delete (unchanged) ========== */
+        onReady(() => {
+          // Delete
+          document.querySelectorAll('.delete-template').forEach(btn => {
+            btn.addEventListener('click', async e => {
+              const card = e.target.closest('.tpl-card');
+              const id = card.dataset.id;
+              const ok = await Swal.fire({
+                title: 'Vorlage löschen?',
+                text: 'Diese Aktion kann nicht rückgängig gemacht werden.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Löschen',
+                cancelButtonText: 'Abbrechen',
+                confirmButtonColor: '#d33'
+              }).then(r => r.isConfirmed);
+              if (!ok) return;
+
+              const form = new FormData();
+              form.append('id', id);
+              try {
+                const url = '@Url.Action("Delete", "PromptTemplate", new { area = "Admin" })';
+                const res = await fetch(`${url}?id=${encodeURIComponent(id)}`, { method: 'POST', body: form });
+                if (!res.ok) throw await res.text();
+                card.remove();
+                Swal.fire({ icon: 'success', title: 'Gelöscht!', timer: 1500, showConfirmButton: false });
+                document.dispatchEvent(new CustomEvent('bibliothek:filter-changed'));
+              } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Fehler', text: String(err) });
+              }
+            });
+          });
+
+          // Edit → export JSON & redirect
+          const secretKey = 'uni-wuppertal2025';
+          async function buf2hex(buf) {
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+          }
+          async function sha256(str) {
+            const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+            return buf2hex(h);
+          }
+          document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async e => {
+              const card = btn.closest('.tpl-card');
+              if (!card) return;
+              const payload = JSON.parse(card.dataset.payload);
+              payload.akronym = card.querySelector('.akronym')?.innerText.trim() || '';
+              payload.title   = card.querySelector('.card-title')?.innerText.trim() || '';
+			  console.log('Editing prompt with payload:', payload);
+              const serialized = JSON.stringify(payload);
+              const hash = await sha256(secretKey + serialized);
+              localStorage.setItem('import_payload', JSON.stringify({ data: payload, hash }));
+              const editUrlBase = '@Url.Action("PromptAssistent", "Home", new { area = "User" })';
+              window.location.href = `${editUrlBase}?type=${encodeURIComponent(payload.type)}`;
+            });
+          });
+        });
+    </script>
+}

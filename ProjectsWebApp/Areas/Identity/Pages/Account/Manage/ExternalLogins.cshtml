@@ -1,0 +1,249 @@
+@page
+@model ExternalLoginsModel
+@{
+    ViewData["Title"] = "Externe Anmeldungen";
+    ViewData["ActivePage"] = ManageNavPages.ExternalLogins;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .logins-container {
+        max-width: 600px;
+    }
+
+    .section-card {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: #89ba17;
+    }
+
+    .login-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .login-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .login-item:hover {
+        border-color: #89ba17;
+    }
+
+    .login-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .login-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #fff;
+    }
+
+    .login-name {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .btn-remove {
+        background: #fff;
+        color: #dc2626;
+        border: 2px solid #fecaca;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-remove:hover {
+        background: #fef2f2;
+        border-color: #dc2626;
+        color: #dc2626;
+    }
+
+    .btn-add {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        color: #fff;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.9375rem;
+    }
+</style>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-link-45deg"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Verknüpfen Sie externe Dienste mit Ihrem Konto</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="logins-container">
+    @if (Model.CurrentLogins?.Count > 0)
+    {
+        <div class="section-card">
+            <div class="section-title">
+                <i class="bi bi-check-circle"></i>
+                Verknüpfte Anmeldungen
+            </div>
+
+            @foreach (var login in Model.CurrentLogins)
+            {
+                <div class="login-item">
+                    <div class="login-info">
+                        <div class="login-icon">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                        </div>
+                        <span class="login-name" id="@($"login-provider-{login.LoginProvider}")">@login.ProviderDisplayName</span>
+                    </div>
+                    @if (Model.ShowRemoveButton)
+                    {
+                        <form id="@($"remove-login-{login.LoginProvider}")" asp-page-handler="RemoveLogin" method="post">
+                            <input asp-for="@login.LoginProvider" name="LoginProvider" type="hidden" />
+                            <input asp-for="@login.ProviderKey" name="ProviderKey" type="hidden" />
+                            <button type="submit" class="btn-remove" title="@login.ProviderDisplayName Anmeldung entfernen">
+                                <i class="bi bi-trash"></i>
+                                Entfernen
+                            </button>
+                        </form>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="section-card">
+            <div class="empty-state">
+                <i class="bi bi-link-45deg"></i>
+                <p>Keine externen Anmeldungen verknüpft</p>
+            </div>
+        </div>
+    }
+
+    @if (Model.OtherLogins?.Count > 0)
+    {
+        <div class="section-card">
+            <div class="section-title">
+                <i class="bi bi-plus-circle"></i>
+                Weitere Dienste verknüpfen
+            </div>
+
+            <form id="link-login-form" asp-page-handler="LinkLogin" method="post">
+                @foreach (var provider in Model.OtherLogins)
+                {
+                    <button id="@($"link-login-button-{provider.Name}")"
+                            type="submit"
+                            class="btn-add"
+                            name="provider"
+                            value="@provider.Name"
+                            title="Mit @provider.DisplayName verknüpfen">
+                        <i class="bi bi-plus-lg"></i>
+                        @provider.DisplayName
+                    </button>
+                }
+            </form>
+        </div>
+    }
+</div>

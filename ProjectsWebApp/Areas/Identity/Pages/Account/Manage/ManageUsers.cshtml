@@ -1,0 +1,1374 @@
+@page
+@model ProjectsWebApp.Areas.Identity.Pages.Account.Manage.ManageUsersModel
+@{
+    ViewData["Title"] = "Benutzer verwalten";
+    var isSuperUser = User.IsInRole("SuperAdmin");
+    var isCoachUser = User.IsInRole("Admin");
+    var isDozentUser = User.IsInRole("Dozent");
+}
+
+@* <style>
+    /* Modern Color Scheme */
+    :root {
+        --primary-color: #89ba17;
+        --primary-hover: #76a114;
+        --primary-light: #f4f9e8;
+        --primary-dark: #5d7f0f;
+        --success-color: #10B981;
+        --danger-color: #EF4444;
+        --warning-color: #F59E0B;
+        --info-color: #3B82F6;
+        --gray-50: #F9FAFB;
+        --gray-100: #F3F4F6;
+        --gray-200: #E5E7EB;
+        --gray-300: #D1D5DB;
+        --gray-400: #9CA3AF;
+        --gray-500: #6B7280;
+        --gray-600: #4B5563;
+        --gray-700: #374151;
+        --gray-800: #1F2937;
+        --gray-900: #111827;
+    }
+
+
+    /* Page Header */
+    .admin-page-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        color: white;
+        padding: 2.5rem 0;
+        margin: -1.5rem -1.5rem 2rem -1.5rem;
+        border-radius: 0 0 1rem 1rem;
+        box-shadow: 0 10px 25px -5px rgba(137, 186, 23, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .admin-page-header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .admin-page-header h1 {
+            font-weight: 700;
+            margin: 0;
+            font-size: 2.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .admin-page-header .subtitle {
+            opacity: 0.95;
+            margin-top: 0.5rem;
+            font-size: 1.125rem;
+            position: relative;
+            z-index: 1;
+        }
+
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+        transition: all 0.3s ease;
+    }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-card .stat-label {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card .stat-value {
+            color: var(--gray-900);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        .stat-card .stat-icon {
+            float: right;
+            color: var(--primary-color);
+            opacity: 0.3;
+            font-size: 2.5rem;
+        }
+
+    /* Search and Filter Section */
+    .search-section {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+    }
+
+        .search-section .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+    .search-controls {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    @@media (max-width: 768px) {
+        .search-controls {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Modern Input Styles */
+    .modern-input {
+        border: 2px solid var(--gray-200);
+        border-radius: 0.5rem;
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        background: white;
+    }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+    .input-group-modern {
+        position: relative;
+    }
+
+        .input-group-modern .input-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
+            pointer-events: none;
+        }
+
+        .input-group-modern input {
+            padding-left: 2.5rem;
+        }
+
+    /* Modern Buttons */
+    .btn-modern {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        border: none;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .btn-modern-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+        .btn-modern-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+        }
+
+    .btn-modern-secondary {
+        background: var(--gray-100);
+        color: var(--gray-700);
+        border: 1px solid var(--gray-300);
+    }
+
+        .btn-modern-secondary:hover {
+            background: var(--gray-200);
+            border-color: var(--gray-400);
+        }
+
+    .btn-modern-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+        .btn-modern-danger:hover {
+            background: #DC2626;
+            transform: translateY(-1px);
+        }
+
+    .btn-modern-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    /* Group Cards */
+    .group-card {
+        background: white;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+        .group-card.expanded {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+    .group-header {
+        padding: 1.25rem;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s ease;
+    }
+
+        .group-header:hover {
+            background: var(--gray-100);
+        }
+
+    .group-header-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .group-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+
+    .group-badge {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .group-toggle {
+        color: var(--gray-400);
+        transition: transform 0.3s ease;
+        font-size: 1.25rem;
+    }
+
+    .group-card.expanded .group-toggle {
+        transform: rotate(180deg);
+    }
+
+    .group-body {
+        padding: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .group-card.expanded .group-body {
+        max-height: 5000px;
+        padding: 1.5rem;
+    }
+
+    /* Owner Section */
+    .owners-section {
+        background: var(--gray-50);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .owners-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .owner-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 2px solid var(--info-color);
+        color: var(--info-color);
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+        .owner-badge .remove-btn {
+            background: transparent;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            padding: 0;
+            margin-left: 0.25rem;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+    /* Modern Table */
+    .modern-table {
+        width: 100%;
+        background: white;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+        .modern-table thead {
+            background: var(--gray-50);
+        }
+
+        .modern-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-600);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .modern-table td {
+            padding: 1rem 1.25rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modern-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+            .modern-table tbody tr:hover {
+                background: var(--gray-50);
+            }
+
+            .modern-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+    .table-scroll-wrapper {
+        position: relative;
+    }
+
+    .table-scroll-hint {
+        position: absolute;
+        right: 0.75rem;
+        top: -1.75rem;
+        display: none;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        background: linear-gradient(to left, rgba(255, 255, 255, 0), #ffffff);
+        z-index: 5;
+    }
+
+    .table-scrollbar-top {
+        overflow-x: auto;
+        overflow-y: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .table-scrollbar-top::-webkit-scrollbar,
+    .table-scrollbar-body::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-scrollbar-spacer {
+        height: 1px;
+    }
+
+    .table-scrollbar-body {
+        overflow-x: auto;
+    }
+
+    /* User Email Cell */
+    .user-email {
+        font-weight: 500;
+        color: var(--gray-900);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    /* Role Select */
+    .role-select {
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--gray-300);
+        background: white;
+        font-size: 0.813rem;
+        color: var(--gray-700);
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        padding: 0.375rem;
+        border-radius: 0.375rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+    }
+
+    .action-btn-view {
+        background: var(--info-color);
+        color: white;
+    }
+
+        .action-btn-view:hover {
+            background: #2563EB;
+            transform: scale(1.05);
+        }
+
+    .action-btn-filter {
+        background: var(--warning-color);
+        color: white;
+    }
+
+        .action-btn-filter:hover {
+            background: #D97706;
+            transform: scale(1.05);
+        }
+
+    .action-btn-delete {
+        background: var(--danger-color);
+        color: white;
+    }
+
+        .action-btn-delete:hover {
+            background: #DC2626;
+            transform: scale(1.05);
+        }
+    
+    .action-btn-password {
+        background: var(--primary-color);
+        color: white;
+    }
+
+        .action-btn-password:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+    /* Alert Messages */
+    .alert-modern {
+        padding: 1rem 1.25rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border: 1px solid;
+    }
+
+    .alert-success {
+        background: #ECFDF5;
+        color: #065F46;
+        border-color: #10B981;
+    }
+
+    .alert-danger {
+        background: #FEF2F2;
+        color: #991B1B;
+        border-color: #EF4444;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--gray-500);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: var(--gray-300);
+        margin-bottom: 1rem;
+    }
+
+    /* Loading State */
+    .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid var(--gray-300);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Tooltips */
+    [data-tooltip] {
+        position: relative;
+    }
+
+        [data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gray-800);
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 0.25rem;
+        }
+</style>
+
+<div class="container-fluid py-4">
+
+    <div class="admin-page-header">
+        <div class="container">
+            <h1><i class="bi bi-people-fill me-2"></i>Benutzerverwaltung</h1>
+            <div class="subtitle">Verwalten Sie Benutzer, Gruppen und Berechtigungen</div>
+        </div>
+    </div>
+    <!-- Page Header -->
+  
+
+    <!-- Alert Messages -->
+    @if (TempData["success"] != null)
+    {
+        <div class="alert-modern alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>@TempData["success"]</span>
+        </div>
+    }
+    @if (TempData["error"] != null)
+    {
+        <div class="alert-modern alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>@TempData["error"]</span>
+        </div>
+    }
+
+    
+     <div class="stats-grid">
+        <div class="stat-card">
+            <i class="bi bi-people stat-icon"></i>
+            <div class="stat-label">Gesamtbenutzer</div>
+            <div class="stat-value" id="totalUsersCount">0</div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-collection stat-icon"></i>
+            <div class="stat-label">Gruppen</div>
+            <div class="stat-value">@Model.RegularUsersByGroup.Count</div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-person-badge stat-icon"></i>
+            <div class="stat-label">Administratoren</div>
+            <div class="stat-value" id="adminCount">0</div>
+        </div>
+        <div class="stat-card">
+            <i class="bi bi-mortarboard stat-icon"></i>
+            <div class="stat-label">Dozenten</div>
+            <div class="stat-value" id="dozentCount">0</div>
+        </div>
+    </div> 
+
+    <!-- Search and Filter Section -->
+    <div class="search-section">
+        <h3 class="section-title"><i class="bi bi-search me-2"></i>Suche und Filter</h3>
+        <div class="search-controls">
+            <div class="input-group-modern">
+                <i class="bi bi-envelope input-icon"></i>
+                <input id="userSearch" class="form-control modern-input"
+                       placeholder="Benutzer nach E-Mail suchen..." />
+            </div>
+            <div>
+                <select id="groupFilter" class="form-select modern-input">
+                    <option value="">Alle Gruppen</option>
+                    @foreach (var g in Model.RegularUsersByGroup.Select(x => x.Group))
+                    {
+                        <option value="@g">@g</option>
+                    }
+                </select>
+            </div>
+            <button type="button" class="btn-modern btn-modern-secondary" id="toggleAll">
+                <i class="bi bi-arrows-expand"></i>
+                <span>Alle aufklappen</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- User Groups -->
+    @if (!Model.RegularUsersByGroup.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-inbox empty-state-icon"></i>
+            <h4>Keine Benutzer gefunden</h4>
+            <p>Es gibt derzeit keine regulären Benutzer im System.</p>
+        </div>
+    }
+    else
+    {
+        <div id="groupsContainer">
+            @foreach (var grp in Model.RegularUsersByGroup)
+            {
+                <div class="group-card" data-group="@grp.Group">
+                    <div class="group-header" onclick="toggleGroup(this)">
+                        <div class="group-header-content">
+                            <span class="group-name">@grp.Group</span>
+                            <span class="group-badge">@grp.Users.Count Benutzer</span>
+                        </div>
+                        <i class="bi bi-chevron-down group-toggle"></i>
+                    </div>
+
+                    <div class="group-body">
+                        <!-- Owners Section -->
+                        <div class="owners-section">
+                            <h5 class="mb-3"><i class="bi bi-person-check me-2"></i>Gruppenverwaltung</h5>
+                            <div class="owners-list">
+                                <span class="text-muted me-2">Gruppe Leitung:</span>
+                                @{
+                                    Model.OwnersByGroup.TryGetValue(grp.Group, out var ownersList);
+                                    var currentUserIsOwner = ownersList != null && ownersList.Any(o => o?.Id == Model.CurrentUserId);
+                                }
+                                @if (ownersList != null && ownersList.Count > 0)
+                                {
+                                    @foreach (var owner in ownersList)
+                                    {
+                                        <div class="owner-badge">
+                                            <i class="bi bi-person-fill"></i>
+                                            @owner.Email
+                                            @if (isSuperUser || isCoachUser || (isDozentUser && currentUserIsOwner))
+                                            {
+                                                <form method="post" asp-page-handler="RemoveOwner" class="d-inline">
+                                                    <input type="hidden" name="groupName" value="@grp.Group" />
+                                                    <input type="hidden" name="ownerId" value="@owner.Id" />
+                                                    <button type="submit" class="remove-btn" title="Entfernen">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">(Kein Besitzer zugewiesen)</span>
+                                }
+                            </div>
+
+                            @if (isSuperUser || isCoachUser || (isDozentUser && currentUserIsOwner))
+                            {
+                                <form method="post" asp-page-handler="AddOwner" class="mt-3">
+                                    <input type="hidden" name="groupName" value="@grp.Group" />
+                                    <div class="row g-2">
+                                        <div class="col-md-8">
+                                            <input type="email" name="ownerEmail"
+                                                   class="form-control modern-input"
+                                                   placeholder="Neue Dozenten-E-Mail hinzufügen..." />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="submit" class="btn-modern btn-modern-primary w-100">
+                                                <i class="bi bi-plus-circle"></i>
+                                                Hinzufügen
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            }
+                            @if (isSuperUser || (isDozentUser && currentUserIsOwner))
+                            {
+                                var modalId = $"api_{(grp.Group ?? "Ohne Gruppe").Replace(" ", "_")}";
+                                <div class="mt-3 d-flex gap-2">
+                                    <button type="button" class="btn-modern btn-modern-secondary" onclick="document.getElementById('@modalId').style.display='block'">
+                                        <i class="bi bi-key"></i>
+                                        API‑Schlüssel
+                                    </button>
+                                    <a class="btn-modern btn-modern-secondary" style="text-decoration:none;" asp-page="./GroupPrompts" asp-route-group="@grp.Group">
+                                        <i class="bi bi-chat-dots"></i>
+                                        KI System Prompts
+                                    </a>
+                                 
+                                </div>
+
+                                ProjectsWebApp.Models.GroupApiKeySetting? cfg = null;
+                                Model.GroupApiKeysByGroup.TryGetValue(grp.Group, out cfg);
+                                <div id="@modalId" class="position-fixed top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,.4);display:none;z-index:1055;">
+                                    <div class="container" style="max-width: 680px; margin: 8vh auto;">
+                                        <div class="card pc-card">
+                                            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                                                <span>API‑Schlüssel für Gruppe "@grp.Group"</span>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('@modalId').style.display='none'">Schließen</button>
+                                            </div>
+                                            <div class="card-body">
+                                                <style>
+                                                /* Accordion container */
+                                                details.pc-accordion {
+                                                border: 1px solid #d1d5db; /* slightly darker gray */
+                                                border-radius: 10px;
+                                                background: #ffffff;
+                                                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+                                                overflow: hidden;
+                                                transition: all 0.2s ease;
+                                                }
+
+                                                details.pc-accordion + details.pc-accordion {
+                                                margin-top: 0.75rem;
+                                                }
+
+                                                /* Accordion header */
+                                                details.pc-accordion > summary {
+                                                list-style: none;
+                                                cursor: pointer;
+                                                padding: 1rem 1.25rem;
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: space-between;
+                                                background: #f9fafb;
+                                                border-bottom: 1px solid #e5e7eb;
+                                                font-weight: 600;
+                                                transition: background 0.2s ease, box-shadow 0.2s ease;
+                                                }
+
+                                                details.pc-accordion > summary::-webkit-details-marker {
+                                                display: none;
+                                                }
+
+                                                details.pc-accordion > summary:hover {
+                                                background: #f3f4f6;
+                                                }
+
+                                                /* Expanded state */
+                                                details.pc-accordion[open] {
+                                                border-color: var(--primary-color);
+                                                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+                                                }
+
+                                                details.pc-accordion[open] > summary {
+                                                background: #f4f9ec; /* subtle green hint */
+                                                border-bottom-color: #d1d5db;
+                                                }
+
+                                                /* Chevron arrow */
+                                                details.pc-accordion summary::after {
+                                                font-family: "bootstrap-icons";
+                                                content: "\f285"; /* chevron-down */
+                                                font-size: 1.1rem;
+                                                color: #6b7280;
+                                                transition: transform 0.25s ease, color 0.25s ease;
+                                                }
+
+                                                details.pc-accordion[open] summary::after {
+                                                transform: rotate(90deg);
+                                                color: var(--primary-color);
+                                                }
+
+                                                /* Provider header (icon + label) */
+                                                .provider-header {
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 0.75rem;
+                                                }
+
+                                                .provider-logo {
+                                                height: 24px;
+                                                width: auto;
+                                                }
+
+                                                /* Accordion body */
+                                                details.pc-accordion > div {
+                                                padding: 1.25rem 1.5rem 1.5rem;
+                                                background: #ffffff;
+                                                }
+
+                                                /* Input tweaks for better contrast */
+                                                .pc-accordion .form-control,
+                                                .pc-accordion .form-select {
+                                                border-color: #d1d5db;
+                                                }
+
+                                                .pc-accordion .form-label {
+                                                font-weight: 500;
+                                                font-size: 0.9rem;
+                                                }
+
+                                                .pc-accordion .form-text {
+                                                font-size: 0.8rem;
+                                                color: #6b7280;
+                                                }
+                                                </style>
+
+                                                @{ bool disableByOwner = false; if (ownersList != null) { foreach (var own in ownersList) { var isM = await Model.UserManager.IsInRoleAsync(own, "ApiManager"); if (isM) { disableByOwner = true; break; } } } }
+                                                <form method="post" asp-page-handler="SaveGroupApiKeys" class="row g-3">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="GroupName" value="@grp.Group" />
+                                                    @if (disableByOwner)
+                                                    {
+                                                        <div class="alert alert-info">In dieser Gruppe ist ein <strong>API‑Manager</strong> als Besitzer eingetragen. Globale Schlüssel werden erzwungen und Gruppen‑Schlüssel sind deaktiviert.</div>
+                                                    }
+                                                    <fieldset @(disableByOwner ? "disabled" : string.Empty)>
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Aktiver Anbieter</label>
+                                                        <select name="ActiveProvider" class="form-select">
+                                                            @if (string.Equals(cfg?.ActiveProvider, "kisski", StringComparison.OrdinalIgnoreCase)) {
+                                                                <option value="kisski" selected>Kisski</option>
+                                                            } else {
+                                                                <option value="kisski">Kisski</option>
+                                                            }
+                                                            @if (string.Equals(cfg?.ActiveProvider, "openai", StringComparison.OrdinalIgnoreCase)) {
+                                                                <option value="openai" selected>OpenAI</option>
+                                                            } else {
+                                                                <option value="openai">OpenAI</option>
+                                                            }
+                                                            @if (string.Equals(cfg?.ActiveProvider, "gemini", StringComparison.OrdinalIgnoreCase)) {
+                                                                <option value="gemini" selected>Gemini</option>
+                                                            } else {
+                                                                <option value="gemini">Gemini</option>
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12 mt-2">
+                                                        <details class="pc-accordion">
+                                                            <summary>
+                                                                <img src="~/images/KISSKI-Logo.png" alt="Kisski" class="provider-logo" />
+                                                                <span class="fw-semibold">Kisski</span>
+                                                                @if (string.Equals(cfg?.ActiveProvider, "kisski", StringComparison.OrdinalIgnoreCase)) { <span class="badge bg-primary ms-2">Aktiv</span> }
+                                                            </summary>
+                                                            <div class="mt-3 row g-3">
+                                                                <div class="col-md-8">
+                                                                    <label class="form-label">Kisski API‑Key</label>
+                                                                    <input name="KisskiApiKey" type="password" class="form-control" placeholder="Neuen Schlüssel eingeben (leer = unverändert)" value="" />
+                                                                    @if (!string.IsNullOrWhiteSpace(cfg?.KisskiApiKey)) { <div class="form-text text-muted">Schlüssel gespeichert · zuletzt aktualisiert @((cfg?.UpdatedAt ?? DateTime.MinValue).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</div> }
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label">Kisski Modell</label>
+                                                                    <select name="KisskiModel" class="form-select">
+                                                                        @if (string.Equals(cfg?.KisskiModel, "medgemma-27b", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="medgemma-27b" selected>medgemma-27b</option>
+                                                                        } else {
+                                                                            <option value="medgemma-27b">medgemma-27b</option>
+                                                                        }
+                                                                        @if (string.Equals(cfg?.KisskiModel, "gemma-3-27b-it", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gemma-3-27b-it" selected>gemma-3-27b-it</option>
+                                                                        } else {
+                                                                            <option value="gemma-3-27b-it">gemma-3-27b-it</option>
+                                                                        }
+                                                                        @if (string.Equals(cfg?.KisskiModel, "openai-gpt-oss-120b", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="openai-gpt-oss-120b" selected>openai-gpt-oss-120b</option>
+                                                                        } else {
+                                                                            <option value="openai-gpt-oss-120b">openai-gpt-oss-120b</option>
+                                                                        }
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </details>
+
+                                                        <details class="pc-accordion">
+                                                            <summary>
+                                                                <img src="~/images/ChatGPT-Logo.png" alt="OpenAI" class="provider-logo" />
+                                                                <span class="fw-semibold">OpenAI</span>
+                                                                @if (string.Equals(cfg?.ActiveProvider, "openai", StringComparison.OrdinalIgnoreCase)) { <span class="badge bg-primary ms-2">Aktiv</span> }
+                                                            </summary>
+                                                            <div class="mt-3 row g-3">
+                                                                <div class="col-md-8">
+                                                                    <label class="form-label">OpenAI API‑Key</label>
+                                                                    <input name="OpenAIKey" type="password" class="form-control" placeholder="Neuen Schlüssel eingeben (leer = unverändert)" value="" />
+                                                                    @if (!string.IsNullOrWhiteSpace(cfg?.OpenAIKey)) { <div class="form-text text-muted">Schlüssel gespeichert · zuletzt aktualisiert @((cfg?.UpdatedAt ?? DateTime.MinValue).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</div> }
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label">OpenAI Modell</label>
+                                                                    <select name="OpenAIModel" class="form-select">
+                                                                        @if (string.Equals(cfg?.OpenAIModel, "gpt-4o-mini", StringComparison.OrdinalIgnoreCase) || string.Equals(cfg?.OpenAIModel, "4o-mini", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gpt-4o-mini" selected>4o-mini</option>
+                                                                        } else {
+                                                                            <option value="gpt-4o-mini">4o-mini</option>
+                                                                        }
+                                                                        @if (string.Equals(cfg?.OpenAIModel, "gpt-4o", StringComparison.OrdinalIgnoreCase) || string.Equals(cfg?.OpenAIModel, "4o", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gpt-4o" selected>4o</option>
+                                                                        } else {
+                                                                            <option value="gpt-4o">4o</option>
+                                                                        }
+                                                                        @if (string.Equals(cfg?.OpenAIModel, "gpt-5", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gpt-5" selected>GPT-5 (reasoning)</option>
+                                                                        } else {
+                                                                            <option value="gpt-5">GPT-5</option>
+                                                                        }
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </details>
+
+                                                        <details class="pc-accordion">
+                                                            <summary>
+                                                                <img src="~/images/Gemini-Logo.png" alt="Gemini" class="provider-logo" />
+                                                                <span class="fw-semibold">Gemini</span>
+                                                                @if (string.Equals(cfg?.ActiveProvider, "gemini", StringComparison.OrdinalIgnoreCase)) { <span class="badge bg-primary ms-2">Aktiv</span> }
+                                                            </summary>
+                                                            <div class="mt-3 row g-3">
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Gemini API‑Key</label>
+                                                                    <input name="GeminiApiKey" type="password" class="form-control" placeholder="Neuen Schlüssel eingeben (leer = unverändert)" value="" />
+                                                                    @if (!string.IsNullOrWhiteSpace(cfg?.GeminiApiKey)) { <div class="form-text text-muted">Schlüssel gespeichert · zuletzt aktualisiert @((cfg?.UpdatedAt ?? DateTime.MinValue).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</div> }
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <label class="form-label">Gemini Modell</label>
+                                                                    <select name="GeminiModel" class="form-select">
+                                                                        @if (string.Equals(cfg?.GeminiModel, "gemini-2.5-flash", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                                                                        } else {
+                                                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                                                        }
+                                                                        @if (string.Equals(cfg?.GeminiModel, "gemini-2.5-pro", StringComparison.OrdinalIgnoreCase)) {
+                                                                            <option value="gemini-2.5-pro" selected>Gemini 2.5 Pro</option>
+                                                                        } else {
+                                                                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                                                        }
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </details>
+                                                    </div>
+                                                    </fieldset>
+                                                    <div class="col-12 text-end">
+                                                        <button type="submit" class="btn-modern btn-modern-primary">
+                                                            <i class="bi bi-save"></i>
+                                                            Speichern
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            }
+                        </div>
+
+                        <!-- Users Table -->
+                        <div class="table-scroll-wrapper mt-3">
+                            <div class="table-scroll-hint">
+                                <i class="bi bi-arrow-left-right me-1"></i>
+                                <span>Horizontal scrollen</span>
+                            </div>
+                            <div class="table-scrollbar-top"><div class="table-scrollbar-spacer"></div></div>
+                            <div class="table-responsive table-scrollbar-body">
+                                <table class="modern-table user-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 30%;">Benutzer</th>
+                                            <th style="width: 15%;">Erstellt</th>
+                                            <th style="width: 15%;">Letzte Anmeldung</th>
+                                            <th style="width: 15%;">Rolle</th>
+                                            <th style="width: 15%;">Aktionen</th>
+                                            <th style="width: 10%;">Verwaltung</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var u in grp.Users)
+                                        {
+                                            var isSuper = await Model.UserManager.IsInRoleAsync(u, "SuperAdmin");
+                                            var isAdmin = await Model.UserManager.IsInRoleAsync(u, "Admin");
+                                            var isDozent = await Model.UserManager.IsInRoleAsync(u, "Dozent");
+                                            var isApiManager = await Model.UserManager.IsInRoleAsync(u, "ApiManager");
+                                            Model.UserActivitiesByUserId.TryGetValue(u.Id, out var ua);
+                                            var created = ua?.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy");
+                                            var last = ua?.LastLoginAt?.ToLocalTime().ToString("dd.MM.yyyy");
+
+                                        <tr class="user-row" data-email="@u.Email">
+                                            <td>
+                                                <div class="user-email">
+                                                    <div class="user-avatar">@u.Email.Substring(0, 2).ToUpper()</div>
+                                                    <span>@u.Email</span>
+                                                </div>
+                                            </td>
+                                            <td>@(created ?? "—")</td>
+                                            <td>@(last ?? "—")</td>
+                                            <td>
+                                                @{
+                                                    string aliasTemp = null;
+                                                    if (Model.RoleAliasesByUserId != null && Model.RoleAliasesByUserId.TryGetValue(u.Id, out var aliasValue) && !string.IsNullOrWhiteSpace(aliasValue))
+                                                    {
+                                                        aliasTemp = aliasValue;
+                                                    }
+                                                }
+                                                @if (isSuperUser)
+                                                {
+                                                    <form method="post" asp-page-handler="UpdateStatus" class="d-inline">
+                                                        <input type="hidden" name="UpdateStatusEmail" value="@u.Email" />
+                                                        <select name="UpdateStatusRole" class="role-select"
+                                                                onchange="this.form.submit()">
+                                                            <option value="SuperAdmin" selected="@(isSuper ? "selected" : null)">Administrator*in</option>
+                                                            <option value="ApiManager" selected="@((isApiManager && !isSuper && !isAdmin && !isDozent) ? "selected" : null)">API‑Manager*in</option>
+                                                            <option value="Admin" selected="@((isAdmin && !isSuper && !isDozent) ? "selected" : null)">Coach*in</option>
+                                                            <!-- Dozent role aliases: select based on TempData alias -->
+                                                            <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                            <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                            <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                            <!-- User role aliases: select based on TempData alias, but never when user is ApiManager -->
+                                                            <option value="User|Student" selected="@((!isAdmin && !isSuper && !isDozent && !isApiManager && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Student*in</option>
+                                                            <option value="User|Benutzer" selected="@((!isAdmin && !isSuper && !isDozent && !isApiManager && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Benutzer*in</option>
+                                                        </select>
+                                                    </form>
+                                                }
+                                                else if (isDozentUser && !isApiManager)
+                                                {
+                                                    var isSelfRow = u.Email.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                                                    <form method="post" asp-page-handler="UpdateStatus" class="d-inline">
+                                                        <input type="hidden" name="UpdateStatusEmail" value="@u.Email" />
+                                                        <select name="UpdateStatusRole" class="role-select"
+                                                                onchange="this.form.submit()">
+                                                            @if (isSelfRow)
+                                                            {
+                                                                <!-- Self: only Dozent aliases -->
+                                                                <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                                <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                                <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <!-- Group members: Student/Benutzer plus Dozent aliases -->
+                                                                <option value="User|Student" selected="@((!isAdmin && !isSuper && !isDozent && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Student", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Student*in</option>
+                                                                <option value="User|Benutzer" selected="@((!isAdmin && !isSuper && !isDozent && string.Equals(aliasTemp, "Benutzer", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Benutzer*in</option>
+                                                                <option value="Dozent|Forscher" selected="@((isDozent && !isSuper && (string.IsNullOrEmpty(aliasTemp) || string.Equals(aliasTemp, "Forscher", StringComparison.OrdinalIgnoreCase))) ? "selected" : null)">Forscher*in</option>
+                                                                <option value="Dozent|GruppenManager" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "GruppenManager", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Gruppen‑Manager*in</option>
+                                                                <option value="Dozent|Dozent" selected="@((isDozent && !isSuper && string.Equals(aliasTemp, "Dozent", StringComparison.OrdinalIgnoreCase)) ? "selected" : null)">Dozent*in</option>
+                                                            }
+                                                        </select>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    var roleLabel = isSuper ? "Administrator*in" : (isAdmin ? "Coach*in" : (isDozent ? "Forscher*in" : (isApiManager ? "API‑Manager*in" : "Student*in")));
+                                                    var roleColor = isSuper ? "danger" : (isAdmin ? "warning" : (isDozent ? "info" : (isApiManager ? "primary" : "secondary")));
+                                                    <span class="badge bg-@roleColor">@roleLabel</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <a asp-area="User" asp-controller="MyPrompts" asp-action="AdminList"
+                                                       asp-route-uid="@u.Id"
+                                                       class="action-btn action-btn-view"
+                                                       data-tooltip="Sammlung ansehen">
+                                                        <i class="bi bi-bookmarks"></i>
+                                                    </a>
+                                                    @if (isSuperUser)
+                                                    {
+                                                        <a asp-area="Admin" asp-controller="FilterCategory" asp-action="AdminList"
+                                                           asp-route-uid="@u.Id"
+                                                           class="action-btn action-btn-filter"
+                                                           data-tooltip="Filter verwalten">
+                                                            <i class="bi bi-funnel"></i>
+                                                        </a>
+                                                    }
+                                                    @if (isSuperUser || isCoachUser)
+                                                    {
+                                                        <button type="button"
+                                                                class="action-btn action-btn-password"
+                                                                data-tooltip="Passwort setzen"
+                                                                onclick="openResetPasswordModal('@u.Email')">
+                                                            <i class="bi bi-key"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (isSuperUser || isDozentUser)
+                                                {
+                                                    <form method="post" asp-page-handler="RemoveUser" class="d-inline">
+                                                        <input type="hidden" name="RemoveUserEmail" value="@u.Email" />
+                                                        <button type="submit"
+                                                                class="action-btn action-btn-delete"
+                                                                data-tooltip="Benutzer löschen"
+                                                                onclick="return confirm('Möchten Sie diesen Benutzer wirklich löschen?');">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+
+                        @if (isSuperUser)
+                        {
+                            <div class="mt-3 pt-3 border-top">
+                                 @if (isSuperUser && !string.Equals(grp.Group, "Ohne Gruppe", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <form method="post" asp-page-handler="DeleteGroupUsers" class="d-inline" onsubmit="return confirm('Die gesamte Gruppe \u201C@grp.Group\u201D inkl. Zuordnungen wirklich löschen? Dies kann nicht rückgängig gemacht werden.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupName" value="@grp.Group" />
+                                            <button type="submit" class="btn-modern btn-modern-danger">
+                                                <i class="bi bi-trash"></i>
+                                                Gesamte Gruppe löschen
+                                            </button>
+                                        </form>
+                                    }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div id="resetPasswordModal" class="position-fixed top-0 start-0 w-100 h-100" style="background:rgba(0,0,0,.4);display:none;z-index:1080;">
+    <div class="container" style="max-width:480px; margin:10vh auto;">
+        <div class="card pc-card">
+            <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                <span>Passwort zurücksetzen</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeResetPasswordModal()">Schließen</button>
+            </div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="ResetPassword">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="resetPasswordEmail" name="ResetPasswordEmail" />
+                    <div class="mb-3">
+                        <label class="form-label">Benutzer</label>
+                        <input type="text" class="form-control" id="resetPasswordEmailDisplay" disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Neues Passwort</label>
+                        <input type="password" class="form-control" name="NewPassword" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Passwort bestätigen</label>
+                        <input type="password" class="form-control" name="ConfirmPassword" required />
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn-modern btn-modern-primary">
+                            <i class="bi bi-key-fill"></i>
+                            Passwort setzen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+ *@
+<script>
+  function openResetPasswordModal(email) {
+        var modal = document.getElementById('resetPasswordModal');
+        if (!modal) return;
+        var hidden = document.getElementById('resetPasswordEmail');
+        var display = document.getElementById('resetPasswordEmailDisplay');
+        if (hidden) hidden.value = email;
+        if (display) display.value = email;
+        modal.style.display = 'block';
+    }
+
+    function closeResetPasswordModal() {
+        var modal = document.getElementById('resetPasswordModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.table-scroll-wrapper').forEach(wrapper => {
+            const top = wrapper.querySelector('.table-scrollbar-top');
+            const body = wrapper.querySelector('.table-scrollbar-body');
+            const spacer = wrapper.querySelector('.table-scrollbar-spacer');
+            const hint = wrapper.querySelector('.table-scroll-hint');
+            if (!top || !body) return;
+
+            const updateHint = () => {
+                if (!hint) return;
+                const target = body.querySelector('table');
+                const scrollWidth = target ? target.scrollWidth : body.scrollWidth;
+                const clientWidth = body.clientWidth;
+                const maxScroll = scrollWidth - clientWidth;
+                if (maxScroll > 4 && body.scrollLeft < maxScroll - 4) {
+                    hint.style.display = 'flex';
+                } else {
+                    hint.style.display = 'none';
+                }
+            };
+
+            const syncSpacer = () => {
+                if (spacer) {
+                    const target = body.querySelector('table');
+                    const width = target ? target.scrollWidth : body.scrollWidth;
+                    spacer.style.width = width + 'px';
+                }
+                updateHint();
+            };
+
+            const syncScroll = () => {
+                top.scrollLeft = body.scrollLeft;
+            };
+
+            syncSpacer();
+            syncScroll();
+            updateHint();
+
+            let raf = null;
+            const req = (cb) => {
+                if (raf) cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(cb);
+            };
+
+            body.addEventListener('scroll', () => req(() => { top.scrollLeft = body.scrollLeft; updateHint(); }));
+            top.addEventListener('scroll', () => req(() => { body.scrollLeft = top.scrollLeft; updateHint(); }));
+
+            const observer = new ResizeObserver(() => req(syncSpacer));
+            observer.observe(body);
+            const table = body.querySelector('table');
+            if (table) observer.observe(table);
+        });
+    });
+
+    // Toggle group expansion
+    function toggleGroup(header) {
+        const card = header.closest('.group-card');
+        card.classList.toggle('expanded');
+    }
+
+    // Toggle all groups
+    document.getElementById('toggleAll')?.addEventListener('click', function() {
+        const cards = document.querySelectorAll('.group-card');
+        const allExpanded = Array.from(cards).every(card => card.classList.contains('expanded'));
+
+        cards.forEach(card => {
+            if (allExpanded) {
+                card.classList.remove('expanded');
+                this.innerHTML = '<i class="bi bi-arrows-expand"></i><span>Alle aufklappen</span>';
+            } else {
+                card.classList.add('expanded');
+                this.innerHTML = '<i class="bi bi-arrows-collapse"></i><span>Alle zuklappen</span>';
+            }
+        });
+    });
+
+    // Search and filter functionality
+    function applyFilters() {
+        const searchTerm = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
+        const selectedGroup = (document.getElementById('groupFilter')?.value || '').trim();
+
+        document.querySelectorAll('.group-card').forEach(groupCard => {
+            const groupName = groupCard.getAttribute('data-group') || '';
+            const matchesGroup = !selectedGroup || groupName === selectedGroup;
+            let hasVisibleUsers = false;
+
+            groupCard.querySelectorAll('tbody tr.user-row').forEach(row => {
+                const email = (row.getAttribute('data-email') || '').toLowerCase();
+                const matchesSearch = !searchTerm || email.includes(searchTerm);
+                const isVisible = matchesSearch && matchesGroup;
+
+                row.style.display = isVisible ? '' : 'none';
+                if (isVisible) hasVisibleUsers = true;
+            });
+
+            groupCard.style.display = hasVisibleUsers ? '' : 'none';
+
+            // Auto-expand filtered groups
+            if (hasVisibleUsers && searchTerm) {
+                groupCard.classList.add('expanded');
+            }
+        });
+    }
+
+    document.getElementById('userSearch')?.addEventListener('input', applyFilters);
+    document.getElementById('groupFilter')?.addEventListener('change', applyFilters);
+
+    // Count statistics on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        let totalUsers = 0;
+        let adminCount = 0;
+        let dozentCount = 0;
+
+        document.querySelectorAll('.user-row').forEach(row => {
+            totalUsers++;
+            const roleSelect = row.querySelector('.role-select');
+            const roleBadge = row.querySelector('.badge');
+
+            if (roleSelect) {
+                const selectedRole = roleSelect.value;
+                if (selectedRole === 'SuperAdmin' || selectedRole === 'Admin') adminCount++;
+                if (selectedRole === 'Dozent') dozentCount++;
+            } else if (roleBadge) {
+                const roleText = roleBadge.textContent;
+                if (roleText === 'Administrator' || roleText === 'Coach') adminCount++;
+                if (roleText === 'Dozent') dozentCount++;
+            }
+        });
+
+        document.getElementById('totalUsersCount').textContent = totalUsers;
+        document.getElementById('adminCount').textContent = adminCount;
+        document.getElementById('dozentCount').textContent = dozentCount;
+    });
+</script>
+ 

@@ -1,0 +1,43 @@
+﻿@model ProjectsWebApp.Models.Fakultaet
+
+@{
+    ViewData["Title"] = "Organisation bearbeiten";
+}
+
+<div class="mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-warning text-white">
+                    <h3 class="text-center">@ViewData["Title"]</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="form-group mb-3">
+                            <label class="form-label">Organisation</label>
+                            <input asp-for="Name" class="form-control" placeholder="Edit Organisation name" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label">Reihenfolge im Filter</label>
+                            <input asp-for="DisplayOrder" class="form-control" placeholder="Anzeigereihenfolge eingeben" />
+                            <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-warning w-50">
+                                <i class="fas fa-edit"></i> Aktualisieren
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary px-4">
+                                <i class="fas fa-times"></i> Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

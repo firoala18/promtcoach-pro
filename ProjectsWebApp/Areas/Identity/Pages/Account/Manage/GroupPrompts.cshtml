@@ -1,0 +1,382 @@
+@page "{group?}"
+@model ProjectsWebApp.Areas.Identity.Pages.Account.Manage.GroupPromptsModel
+@using ProjectsWebApp.Models
+@{
+    ViewData["Title"] = "Gruppen‑Prompts";
+}
+
+<!-- Page Wrapper -->
+<div class="py-4">
+    <!-- Page Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-collection"></i>
+                <span>System-Prompts für die Gruppe "@Model.GroupName"</span>
+            </h1>
+            <div class="text-muted small d-flex flex-wrap align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="opacity-75">Modus:</span>
+                    @if (Model.UseGlobal)
+                    {
+                        <span class="badge rounded-pill text-bg-secondary"><i class="bi bi-globe2 me-1"></i> Globale System Prompts</span>
+                    }
+                    else
+                    {
+                        <span class="badge rounded-pill text-bg-success"><i class="bi bi-people me-1"></i> Gruppen‑Prompts</span>
+                    }
+                </div>
+                @if (Model.LastUpdatedAt.HasValue)
+                {
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-clock"></i> Zuletzt aktualisiert @Model.LastUpdatedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <a asp-page="./ManageUsers" class="btn-zurueck">
+                <i class="bi bi-arrow-left"></i>Zurück
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["success"] is string ok && !string.IsNullOrEmpty(ok))
+    {
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <div>@ok</div>
+        </div>
+    }
+    @if (TempData["error"] is string err && !string.IsNullOrEmpty(err))
+    {
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <div>@err</div>
+        </div>
+    }
+
+    <!-- Global Toggle (own form to avoid nested forms) -->
+    <form method="post" asp-page-handler="ToggleMode" class="card border-0 shadow-sm mb-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="GroupName" />
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                @* <i class="bi bi-sliders2-vertical text-secondary"></i> *@
+                <div>
+                    <div class="fw-semibold">Modus wählen</div>
+                    <div class="text-muted small">Schalte zwischen globalen und gruppenspezifischen System-Prompts um.</div>
+                </div>
+            </div>
+            <div class="form-check form-switch ms-md-auto">
+                <input class="form-check-input" type="checkbox" asp-for="UseGlobal" id="useGlobalSwitch">
+                <label class="form-check-label" for="useGlobalSwitch">Globale System-Prompts verwenden</label>
+            </div>
+        </div>
+        <div id="globalInfo" class="card-footer bg-body-tertiary small text-body-secondary" style="display:@(Model.UseGlobal ? "block" : "none")">
+            <i class="bi bi-info-circle me-1"></i>
+            Globale Prompts sind aktiv. Die folgenden Felder werden aktuell <strong>nicht</strong> verwendet, werden aber gespeichert und stehen bereit, wenn Sie auf Gruppen‑Prompts umschalten.
+        </div>
+    </form>
+
+    <!-- Content Cards -->
+    <div id="customFields" class="@(Model.UseGlobal ? "dimmed" : "")">
+        <div class="accordion" id="promptAccordion">
+
+            <!-- Generate Prompt -->
+            <div class="accordion-item rounded-3 overflow-hidden shadow-sm mb-3">
+                <h2 class="accordion-header" id="headingGen">
+                    <button class="accordion-button d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGen" aria-expanded="true" aria-controls="collapseGen">
+                        <i class="bi bi-magic"></i>
+                        <span class="fw-semibold">System-Prompt für die Funktion Prompt generieren</span>
+                    </button>
+                </h2>
+                <div id="collapseGen" class="accordion-collapse collapse show" aria-labelledby="headingGen" data-bs-parent="#promptAccordion">
+                    <div class="accordion-body">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-container="body" data-bs-placement="left" data-bs-html="true" data-bs-custom-class="prompt-popover" title="Hinweis: Prompt generieren" data-bs-content='<div class="small">
+                                <div><strong>Zweck:</strong> Erzeugt präzise Prompt‑Techniken für Texteingaben.</div>
+                                <ul class="mb-0 mt-1">
+                                   <li><strong>System-Preamble</strong>: Rolle, Geltungsbereich und Qualitätsmaßstäbe allgemein definieren.</li> <ul> <li><strong>Workflow</strong>: Eingabe kurz analysieren (Ziel, Annahmen, Lücken), dann zielgerichtete Ausgabe synthesieren.</li> <li><strong>Rubric</strong>: Konfigurierbare Prüfkriterien (z.&nbsp;B. Zielklarheit, Kontexttauglichkeit, Nachvollziehbarkeit, Verifizierbarkeit).</li> <li><strong>Output-Contract</strong>: Klarer, konsistenter Formatrahmen; domänenspezifische Inhalte werden vom Admin festgelegt.</li> <li><strong>Adaptation</strong>: Unklare Eingaben vorsichtig präzisieren, Intention bewahren, Annahmen transparent machen.</li> <li><strong>Meta-Note</strong>: Kurz begründen, wie Struktur/Entscheidungen Qualität und Reproduzierbarkeit sichern.</li> </ul>
+                                   <li><strong>User-Instruction (Text)</strong>: Aufgabenabsicht in klarer, deklarativer Form; modell-agnostisch, drop-in ready.</li> <ul> <li><strong>User-Context (Optional)</strong>: Relevante Rahmeninfos, Annahmen, Stakeholder, Domäne.</li></ul>
+                                    <li><strong>KI‑Assistent Systemprompt</strong>: steuert Tonalität/Verhalten des Assistenten.</li>
+                                </ul>
+                                <div class="mt-1">Tipp: Persona/Stil explizit festlegen (z. B. Didaktisch, Forschung, Industrie) und klare Ausgabevorgaben machen.</div>
+                            </div>'>
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                        <form method="post" asp-page-handler="SaveTechnique" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="GroupName" />
+                            <input type="hidden" name="UseGlobal" id="useGlobal_hidden_tech" value="@(Model.UseGlobal ? "true" : "false")" />
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="SystemPreamble">System‑Preamble</label>
+                                <textarea class="form-control autosize" asp-for="SystemPreamble" id="SystemPreamble" rows="4" placeholder="Kurze Beschreibung des System‑Kontexts..."></textarea>
+                                <div class="form-text">Basis‑Systemprompt für die Generierung von Prompt‑Techniken.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="UserInstructionText">User‑Instruction (Text)</label>
+                                <textarea class="form-control autosize" asp-for="UserInstructionText" id="UserInstructionText" rows="4" placeholder="Instruktionen für Text‑Prompts..."></textarea>
+                                <div class="form-text">Benutzer‑Instruktion für Text‑Prompts (PromptType.Text).</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="KiAssistantSystemPrompt">KI‑Assistent Systemprompt <span class="text-muted fw-normal">(optional)</span></label>
+                                <textarea class="form-control autosize" asp-for="KiAssistantSystemPrompt" id="KiAssistantSystemPrompt" rows="4" placeholder="Zusätzlicher Systemprompt für den KI‑Assistenten..."></textarea>
+                                <div class="form-text">Optionaler Systemprompt, wenn der KI‑Assistent genutzt wird.</div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark">
+                                    <i class="bi bi-save me-1"></i> Speichern
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Filter -->
+            <div class="accordion-item rounded-3 overflow-hidden shadow-sm mb-3">
+                <h2 class="accordion-header" id="headingFilter">
+                    <button class="accordion-button collapsed d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilter" aria-expanded="false" aria-controls="collapseFilter">
+                        <i class="bi bi-funnel"></i>
+                        <span class="fw-semibold">System-Prompt für die Funktion Filter generieren</span>
+                    </button>
+                </h2>
+                <div id="collapseFilter" class="accordion-collapse collapse" aria-labelledby="headingFilter" data-bs-parent="#promptAccordion">
+                    <div class="accordion-body">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-container="body" data-bs-placement="left" data-bs-html="true" data-bs-custom-class="prompt-popover" title="Hinweis: Filter generieren" data-bs-content='<div class="small">
+                                <div><strong>Zweck:</strong> Leitet die KI an, aus einer Anfrage gültige Filter zu bilden.</div>
+                                <ul class="mb-0 mt-1">
+                                    <li><strong>Filter‑System‑Preamble</strong>: Domäne, erlaubte Felder und Operatoren, Ausgabeschema (z. B. JSON) definieren.</li>
+                                    <li><strong>User‑Instruction (Text)</strong>: Erste Leitzeile und Beispiele, die zeigen, welche Filter identifiziert werden sollen.</li>
+                                </ul>
+                                <div class="mt-1">Tipp: Perspektive oder Stil festlegen (Didaktisch, Forschung, Industrie). Fordere valide, begr&uuml;ndete Filter ohne Halluzinationen an.</div>
+                            </div>'>
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                        <form method="post" asp-page-handler="SaveFilter" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="GroupName" />
+                            <input type="hidden" name="UseGlobal" id="useGlobal_hidden_filter" value="@(Model.UseGlobal ? "true" : "false")" />
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="FilterSystemPreamble">Filter‑System‑Preamble</label>
+                                <textarea class="form-control autosize" asp-for="FilterSystemPreamble" id="FilterSystemPreamble" rows="4" placeholder="Systemprompt für die Filter‑Erstellung..."></textarea>
+                                <div class="form-text">Systemprompt für die Filter‑Erstellung.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="FilterFirstLine">User‑Instruction (Text)</label>
+                                <textarea class="form-control autosize" asp-for="FilterFirstLine" id="FilterFirstLine" rows="4" placeholder="Erste Zeile (Guidance) für den Filter‑Task..."></textarea>
+                                <div class="form-text">User‑Instruction (Text)</div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark">
+                                    <i class="bi bi-save me-1"></i> Speichern
+                                </button>
+                            </div>
+                        </form>
+
+                        <form method="post" asp-page-handler="SaveFilterTypes" class="row g-3 mt-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="groupName" value="@Model.GroupName" />
+                            <input type="hidden" name="UseGlobal" value="@(Model.UseGlobal ? "true" : "false")" />
+
+                            <div class="col-12">
+                                <div class="border rounded-3 p-3 bg-body-tertiary small">
+                                    <div class="fw-semibold mb-2 d-flex justify-content-between align-items-center">
+                                        <span>Typ‑Guidance für diese Gruppe</span>
+                                        <span class="badge text-bg-secondary">Überschreibt globale Defaults, wenn Gruppen‑Prompts aktiv sind</span>
+                                    </div>
+                                    <p class="mb-3 text-muted">Passe pro Prompt‑Typ die Guidance an. Leere Felder verwenden weiterhin die globalen Standardeinstellungen.</p>
+                                    @{
+                                        var allTypes = Enum.GetValues(typeof(PromptType)).Cast<PromptType>();
+                                    }
+                                    @foreach (var t in allTypes)
+                                    {
+                                        string current = string.Empty;
+                                        if (Model.TypeGuidances != null && Model.TypeGuidances.TryGetValue(t, out var txt) && !string.IsNullOrWhiteSpace(txt))
+                                        {
+                                            current = txt;
+                                        }
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">@t</label>
+                                            <input type="hidden" name="types" value="@t" />
+                                            <textarea name="texts" class="form-control autosize" rows="3">@current</textarea>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark">
+                                    <i class="bi bi-save me-1"></i> Typ‑Guidance speichern
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Selection -->
+            <div class="accordion-item rounded-3 overflow-hidden shadow-sm mb-3">
+                <h2 class="accordion-header" id="headingSmart">
+                    <button class="accordion-button collapsed d-flex align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSmart" aria-expanded="false" aria-controls="collapseSmart">
+                        <i class="bi bi-lightning-charge"></i>
+                        <span class="fw-semibold">System-Prompt für die Funktion Smart Selection</span>
+                    </button>
+                </h2>
+                <div id="collapseSmart" class="accordion-collapse collapse" aria-labelledby="headingSmart" data-bs-parent="#promptAccordion">
+                    <div class="accordion-body">
+                        <div class="d-flex justify-content-end mb-2">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-container="body" data-bs-placement="left" data-bs-html="true" data-bs-custom-class="prompt-popover" title="Hinweis: Smart Selection" data-bs-content='<div class="small">
+                                <div><strong>Zweck:</strong> Extrahiert relevante Prompt‑Techniken aus der Eingabe, bildet Embeddings und sucht semantisch in der Datenbank die besten Treffer.</div>
+                                <ul class="mb-0 mt-1">
+                                    <li><strong>System‑Preamble</strong>: Extraktionsregeln, Relevanzkriterien und Ausgabeschema (z. B. Liste mit IDs oder Titeln) definieren.</li>
+                                    <li><strong>User‑Prompt</strong>: Beispiele und Kontext, die zeigen, welche Techniken identifiziert werden sollen.</li>
+                                </ul>
+                                <div class="mt-1">Ablauf: 1) Analyse der Eingabe, 2) Extraktion von Techniken, 3) Embedding, 4) Semantische Suche, 5) Sortierte R&uuml;ckgabe. Vermeide Duplikate und bevorzuge hohe Relevanz.</div>
+                            </div>'>
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                        <form method="post" asp-page-handler="SaveSmart" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="GroupName" />
+                            <input type="hidden" name="UseGlobal" id="useGlobal_hidden_smart" value="@(Model.UseGlobal ? "true" : "false")" />
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="SmartSelectionSystemPreamble">System‑Preamble</label>
+                                <textarea class="form-control autosize" asp-for="SmartSelectionSystemPreamble" id="SmartSelectionSystemPreamble" rows="4" placeholder="Systemprompt für Smart‑Selection..."></textarea>
+                                <div class="form-text">Systemprompt für die Smart‑Selection Funktion.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold" for="SmartSelectionUserPrompt">User‑Prompt</label>
+                                <textarea class="form-control autosize" asp-for="SmartSelectionUserPrompt" id="SmartSelectionUserPrompt" rows="4" placeholder="User‑Prompt für Smart‑Selection..."></textarea>
+                                <div class="form-text">User‑Prompt für die Smart‑Selection Funktion.</div>
+                            </div>
+
+                            <div class="col-12 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-dark">
+                                    <i class="bi bi-save me-1"></i> Speichern
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Helpers & Styles -->
+<style>
+    .dimmed {
+        opacity: .75;
+    }
+
+    .accordion-button {
+        font-weight: 600;
+    }
+
+    .accordion-item {
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .form-text {
+        color: #6b7280;
+    }
+
+    textarea.form-control.autosize {
+        resize: vertical;
+        min-height: 12rem;
+        line-height: 1.45;
+        padding: 1rem 1.1rem;
+        font-size: 1rem;
+        border-radius: 0.9rem;
+    }
+
+    .prompt-popover.popover {
+        max-width: 620px;
+        width: min(620px, 94vw);
+    }
+
+    .prompt-popover .popover-header {
+        font-weight: 700;
+    }
+</style>
+
+<script>
+    (function(){
+        const sw = document.getElementById('useGlobalSwitch');
+        const fs = document.getElementById('customFields');
+        const info = document.getElementById('globalInfo');
+        const setReadonly = (on) => {
+            if (!fs) return;
+            fs.classList.toggle('dimmed', on);
+            if (info) info.style.display = on ? 'block' : 'none';
+            const inputs = fs.querySelectorAll('textarea, input[type="text"], select');
+            inputs.forEach(el => {
+                if (el.tagName.toLowerCase() === 'textarea' || el.type === 'text') {
+                    el.readOnly = on;
+                } else if (el.tagName.toLowerCase() === 'select') {
+                    el.disabled = on;
+                }
+            });
+            // update hidden useGlobal inputs for each form
+            const hiddenIds = ['useGlobal_hidden_tech','useGlobal_hidden_filter','useGlobal_hidden_smart'];
+            hiddenIds.forEach(id => { const h = document.getElementById(id); if (h) h.value = on ? 'true' : 'false'; });
+        };
+        if(sw && fs){
+            const onChange = () => {
+                setReadonly(sw.checked);
+                const frm = sw.closest('form');
+                if (frm) frm.submit();
+            };
+            sw.addEventListener('change', onChange);
+            setReadonly(sw.checked);
+        }
+
+        // optional: autosize textareas to content on input
+        const autos = document.querySelectorAll('textarea.autosize');
+        autos.forEach(t => {
+            const fit = () => {
+                t.style.height = 'auto';
+                const border = parseFloat(window.getComputedStyle(t).borderTopWidth || '0') + parseFloat(window.getComputedStyle(t).borderBottomWidth || '0');
+                t.style.height = (t.scrollHeight + border + 6) + 'px';
+            };
+            const debounced = () => window.requestAnimationFrame(fit);
+            t.addEventListener('input', debounced);
+            t.addEventListener('focus', debounced);
+            fit();
+        });
+
+        // init Bootstrap popovers for info buttons (ensure bootstrap is loaded first)
+        const initPopovers = () => {
+            try {
+                const els = document.querySelectorAll('[data-bs-toggle="popover"]');
+                els.forEach(el => {
+                    try {
+                        // Use click trigger so popovers work reliably on touch devices (phones/tablets)
+                        new bootstrap.Popover(el, { trigger: 'click' });
+                    } catch (_) { }
+                });
+            } catch { }
+        };
+        if (window.bootstrap) {
+            initPopovers();
+        } else {
+            window.addEventListener('load', () => { if (window.bootstrap) initPopovers(); });
+        }
+    })();
+</script>

@@ -1,0 +1,1278 @@
+@model IEnumerable<ProjectsWebApp.Models.SavedPrompt>
+@using System.Text.Json
+@using System.Linq
+@using System.Text.RegularExpressions
+
+@{
+    ViewData["Title"] = "Meine Prompt-Sammlung";
+
+    // counts per PromptType
+    var total = Model.Count();
+    var cntText = Model.Count(p => p.PromptType.Equals("Text", StringComparison.OrdinalIgnoreCase));
+    var cntBild = Model.Count(p => p.PromptType.Equals("Bild", StringComparison.OrdinalIgnoreCase));
+    var cntVideo = Model.Count(p => p.PromptType.Equals("Video", StringComparison.OrdinalIgnoreCase));
+    var cntSound = Model.Count(p => p.PromptType.Equals("Sound", StringComparison.OrdinalIgnoreCase));
+    var cntBildung = Model.Count(p => p.PromptType.Equals("Bildung", StringComparison.OrdinalIgnoreCase));
+    // Domäne‑Bucket: umfasst Eigenfilter UND Agent (Beruf)
+    var cntDomaene = Model.Count(p =>
+        p.PromptType.Equals("Eigenfilter", StringComparison.OrdinalIgnoreCase) ||
+        p.PromptType.Equals("Beruf", StringComparison.OrdinalIgnoreCase));
+    var cntFramework = Model.Count(p => p.PromptType.Equals("Framework", StringComparison.OrdinalIgnoreCase));
+    var cntMeta = Model.Count(p => p.PromptType.Equals("Meta", StringComparison.OrdinalIgnoreCase));
+    var readOnly = (bool?)ViewBag.ReadOnly ?? false;
+}
+@if (readOnly)
+{
+    <style>
+        .edit-btn, .delete-btn, .publish-btn, .delete-prompt {
+            display: none !important;
+        }
+    </style>
+}
+@functions {
+    IEnumerable<string> Tags(string json)
+    {
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<JsonElement>>(json);
+
+            return list
+                .Select(e =>
+                {
+                    var raw = e.GetProperty("value").GetString() ?? "";
+                    // alles zwischen <...> entfernen
+                    var plain = Regex.Replace(raw, "<.*?>", string.Empty);
+                    return plain.Trim();
+                })
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Take(4);
+        }
+        catch { return Enumerable.Empty<string>(); }
+    }
+
+
+    string Gradient(string type)
+    {
+        var t = (type ?? string.Empty).ToLower();
+
+        if (t == "akademisch" || t == "lehr") t = "bildung";
+        if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
+
+        return t switch
+        {
+            "bild" => "#5c5c5c",
+            "video" => "#828282",
+            "sound" => "#aaaaaa",
+            "bildung" => "#393939",
+            "eigenfilter" => "#182b63", // Domäne
+            "framework" => "#182b63",
+            "meta" => "#182b63",
+            _ => "#5c5c5c"
+        };
+    }
+
+    string IconClass(string type)
+    {
+        var t = (type ?? string.Empty).ToLower();
+
+        if (t == "akademisch" || t == "lehr") t = "bildung";
+        if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
+
+        return t switch
+        {
+            "bild" => "bi-image",
+            "video" => "bi-play-btn",
+            "sound" => "bi-volume-up",
+            "bildung" => "bi-journal-bookmark",
+            "eigenfilter" => "bi-funnel-fill",
+            "framework" => "bi-diagram-3",
+            "meta" => "bi-gear",
+            _ => "bi-text-paragraph"
+        };
+    }
+}
+
+<style>
+    :root {
+        --clr-main: #191919;
+        --clr-secondary: #5c5c5c;
+        --clr-accent: #5c5c5c;
+        --clr-bg: #ffffff;
+        --clr-card: #ffffff;
+        --clr-text: #191919;
+        --clr-muted: #828282;
+        --clr-border: #d4d4d4;
+        --radius: 1rem;
+        --shadow: 0 .5rem 1rem rgba(0,0,0,0.1);
+        --shadow-hover: 0 1rem 2rem rgba(0,0,0,0.15);
+    }
+
+    body {
+        background: var(--clr-bg);
+        color: var(--clr-text);
+    }
+
+    h2 {
+        color: var(--clr-main);
+        font-weight: 700;
+        letter-spacing: -.5px;
+        margin: 0;
+    }
+
+    .subtitle {
+        color: var(--clr-muted);
+        font-size: 1.1rem;
+    }
+
+    .btn-outline-main {
+        border: 1px solid #004f72;
+        color: #004f72;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .25s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+    }
+
+        .btn-outline-main:hover {
+            background: #004f72;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 .35rem 1rem rgba(0, 79, 114, .2);
+        }
+
+    .TypeTab {
+        cursor: pointer;
+        padding: .5rem 1.25rem;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .2s;
+        background: #f0f0f0;
+    }
+
+        .TypeTab.active {
+            background: #004f72 !important;
+            color: #fff !important;
+            box-shadow: 0 .35rem 1rem rgba(0, 79, 114, .2);
+        }
+
+
+    .search-box {
+        position: relative;
+        max-width: 700px;
+    }
+
+        .search-box input {
+            width: 100%;
+            padding: .75rem 1.25rem .75rem 3rem;
+            border-radius: 1rem;
+            border: 1px solid #004f72;
+        }
+
+        .search-box .bi-search {
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #004f72;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+        }
+
+    input[type=search] {
+        border-radius: 1rem !important;
+        border: 1px solid #004f72;
+        padding: .75rem 1.25rem .75rem 3rem;
+        font-size: 1rem;
+        box-shadow: 0 .15rem .5rem rgba(0,0,0,.03);
+        transition: .3s;
+    }
+
+        input[type=search]:focus {
+            border-color: #004f72;
+            box-shadow: 0 0 0 .25rem rgba(27, 187, 57, .15);
+        }
+
+    @@media (min-width: 576px) and (max-width: 1199px) {
+        #tplGrid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+
+        #tplGrid > .tpl-card {
+            flex: 0 0 50% !important;
+            width: 50% !important;
+            max-width: 50% !important;
+        }
+    }
+
+    @@media (min-width: 1200px) {
+        #tplGrid {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+
+        #tplGrid > .tpl-card {
+            flex: 0 0 33.333333% !important;
+            width: 33.333333% !important;
+            max-width: 33.333333% !important;
+        }
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--clr-muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stats-card {
+        background: #004f72;
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.2);
+        width: clamp(120px, 16vw, 180px) !important;
+        min-width: clamp(120px, 16vw, 180px) !important;
+        max-width: clamp(120px, 16vw, 180px) !important;
+        min-height: 86px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .stats-label {
+        font-size: .9rem;
+        opacity: .9;
+    }
+
+    .empty-state {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 4rem 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #e9ecef;
+        margin-bottom: 1.5rem;
+    }
+
+
+    /* ── Card Styles ── */
+    .card-glass {
+        background: var(--clr-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform .3s, box-shadow .3s;
+        min-height: 270px;
+    }
+
+    #tplGrid > .tpl-card {
+        display: flex;
+    }
+
+    #tplGrid > .tpl-card > .card-glass {
+        height: 100%;
+        width: 100%;
+    }
+
+        .card-glass:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+    .card-header-gradient {
+        height: 6px;
+        width: 100%;
+    }
+
+    .card-content {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .card-top .icon-wrapper {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: .5rem;
+            background: rgba(92, 92, 92, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .edit-btn, .delete-btn, .publish-btn {
+        border: none;
+        margin: 3px;
+        font-size: 1.4rem;
+        color: #393939;
+        transition: color .2s;
+    }
+
+        .edit-btn:hover, .publish-btn:hover {
+            color: #004b62;
+        }
+
+        .delete-btn:hover {
+            color: red;
+        }
+
+
+
+    .tags {
+        margin-top: .75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+    }
+
+        .tags .badge-tag {
+            background: #d4d4d4;
+            color: #191919;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+        }
+
+    .akronym {
+        margin-top: auto;
+        font-weight: 600;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+        font-size: .85rem;
+    }
+
+    .card-title {
+        margin: .25rem 0 .75rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 2.5em;
+    }
+
+
+    /* ── Filter bar ── */
+    .TypeTab {
+        cursor: pointer;
+        padding: .5rem 1rem;
+        border-radius: .75rem;
+        background: #f0f0f0;
+        transition: background .2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+        .TypeTab:not([data-type="all"]) {
+            width: 44px;
+            padding: 0;
+        }
+
+        .TypeTab[data-type="all"] {
+            min-width: unset;
+            padding: .5rem 1rem;
+        }
+
+        .TypeTab i {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .TypeTab.active {
+            background: #004f72;
+            color: #fff;
+        }
+
+    .btn-neuPrompt {
+        background: #004f72;
+        color: white;
+    }
+
+        .btn-neuPrompt:hover {
+            border: 1px solid #7d8791;
+            color: black
+        }
+
+
+    .card-glass {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-content {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    /* ─── Tag-slider ─── */
+    .tag-slider-wrapper {
+        position: relative;
+        margin: .75rem 0;
+    }
+
+    .tag-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding-bottom: .25rem;
+    }
+
+        .tag-slider::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tag-slider .badge-tag {
+            flex: 0 0 auto;
+            margin-right: .5rem;
+            background: #004f72;
+            color: white;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+            white-space: nowrap;
+            transition: transform .2s;
+        }
+
+            .tag-slider .badge-tag:hover {
+                /* background: #aaaaaa; */
+                /*  transform: translateY(-2px); */
+            }
+
+    .tag-slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2.2rem;
+        height: 2.2rem;
+        border: none;
+        /* border-radius: 50%; */
+        background: #828282;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 5;
+        transition: background .2s;
+    }
+
+        .tag-slider-btn.prev {
+            left: 0rem;
+        }
+
+        .tag-slider-btn.next {
+            right: 0rem;
+        }
+
+        .tag-slider-btn:hover {
+            background: #5c5c5c;
+        }
+
+    .header-area {
+        height: auto;
+        min-height: 55px;
+    }
+
+    .btn-bib {
+        background: black;
+        color: #fff;
+        border: 1px solid #393939;
+    }
+
+        .btn-bib:hover
+         {
+            border: 1px solid #7d8791;
+            color: black;
+        }
+
+    /* ========== RESPONSIVE DESIGN ========== */
+
+    /* Large Desktop (1200px+) - Default styles above */
+
+    /* Desktop / Laptop (992px - 1199px) */
+    @@media (max-width: 1199px) {
+        h2 {
+            font-size: 1.5rem;
+        }
+        .subtitle {
+            font-size: 1rem;
+        }
+        .stats-card {
+            padding: 1rem;
+        }
+        .stats-number {
+            font-size: 1.75rem;
+        }
+        .card-glass {
+            min-height: 260px;
+        }
+    }
+
+    /* iPad Pro Landscape / Small Desktop (1024px) */
+    @@media (max-width: 1024px) {
+        .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        .header-area h2 {
+            font-size: 1.4rem;
+        }
+        .btn-outline-main {
+            padding: 0.45rem 1rem;
+            font-size: 0.9rem;
+        }
+        .card-title {
+            font-size: 1.05rem;
+        }
+        input[type=search] {
+            padding: 0.65rem 1rem 0.65rem 2.75rem;
+        }
+    }
+
+    /* iPad Portrait / Tablet Landscape (768px - 991px) */
+    @@media (max-width: 991px) {
+        .header-area h2 {
+            font-size: 1.3rem;
+        }
+        .stats-card {
+            padding: 0.85rem;
+        }
+        .stats-number {
+            font-size: 1.6rem;
+        }
+        .stats-label {
+            font-size: 0.85rem;
+        }
+        /* Make type tabs scrollable on tablets */
+        .d-flex.flex-wrap.align-items-center.gap-3 .d-flex.flex-wrap.gap-2 {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+        }
+        .d-flex.flex-wrap.align-items-center.gap-3 .d-flex.flex-wrap.gap-2::-webkit-scrollbar {
+            height: 4px;
+        }
+        .d-flex.flex-wrap.align-items-center.gap-3 .d-flex.flex-wrap.gap-2::-webkit-scrollbar-thumb {
+            background: #004f72;
+            border-radius: 2px;
+        }
+        .TypeTab {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .card-glass {
+            min-height: 250px;
+        }
+    }
+
+    /* iPad Mini / Small Tablets (768px - 820px) */
+    @@media (max-width: 820px) {
+        .d-flex.justify-content-end.mb-4 {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .d-flex.justify-content-end.mb-4 .d-flex.gap-2 {
+            width: 100%;
+        }
+        .d-flex.justify-content-end.mb-4 .btn {
+            flex: 1;
+            min-height: 44px; /* Touch-friendly */
+        }
+        .btn-bib, .btn-neuPrompt {
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+        }
+    }
+
+    /* Mobile / Small Tablet Portrait (576px - 767px) */
+    @@media (max-width: 767px) {
+        .header-area h2 {
+            font-size: 1.25rem;
+        }
+        .stats-card {
+            padding: 0.75rem;
+        }
+        .stats-number {
+            font-size: 1.5rem;
+        }
+        .stats-label {
+            font-size: 0.8rem;
+        }
+        .TypeTab {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.85rem;
+            min-width: 44px; /* Touch target */
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .d-flex.justify-content-end.mb-4 {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .d-flex.justify-content-end.mb-4 .d-flex.gap-2 {
+            width: 100%;
+            flex-direction: column;
+        }
+        .d-flex.justify-content-end.mb-4 .btn {
+            width: 100%;
+            min-height: 48px; /* Larger touch target */
+        }
+        .card-title {
+            font-size: 1rem;
+        }
+        input[type=search] {
+            font-size: 16px !important; /* Prevents iOS zoom */
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+        }
+        .search-icon {
+            left: 1rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+        .edit-btn, .delete-btn, .publish-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+        }
+        /* Card grid adjustments */
+        #tplGrid {
+            row-gap: 1rem !important;
+        }
+        .card-glass {
+            min-height: 240px;
+        }
+    }
+
+    /* Small Mobile (less than 576px) */
+    @@media (max-width: 575px) {
+        .container {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        .header-area h2 {
+            font-size: 1.1rem;
+        }
+        .header-area h2 i {
+            font-size: 1rem;
+        }
+        .TypeTab {
+            padding: 0.35rem 0.5rem;
+            font-size: 0.8rem;
+            min-width: 42px;
+            min-height: 42px;
+        }
+        .TypeTab i {
+            font-size: 1rem;
+        }
+        .stats-number {
+            font-size: 1.3rem;
+        }
+        .stats-label {
+            font-size: 0.75rem;
+        }
+        .card-glass {
+            min-height: 220px;
+        }
+        .card-content {
+            padding: 0.85rem;
+        }
+        .card-title {
+            font-size: 0.95rem;
+            min-height: 2.2em;
+        }
+        .btn-outline-main {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            min-height: 40px;
+        }
+        .edit-btn, .delete-btn, .publish-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+            margin: 2px;
+        }
+        .tags .badge-tag {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+        }
+        .akronym {
+            font-size: 0.8rem;
+        }
+        /* Tag slider adjustments */
+        .tag-slider-btn {
+            width: 1.8rem;
+            height: 1.8rem;
+            font-size: 1rem;
+        }
+    }
+
+    /* Extra Small Mobile (less than 400px) */
+    @@media (max-width: 400px) {
+        .header-area h2 {
+            font-size: 1rem;
+        }
+        .header-area h2 i {
+            display: none;
+        }
+        .stats-number {
+            font-size: 1.2rem;
+        }
+        .btn-bib, .btn-neuPrompt {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+        .TypeTab {
+            padding: 0.3rem 0.4rem;
+            font-size: 0.75rem;
+            min-width: 40px;
+            min-height: 40px;
+        }
+    }
+
+    /* iPad Specific Media Queries */
+    @@media only screen
+    and (min-device-width: 768px)
+    and (max-device-width: 1024px)
+    and (-webkit-min-device-pixel-ratio: 2) {
+        /* iPad Pro / Air / Mini specific optimizations */
+        .card-glass {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-glass:active {
+            transform: scale(0.98);
+        }
+        .btn-outline-main,
+        .btn-bib,
+        .btn-neuPrompt,
+        .TypeTab {
+            cursor: pointer;
+            -webkit-tap-highlight-color: rgba(0, 79, 114, 0.1);
+        }
+        /* Ensure touch targets are at least 44x44px */
+        button, a.btn, .TypeTab {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @@media (hover: none) and (pointer: coarse) {
+        /* Remove hover effects on touch devices */
+        .card-glass:hover {
+            transform: none;
+            box-shadow: var(--shadow);
+        }
+        /* Use active states instead */
+        .card-glass:active {
+            transform: scale(0.98);
+            box-shadow: var(--shadow-hover);
+        }
+        .btn-outline-main:active,
+        .TypeTab:active {
+            transform: scale(0.95);
+        }
+    }
+
+    /* Landscape orientation specific */
+    @@media (max-width: 991px) and (orientation: landscape) {
+        .stats-card {
+            padding: 0.7rem;
+        }
+        .stats-number {
+            font-size: 1.4rem;
+        }
+        .header-area {
+            margin-bottom: 1rem !important;
+        }
+    }
+
+</style>
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="d-flex gap-2">
+        <!-- Bibliothek‑Button -->
+        <a asp-area="User"
+           asp-controller="Home"
+           asp-action="Bibliothek"
+           class="btn btn-bib">
+            <i class="fa fa-university me-1" aria-hidden="true"></i> Zur Bibliothek
+        </a>
+
+        <!-- Neuer Prompt -->
+        <a asp-area="User"
+           asp-controller="Home"
+           asp-action="PromptAssistent"
+           asp-route-type="text"
+           class="btn btn-neuPrompt">
+            <i class="bi bi-plus-circle me-1"></i> Prompt
+        </a>
+    </div>
+</div>
+<div class="header-area mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="bi bi-bookmarks me-2"></i>Meine Prompt-Sammlung</h2>
+     
+    </div>
+</div>
+
+<div class="container">
+    <!-- ── Stats ── -->
+    <div class="row g-3 mb-5 text-center justify-content-center">
+        <div class="col-auto">
+            <div class="stats-card">
+                <div class="stats-number">@total</div>
+                <div class="stats-label">Insgesamt</div>
+            </div>
+        </div>
+        @if (cntText > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntText</div><div class="stats-label">Text</div></div></div>
+        }
+        @if (cntBild > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntBild</div><div class="stats-label">Bild</div></div></div>
+        }
+        @if (cntVideo > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntVideo</div><div class="stats-label">Video</div></div></div>
+        }
+        @if (cntSound > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntSound</div><div class="stats-label">Sound</div></div></div>
+        }
+        @if (cntBildung > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntBildung</div><div class="stats-label">Bildung</div></div></div>
+        }
+        @if (cntDomaene > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntDomaene</div><div class="stats-label">Domäne</div></div></div>
+        }
+        @if (cntFramework > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntFramework</div><div class="stats-label">Framework</div></div></div>
+        }
+        @if (cntMeta > 0)
+        {
+            <div class="col-auto"><div class="stats-card"><div class="stats-number">@cntMeta</div><div class="stats-label">Meta</div></div></div>
+        }
+    </div>
+
+    <!-- ── Filter / Search bar ── -->
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-5">
+        <div class="d-flex flex-wrap justify-content-center gap-2 w-100">
+            <div class="TypeTab active" data-type="all">Alle</div>
+            <div class="TypeTab" data-type="text" title="Text-prompts"><i class="fa fa-pencil-square" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="bild" title="Bild-prompts"><i class="bi bi-image" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="video" title="Video-prompts"><i class="fa fa-video-camera" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="sound" title="Sound-prompts"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="bildung" title="Bildung & Forschung-prompts"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="eigenfilter" title="Domäne-prompts"><i class="bi bi-funnel-fill" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="framework" title="Framework-prompts"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
+            <div class="TypeTab" data-type="meta" title="Meta-prompts"><i class="fa fa-cogs" aria-hidden="true"></i></div>
+        </div>
+
+    </div>
+
+    <!-- ── Search row (centered and bigger) ── -->
+    <div class="row justify-content-center mb-5 mb-5">
+        <div class="col-12 col-sm-10 col-md-8 col-xl-6">
+            <div class="search-box mx-auto w-100">
+                <i class="bi bi-search search-icon"></i>
+                <input id="tplSearch"
+                       type="search"
+                       class="form-control form-control-lg"
+                       placeholder="Bibliothek durchsuchen …" />
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── Card grid ── -->
+    <div id="tplGrid" class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-4">
+        @foreach (var t in Model)
+        {
+            var tags = Tags(t.FilterJson);
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = t.PromptType.ToLower(),
+                akronym = t.Akronym,
+                title = t.Title,
+                thema = t.Thema,
+                ziele = t.Ziele,
+                beschreibung = t.Beschreibung,
+                schluesselbegriffe = t.Schluesselbegriffe,
+                filterJson = t.FilterJson,
+                promptHtml = t.PromptHtml,
+                checkedItems = JsonSerializer.Deserialize<object>(t.FilterJson),
+                temperatur = t.Temperatur,
+                maxZeichen = t.MaxZeichen,
+                usedModels = t.UsedModels,         
+                generatedImagePath = t.GeneratedImagePath
+            });
+
+            <div class="col tpl-card"
+                 data-type="@t.PromptType.ToLower()"
+                 data-search="@($"{t.Akronym} {t.Title} {t.Thema} {t.Ziele} {t.Schluesselbegriffe}".ToLower())"
+                 data-akronym="@t.Akronym"
+                 data-payload='@Html.Raw(payload)'
+                 data-id="@t.Id">
+                <div class="card card-glass">
+                    <div class="card-header-gradient" style="background:@Gradient(t.PromptType)"></div>
+                    <div class="card-content">
+                        <div class="card-top d-flex justify-content-between align-items-start">
+                            <div class="icon-wrapper">
+                                <i class="bi @(IconClass(t.PromptType))" style="font-size:1.25rem;"></i>
+                            </div>
+                            <div class="action-buttons">
+                                <button type="button" class="edit-btn" title="Bearbeiten">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </button>
+                                <button type="button" class="delete-btn delete-prompt" title="Löschen">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                                <button type="button"
+                                        class="publish-btn "
+                                        title="In Bibliothek veröffentlichen">
+                                    <i class="bi bi-upload"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tag-slider-wrapper my-2">
+                            <button class="tag-slider-btn prev">&lsaquo;</button>
+                            <div class="tag-slider">
+                                @foreach (var tag in tags)
+                                {
+                                    <span class="badge-tag">@tag</span>
+                                }
+                            </div>
+                            <button class="tag-slider-btn next">&rsaquo;</button>
+                        </div>
+                        <p class="akronym mb-1"style="color:#393939">@t.Akronym</p>
+                        <h5 class="card-title mb-3">@t.Title</h5>
+                        <a asp-area="User"
+                           asp-controller="MyPrompts"
+                           asp-action="Details"
+                           asp-route-id="@t.Id"
+                           class="btn btn-sm btn-outline-main">
+                            Mehr anzeigen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- ── Empty state ── -->
+    <div id="emptyMsg" class="text-center mt-5" style="display:none">
+        <i class="bi bi-search fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">Keine Prompts gefunden.</p>
+    </div>
+</div>
+
+<!-- ───────── Header ───────── -->
+<div class="header-area mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+        <!-- (optional) page title -->
+        <h2 class="mb-0"></h2>
+
+        <!-- action buttons -->
+        <div class="d-flex gap-2">
+            <!-- Bibliothek‑Button -->
+            <a asp-area="User"
+               asp-controller="Home"
+               asp-action="Bibliothek"
+               class="btn btn-bib">
+                <i class="fa fa-university me-1" aria-hidden="true"></i> Zur Bibliothek
+            </a>
+
+            <!-- Neuer Prompt -->
+            <a asp-area="User"
+               asp-controller="Home"
+               asp-action="PromptEngineering"
+               class="btn btn-neuPrompt">
+                <i class="bi bi-plus-circle me-1"></i> Prompt
+            </a>
+        </div>
+
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        /* ---------- globale Helfer ----------------------------------- */
+        const secretKey = 'uni‑wuppertal2025';     // gemeinsam genutzt
+
+        /** ASCII‑Hyphen benutzen! */
+        async function sha256(str) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+     const existsUrl = '@Url.Action("Exists",
+                                                                          "PromptTemplateApi",
+                                                                          new { area = "Api" })';
+
+    async function akronymExists(akronym) {
+        const res = await fetch(`${existsUrl}?akronym=${encodeURIComponent(akronym)}`,
+                                { credentials:'same-origin' });
+        if (res.status === 404) return false;           // Fallback ↑ older servers
+        const { exists } = await res.json();            // { exists : true|false }
+        return !!exists;
+    }
+
+        /* ---------- Seite initialisieren ----------------------------- */
+        document.addEventListener('DOMContentLoaded', () => {
+
+            /* ── Filter / Suche ─────────────────────────────────────── */
+            const tabs   = [...document.querySelectorAll('.TypeTab')];
+            const cards  = [...document.querySelectorAll('.tpl-card')];
+            const search = document.getElementById('tplSearch');
+            const empty  = document.getElementById('emptyMsg');
+            let   active = 'all', term = '';
+
+            const norm = s => (s || '').toString().toLowerCase().trim();
+            const TYPE_ALIAS = {
+                lehr: 'bildung',
+                bildung: 'bildung',
+                akademisch: 'bildung',
+                // Agent (Beruf) wird in der Sammlung als Domäne (Eigenfilter) geführt
+                beruf: 'eigenfilter'
+            };
+
+            function normalizeType(val) {
+                const s = norm(val);
+                if (!s) return '';
+                return TYPE_ALIAS[s] || s;
+            }
+
+            function refresh() {
+                let shown = 0;
+                const target = active === 'all' ? 'all' : normalizeType(active);
+
+                cards.forEach(c => {
+                    const ct = normalizeType(c.dataset.type);
+                    const okType = target === 'all' || ct === target;
+                    const okText = !term || c.dataset.search.includes(term.toLowerCase()) || (c.dataset.akronym || '').toLowerCase().includes(term.toLowerCase());
+                    c.style.display = okType && okText ? '' : 'none';
+                    if (okType && okText) shown++;
+                });
+                empty.style.display = shown ? 'none' : '';
+            }
+
+            tabs.forEach(t => t.addEventListener('click', () => {
+                tabs.forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                active = t.dataset.type;
+                refresh();
+            }));
+
+            search?.addEventListener('input', e => { term = e.target.value; refresh(); });
+            refresh();
+
+            /* ── Prompt löschen ─────────────────────────────────────── */
+            document.querySelectorAll('.delete-prompt').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const card = btn.closest('.tpl-card');
+                    const id   = card.dataset.id;
+
+                    const ok = await Swal.fire({
+                        title: 'Prompt löschen?',
+                        text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
+                        icon : 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Löschen',
+                        cancelButtonText : 'Abbrechen',
+                        confirmButtonColor:'#d33'
+                    }).then(r => r.isConfirmed);
+
+                    if (!ok) return;
+
+                    const res = await fetch(
+                        '@Url.Action("DeletePrompt", "MyPrompts", new { area = "User" })?id=' + encodeURIComponent(id),
+                        { method: 'POST' });
+
+                    if (res.ok) {
+                        card.remove();
+                        Swal.fire({ icon:'success', title:'Gelöscht!', timer:1500, showConfirmButton:false });
+                        refresh();
+                    } else {
+                        Swal.fire({ icon:'error', title:'Fehler', text: (await res.text()) || res.statusText });
+                    }
+                });
+            });
+
+            /* ── Edit → Assistent importieren ───────────────────────── */
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const card = btn.closest('.tpl-card');
+                    const obj  = JSON.parse(card.dataset.payload);
+                    const data = JSON.stringify(obj);
+                    const hash = await sha256(secretKey + data);
+
+                    localStorage.setItem('import_payload', JSON.stringify({ data: obj, hash }));
+                    const editUrlBase = '@Url.Action("PromptAssistent", "Home", new { area = "User" })';
+                    window.location.href = `${editUrlBase}?type=${encodeURIComponent(obj.type)}`;
+                });
+            });
+
+            /* ── Tag‑Slider Pfeile ──────────────────────────────────── */
+            document.querySelectorAll('.tag-slider-wrapper').forEach(w => {
+                const slider   = w.querySelector('.tag-slider');
+                const btnPrev  = w.querySelector('.tag-slider-btn.prev');
+                const btnNext  = w.querySelector('.tag-slider-btn.next');
+                const scrollBy = () => slider.scrollBy({ left: w.offsetWidth * 0.5,  behavior:'smooth' });
+
+                btnPrev.onclick = () => slider.scrollBy({ left: -w.offsetWidth * 0.5, behavior:'smooth' });
+                btnNext.onclick = scrollBy;
+
+                const update = () => {
+                    btnPrev.style.visibility = slider.scrollLeft > 0 ? 'visible' : 'hidden';
+                    btnNext.style.visibility = slider.scrollWidth - slider.clientWidth - slider.scrollLeft > 1
+                                               ? 'visible' : 'hidden';
+                };
+                slider.addEventListener('scroll', update);
+                window.addEventListener('resize', update);
+                update();
+            });
+        });
+
+        /* ---------- Publish → Bibliothek ----------------------------- */
+               /* -----------------------------------------------------------
+           Publish → Bibliothek  (mit „Überschreiben?“-Dialog)
+        ----------------------------------------------------------- */
+        document.querySelectorAll('.publish-btn').forEach(btn => {
+
+            btn.addEventListener('click', async () => {
+
+                /* -------- 1) Daten zusammensuchen ------------------- */
+                const akronym = btn.dataset.akronym?.trim() ||
+                                btn.closest('.tpl-card')?.dataset.akronym;
+
+                if (!akronym)
+                    return Swal.fire({ icon:'error', title:'Akronym fehlt' });
+
+                /* Payload aus Karte oder – im Details-View – aus globaler Variable */
+                const payload = btn.closest('.tpl-card')
+                      ? JSON.parse(btn.closest('.tpl-card').dataset.payload)
+                      : window.promptState;                      // Details-Seite
+
+                /* -------- 2) Prüfen, ob es schon existiert ----------- */
+                let alreadyThere = false;
+                try {
+                    alreadyThere = await akronymExists(akronym);
+                } catch (err) {
+                    return Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
+                }
+
+                /* -------- 3) Benutzer fragen ------------------------- */
+                const proceed = await Swal.fire({
+                    title: alreadyThere
+                                   ? `Akronym „${akronym}“ existiert bereits in der Bibliothek.`
+                           : 'In Bibliothek speichern?',
+                    text : alreadyThere
+                           ? 'Möchten Sie den bestehenden Prompt überschreiben?'
+                               : 'Sind Sie sicher, dass Sie diesen Prompt in der Bibliothek speichern möchten?',
+                    icon : alreadyThere ? 'warning' : 'question',
+                    showCancelButton: true,
+                    confirmButtonText: alreadyThere ? 'Überschreiben' : 'Speichern',
+                    cancelButtonText : 'Abbrechen'
+                }).then(r => r.isConfirmed);
+
+                if (!proceed) return;
+
+                /* -------- 4) POST an /Publish ------------------------ */
+                const bodyPayload = {
+                    Akronym           : payload.akronym,
+                    Title             : payload.title,
+                    Beschreibung      : payload.beschreibung       ?? '',
+                    Schluesselbegriffe: payload.schluesselbegriffe ?? '',
+                    Thema             : payload.thema              ?? '',
+                    Ziele             : payload.ziele              ?? '',
+                    PromptHtml        : payload.promptHtml,
+                    PromptType        : payload.type,
+                    FilterJson        : JSON.stringify(payload.checkedItems
+                                           ?? JSON.parse(payload.filterJson || '[]')),
+                    Temperatur        : payload.temperatur         ?? 0,
+                    MaxZeichen        : payload.maxZeichen         ?? null,
+                    UsedModels        : payload.usedModels         ?? '',
+                    GeneratedImagePath: payload.generatedImagePath ?? ''
+                };
+                const metaHash = await sha256(JSON.stringify(bodyPayload));
+                const body     = { ...bodyPayload, MetaHash: metaHash };
+
+                try {
+                    const res = await fetch(
+                        '@Url.Action("Publish",
+                                                                  "PromptTemplateApi",
+                                                                  new { area = "Api" })',
+                    { method :'POST',
+                      headers:{ 'Content-Type':'application/json' },
+                      body   : JSON.stringify(body) });
+
+                    if (!res.ok) throw await res.text();
+
+                    Swal.fire({
+                        icon : 'success',
+                        title: alreadyThere ? 'Überschrieben!' : 'Gespeichert!',
+                        timer: 1500,
+                        showConfirmButton:false
+                    });
+
+                } catch (err) {
+                    Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
+                }
+            });
+        });
+
+    </script>
+}

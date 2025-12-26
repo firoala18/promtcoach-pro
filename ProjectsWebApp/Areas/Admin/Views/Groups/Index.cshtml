@@ -1,0 +1,473 @@
+@model IEnumerable<ProjectsWebApp.Models.Group>
+@{
+    ViewData["Title"] = "Räume";
+    var canCreate = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+    var ownedGroups = ViewBag.OwnedGroupNames as ICollection<string> ?? new List<string>();
+    var canDeleteAllGroups = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+
+    int page = ViewBag.Page is int ? (int)ViewBag.Page : 1;
+    int totalPages = ViewBag.TotalPages is int ? (int)ViewBag.TotalPages : 1;
+    int totalCount = ViewBag.TotalCount is int ? (int)ViewBag.TotalCount : Model.Count();
+}
+
+<style>
+    :root {
+        --card-border-radius: 1rem;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        --primary-color: #89ba17;
+        --primary-gradient: linear-gradient(135deg, #89ba17, #a3e635);
+        --surface-bg: #f8fafc;
+    }
+
+    body {
+        background-color: var(--surface-bg);
+    }
+
+    .page-header-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 2rem;
+    }
+
+    .page-header-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--primary-gradient);
+    }
+
+    .group-card {
+        border-radius: var(--card-border-radius);
+        background: #ffffff;
+        box-shadow: var(--card-shadow);
+        border: 1px solid #e5e7eb;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .group-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .group-img-container {
+        height: 140px;
+        overflow: hidden;
+        position: relative;
+        background-color: #f1f5f9;
+    }
+
+    .group-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .group-card:hover .group-img {
+        transform: scale(1.05);
+    }
+
+    .group-card-body {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .group-title {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        text-decoration: none;
+        display: block;
+    }
+
+    .group-title:hover {
+        color: var(--primary-color);
+    }
+
+    .group-desc {
+        color: #111827;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .group-meta {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #4b5563;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #111827;
+        background: #e5e7eb;
+        border: 1px solid #cbd5e1;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .action-btn:hover {
+        background: #111827;
+        color: #fff;
+        border-color: #111827;
+    }
+    
+    .btn-create {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: opacity 0.2s;
+    }
+    
+    .btn-create:hover {
+        opacity: 0.9;
+        color: white;
+    }
+
+    .randomize-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.2s;
+        z-index: 2;
+    }
+
+    .group-card:hover .randomize-btn {
+        opacity: 1;
+    }
+
+    .randomize-btn:hover {
+        background: #fff;
+        color: var(--primary-color);
+        transform: rotate(180deg);
+    }
+
+    .upload-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.2s;
+        z-index: 2;
+    }
+
+    .group-card:hover .upload-btn {
+        opacity: 1;
+    }
+
+    .upload-btn:hover {
+        background: #fff;
+        color: var(--primary-color);
+    }
+
+    .group-img-upload-input {
+        display: none;
+    }
+
+    .icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: rgba(137, 186, 23, 0.15); /* #89ba17 with opacity */
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="page-header-card">
+        <div class="page-header-bg"></div>
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="icon-circle">
+                        <i class="bi bi-collection fs-3"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold text-dark mb-1">Räume</h2>
+                        <p class="text-muted mb-0">Verwalten Sie Ihre Räume und Projekte</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-area="Admin" asp-controller="Groups" asp-action="JoinGroup" class="btn btn-light border text-muted fw-medium">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Beitreten
+                    </a>
+                    @if (canCreate)
+                    {
+                        <a asp-area="Admin" asp-controller="Groups" asp-action="Create" class="btn-create" style="text-decoration:none;">
+                            <i class="bi bi-plus-lg"></i> Raum
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+                <i class="bi bi-collection text-muted fs-1"></i>
+            </div>
+            <h5 class="text-muted">Noch keine Räume vorhanden</h5>
+            <p class="text-muted small mb-4">Erstellen Sie einen neuen Raum, um zu starten.</p>
+            @if (canCreate)
+            {
+                <a asp-area="Admin" asp-controller="Groups" asp-action="Create" class="btn btn-primary">
+                    Raum erstellen
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var g in Model)
+            {
+                var canDeleteThisGroup = canDeleteAllGroups || (User.IsInRole("Dozent") && ownedGroups.Contains(g.Name));
+                var hasCustomImage = !string.IsNullOrWhiteSpace(g.ImageUrl);
+
+                string imgSrc;
+                if (hasCustomImage)
+                {
+                    var raw = g.ImageUrl ?? string.Empty;
+                    var s = raw.Replace("\\", "/");
+                    if (s.StartsWith("~/"))
+                    {
+                        imgSrc = Url.Content(s);
+                    }
+                    else if (s.StartsWith("/"))
+                    {
+                        imgSrc = Url.Content("~" + s);
+                    }
+                    else
+                    {
+                        imgSrc = Url.Content("~/" + s);
+                    }
+                }
+                else
+                {
+                    imgSrc = $"https://loremflickr.com/640/360/math,geometry,minimal?lock={g.Id.GetHashCode()}";
+                }
+
+                <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+                        <div class="group-card">
+                            <div class="group-img-container">
+                            <!-- Random Math Image / Custom Group Image -->
+                            <img src="@imgSrc" class="group-img" id="img_@g.Id" alt="Group Image" loading="lazy">
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || (User.IsInRole("Dozent") && ownedGroups.Contains(g.Name)))
+                            {
+                                <form asp-area="Admin" asp-controller="Groups" asp-action="UploadGroupImage" method="post" enctype="multipart/form-data" class="m-0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@g.Id" />
+                                    <input type="file" name="imageFile" accept="image/*" id="groupUpload_@g.Id" class="group-img-upload-input" onchange="onGroupImageSelected(this)" />
+                                    <button type="button" class="upload-btn" onclick="triggerGroupImageUpload('@g.Id')" title="Raumbild hochladen">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                    </button>
+                                </form>
+                            }
+
+                            @if (!hasCustomImage)
+                            {
+                                <button type="button" class="randomize-btn" onclick="randomizeImage('@g.Id')" title="Neues Bild generieren">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            }
+                            </div>
+                        <div class="group-card-body">
+                            <div class="d-flex justify-content-end mb-2">
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
+                                        <li>
+                                            <a class="dropdown-item" asp-area="Admin" asp-controller="Groups" asp-action="Details" asp-route-id="@g.Id">
+                                                <i class="bi bi-eye me-2 text-muted"></i>Details
+                                            </a>
+                                        </li>
+                                        @if (canCreate)
+                                        {
+                                            <li>
+                                                <a class="dropdown-item" asp-area="Admin" asp-controller="Groups" asp-action="Edit" asp-route-id="@g.Id">
+                                                    <i class="bi bi-pencil me-2 text-muted"></i>Bearbeiten
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (canDeleteThisGroup)
+                                        {
+                                            <li>
+                                                <form asp-area="Admin" asp-controller="Groups" asp-action="Delete" method="post" onsubmit="return confirmGroupDeleteIndex(this, '@g.Name');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@g.Id" />
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash me-2 text-danger"></i>Raum löschen
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <a asp-area="Admin" asp-controller="Groups" asp-action="Details" asp-route-id="@g.Id" class="group-title text-truncate" title="@g.Name">
+                                @g.Name
+                            </a>
+                            
+                            <div class="group-desc">
+                                @(string.IsNullOrWhiteSpace(g.Description) ? "Keine Beschreibung verfügbar." : g.Description)
+                            </div>
+
+                            <div class="group-meta">
+                                <span><i class="bi bi-calendar3 me-1"></i> @g.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                <div class="d-flex gap-1">
+                                    <a asp-area="Admin" asp-controller="Groups" asp-action="Details" asp-route-id="@g.Id" class="action-btn" title="Details">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (totalPages > 1)
+        {
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(page <= 1 ? "disabled" : null)">
+                        <a class="page-link" asp-area="Admin" asp-controller="Groups" asp-action="Index" asp-route-page="@(page - 1)">Zurück</a>
+                    </li>
+
+                    @for (var i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == page ? "active" : null)">
+                            <a class="page-link" asp-area="Admin" asp-controller="Groups" asp-action="Index" asp-route-page="@i">@i</a>
+                        </li>
+                    }
+
+                    <li class="page-item @(page >= totalPages ? "disabled" : null)">
+                        <a class="page-link" asp-area="Admin" asp-controller="Groups" asp-action="Index" asp-route-page="@(page + 1)">Weiter</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function randomizeImage(id) {
+            var img = document.getElementById('img_' + id);
+            if (img) {
+                // Add a random timestamp to force reload
+                var currentSrc = img.src.split('?')[0];
+                var newLock = Math.floor(Math.random() * 10000);
+                img.src = currentSrc + '?lock=' + newLock;
+            }
+        }
+
+        function triggerGroupImageUpload(id) {
+            var input = document.getElementById('groupUpload_' + id);
+            if (input) {
+                input.click();
+            }
+        }
+
+        function onGroupImageSelected(input) {
+            if (!input || !input.files || input.files.length === 0) {
+                return;
+            }
+            if (input.form) {
+                input.form.submit();
+            }
+        }
+
+        function confirmGroupDeleteIndex(form, groupName) {
+            if (typeof Swal === 'undefined' || !Swal.fire) {
+                return confirm('Möchten Sie den Raum "' + groupName + '" wirklich löschen? Alle Mitglieder, die nur zu diesem Raum gehören, werden ebenfalls gelöscht.');
+            }
+
+            Swal.fire({
+                title: 'Raum löschen?',
+                html: 'Möchten Sie den Raum <b>' + groupName + '</b> wirklich löschen?<br/>Alle Mitglieder, die nur zu diesem Raum gehören, werden ebenfalls gelöscht.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ja, Raum löschen',
+                cancelButtonText: 'Abbrechen',
+                confirmButtonColor: '#d33'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+
+            return false;
+        }
+    </script>
+}

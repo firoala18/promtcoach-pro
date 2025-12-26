@@ -1,0 +1,37 @@
+﻿@model ProjectsWebApp.Models.MakerSpaceDescription
+@{
+    ViewData["Title"] = "KIBar Beschreibung";
+}
+
+<div class="mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>KIBar Beschreibung verwalten</h2>
+        <a class="btn " style="background:black;color:white;" href="@Url.Action("Upsert", "MakerSpaceDescription", new { area = "Admin", id = Model?.Id ?? 0 })">
+            <i class="bi bi-pencil-square"></i> Beschreibung hinzufügen
+        </a>
+    </div>
+
+    @if (Model != null)
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Title</h5>
+                <h6 class="card-subtitle text-muted mb-3">@Model.SubTitle</h6>
+                <div class="card-text">
+                    @Html.Raw(Model.Content)
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-end">
+                <form method="post" asp-action="Delete" asp-route-id="@Model.Id" onsubmit="return confirm('Möchten Sie diese Beschreibung wirklich löschen?');">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Löschen
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">Es wurde noch keine MakerSpace-Beschreibung erstellt.</div>
+    }
+</div>

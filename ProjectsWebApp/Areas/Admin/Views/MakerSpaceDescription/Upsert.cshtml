@@ -1,0 +1,42 @@
+﻿@model ProjectsWebApp.Models.MakerSpaceDescription
+@{
+    ViewData["Title"] = "KIBar Beschreibung";
+}
+
+<div class="mt-5">
+    <h2 class="mb-4">Beschreibung bearbeiten</h2>
+
+    <form method="post" asp-action="Save" asp-controller="MakerSpaceDescription" asp-area="Admin">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"><strong>Titel</strong></label>
+            <input asp-for="Title" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="SubTitle" class="form-label"><strong>Untertitel</strong></label>
+            <input asp-for="SubTitle" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Content" class="form-label"><strong>Inhalt</strong></label>
+            <textarea asp-for="Content" class="form-control" rows="6"></textarea>
+        </div>
+
+      @*   <button type="submit" class="btn btn-success">
+            <i class="bi bi-save me-2"></i> Änderungen speichern
+        </button>
+
+        <a class="btn btn-secondary ms-2" href="@Url.Action("Index", "MakerSpaceDescription", new { area = "Admin" })">
+            Abbrechen
+        </a> *@
+
+        <div class="d-flex justify-content-end mt-4 gap-2">
+            <a class ="btn btn-secondary ms-2" href="@Url.Action("Index", "MakerSpaceDescription", new { area = "Admin" })">
+                Abbrechen</a>
+            <button type="submit" class="btn  me-2" style="color:white;background:black;"> <i class="bi bi-check-lg me-1"></i> Speichern</button>
+
+        </div>
+    </form>
+</div>

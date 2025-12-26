@@ -1,0 +1,239 @@
+@page
+@model ShowRecoveryCodesModel
+@{
+    ViewData["Title"] = "Wiederherstellungscodes";
+    ViewData["ActivePage"] = "TwoFactorAuthentication";
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .codes-container {
+        max-width: 600px;
+    }
+
+    .warning-card {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .warning-card i {
+        color: #dc2626;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .warning-card-content {
+        flex: 1;
+    }
+
+    .warning-card-content strong {
+        display: block;
+        color: #991b1b;
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .warning-card-content p {
+        font-size: 0.8rem;
+        color: #b91c1c;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .codes-card {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .codes-card-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .codes-card-title i {
+        color: #22c55e;
+    }
+
+    .codes-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .recovery-code {
+        background: #fff;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 0.75rem;
+        font-family: monospace;
+        font-size: 1rem;
+        text-align: center;
+        color: #374151;
+        letter-spacing: 0.1em;
+        transition: all 0.2s ease;
+    }
+
+    .recovery-code:hover {
+        border-color: #22c55e;
+        background: #f0fdf4;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        transition: color 0.2s ease;
+    }
+
+    .btn-back:hover {
+        color: #89ba17;
+    }
+
+    .btn-done {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border: none;
+        color: #fff;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-done:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .copy-hint {
+        background: #f0fdf4;
+        border: 1px solid #86efac;
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: #166534;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .copy-hint i {
+        color: #22c55e;
+    }
+
+    @@media (max-width: 480px) {
+        .codes-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<a asp-page="./TwoFactorAuthentication" class="btn-back">
+    <i class="bi bi-arrow-left"></i>
+    Zurück zur 2FA-Übersicht
+</a>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-key-fill"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Ihre neuen Wiederherstellungscodes wurden erstellt</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="codes-container">
+    <div class="warning-card">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+        <div class="warning-card-content">
+            <strong>Bewahren Sie diese Codes sicher auf!</strong>
+            <p>
+                Wenn Sie Ihr Gerät verlieren und diese Wiederherstellungscodes nicht haben,
+                verlieren Sie den Zugang zu Ihrem Konto.
+            </p>
+        </div>
+    </div>
+
+    <div class="codes-card">
+        <div class="codes-card-title">
+            <i class="bi bi-shield-check"></i>
+            Ihre Wiederherstellungscodes
+        </div>
+
+        <div class="codes-grid">
+            @for (var row = 0; row < Model.RecoveryCodes.Length; row++)
+            {
+                <div class="recovery-code">@Model.RecoveryCodes[row]</div>
+            }
+        </div>
+
+        <div class="copy-hint">
+            <i class="bi bi-lightbulb"></i>
+            <span>Tipp: Kopieren Sie diese Codes und speichern Sie sie an einem sicheren Ort</span>
+        </div>
+    </div>
+
+    <a asp-page="./TwoFactorAuthentication" class="btn-done">
+        <i class="bi bi-check2-circle"></i>
+        Fertig
+    </a>
+</div>

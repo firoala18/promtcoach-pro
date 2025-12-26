@@ -1,0 +1,536 @@
+@model ProjectsWebApp.Areas.Admin.Models.UserAnalyticsViewModel
+@{
+    ViewData["Title"] = "Nutzer‑Analytics";
+}
+
+<style>
+    :root {
+        --card-border-radius: 1rem;
+        --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        --primary-gradient: linear-gradient(135deg, #4f46e5, #2563eb);
+        --accent-gradient: linear-gradient(135deg, #89ba17, #a3e635);
+        --surface-bg: #f8fafc;
+    }
+
+    body {
+        background-color: var(--surface-bg);
+    }
+
+    .page-header-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .page-header-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--primary-gradient);
+    }
+
+    .stat-card {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        border: none;
+        box-shadow: var(--card-shadow);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        height: 100%;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon.members { background: #eff6ff; color: #3b82f6; }
+    .stat-icon.prompts { background: #fdf2f8; color: #db2777; }
+    .stat-icon.assistants { background: #f0fdf4; color: #16a34a; }
+    .stat-icon.invites { background: #fff7ed; color: #ea580c; }
+
+    .ua-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .config-section {
+        background: #fff;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        border: none;
+        overflow: hidden;
+    }
+
+    .config-header {
+        background: #fff;
+        padding: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .section-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .modern-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .modern-table th {
+        background: #f8fafc;
+        padding: 1rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modern-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        color: #334155;
+    }
+
+    .modern-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .modern-table tr:hover td {
+        background: #f8fafc;
+    }
+
+    .ua-chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: 280px; /* etwas kompakter, damit der Inhalt dichter wirkt */
+    }
+
+    .ua-chart-wrapper-sm {
+        position: relative;
+        width: 100%;
+        height: 260px;
+    }
+</style>
+
+@{
+    var avatarSource = !string.IsNullOrWhiteSpace(Model.Name) ? Model.Name : Model.Email;
+    var avatarText = string.IsNullOrWhiteSpace(avatarSource)
+        ? "?"
+        : (avatarSource.Length >= 2 ? avatarSource.Substring(0, 2).ToUpperInvariant() : avatarSource.ToUpperInvariant());
+}
+
+<div class="container-fluid py-4">
+    <div class="zurueck-container">
+        <a asp-area="Admin" asp-controller="Groups" asp-action="Details" asp-route-id="@Model.GroupId" class="btn-zurueck">
+            <i class="bi bi-arrow-left"></i>
+            <span>Zurück</span>
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="page-header-card mb-4">
+        <div class="page-header-bg"></div>
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div class="d-flex gap-4 align-items-center">
+                    <div class="ua-avatar flex-shrink-0">@avatarText</div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1">Analytics</span>
+                            <span class="text-muted small"><i class="bi bi-people me-1"></i> Raum: @Model.GroupName</span>
+                        </div>
+                        <h2 class="fw-bold text-dark mb-1">@Model.Email</h2>
+                        @if (!string.IsNullOrWhiteSpace(Model.Name))
+                        {
+                            <p class="text-muted mb-1 fs-5">@Model.Name</p>
+                        }
+                        <div class="d-flex gap-3 mt-2 text-muted small">
+                            <span><i class="bi bi-shield-lock me-1"></i> @Model.Roles</span>
+                            <span><i class="bi bi-calendar3 me-1"></i> @Model.FromUtc.ToLocalTime().ToString("dd.MM.yyyy") – @Model.ToUtc.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.AnalyticsEnabled)
+    {
+        <div class="alert alert-warning d-flex align-items-center mb-4 small" role="alert">
+            <i class="bi bi-shield-lock me-2"></i>
+            <span>Nutzungs‑Tracking (Analytics) ist aktuell deaktiviert. Es werden keine neuen Ereignisse aufgezeichnet, bis es wieder aktiviert wird.</span>
+        </div>
+    }
+
+    <!-- Stats Grid -->
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card p-4">
+                <div class="stat-icon members">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <h3 class="fw-bold mb-1">@Model.TotalEvents</h3>
+                <div class="text-muted small fw-medium">Ereignisse (30 Tage)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card p-4">
+                <div class="stat-icon prompts">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                </div>
+                <h3 class="fw-bold mb-1">@Model.LoginCount</h3>
+                <div class="text-muted small fw-medium">Logins</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card p-4">
+                <div class="stat-icon assistants">
+                    <i class="bi bi-magic"></i>
+                </div>
+                <h3 class="fw-bold mb-1">@Model.PromptGenerateCount</h3>
+                <div class="text-muted small fw-medium">Prompt‑Generierungen</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card p-4">
+                <div class="stat-icon invites">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <h3 class="fw-bold mb-1">@Model.AssistantChatCount</h3>
+                <div class="text-muted small fw-medium">Assistent‑Chats</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-8">
+            <div class="config-section h-100">
+                <div class="config-header border-bottom-0 pb-0">
+                    <div>
+                        <h5 class="fw-bold mb-1">Aktivität im Verlauf</h5>
+                        <div class="text-muted small">Tägliche Nutzung im Raum @Model.GroupName</div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="ua-chart-wrapper">
+                        <canvas id="uaEventsTimeline"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="config-section h-100">
+                <div class="config-header border-bottom-0 pb-0">
+                    <div>
+                        <h5 class="fw-bold mb-1">Verteilung</h5>
+                        <div class="text-muted small">Nach Ereignistyp (30 Tage)</div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="ua-chart-wrapper-sm">
+                        <canvas id="uaEventsBreakdown"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Table -->
+    <div class="config-section mb-4">
+        <div class="config-header">
+            <div class="d-flex align-items-center gap-3">
+                <div class="section-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-table fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Detailtabelle</h5>
+                    <div class="text-muted small">Alle aufgezeichneten Ereignisse pro Tag</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.DailyStats != null && Model.DailyStats.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Events</th>
+                                <th>Logins</th>
+                                <th>Prompt‑Gen.</th>
+                                <th>Filter‑Gen.</th>
+                                <th>Smart‑Sel.</th>
+                                <th>Assistant</th>
+                                <th>Sammlung</th>
+                                <th>Bibliothek</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var d in Model.DailyStats)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@d.DateUtc.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if(d.TotalEvents > 0) { <span class="badge bg-primary bg-opacity-10 text-primary">@d.TotalEvents</span> }
+                                        else { <span class="text-muted">—</span> }
+                                    </td>
+                                    <td>@(d.LoginCount > 0 ? d.LoginCount.ToString() : "—")</td>
+                                    <td>@(d.PromptGenerateCount > 0 ? d.PromptGenerateCount.ToString() : "—")</td>
+                                    <td>@(d.FilterGenerateCount > 0 ? d.FilterGenerateCount.ToString() : "—")</td>
+                                    <td>@(d.SmartSelectionCount > 0 ? d.SmartSelectionCount.ToString() : "—")</td>
+                                    <td>@((d.AssistantChatCount + d.AssistantChatStreamCount) > 0 ? (d.AssistantChatCount + d.AssistantChatStreamCount).ToString() : "—")</td>
+                                    <td>@(d.PromptSaveCollectionCount > 0 ? d.PromptSaveCollectionCount.ToString() : "—")</td>
+                                    <td>@(d.PromptPublishLibraryCount > 0 ? d.PromptPublishLibraryCount.ToString() : "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
+                    <p class="mb-1">Keine Ereignisse im gewählten Zeitraum.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var hasData = @((Model.DailyStats != null && Model.DailyStats.Count > 0) ? "true" : "false");
+            if (!hasData) return;
+
+            var labels = [
+@for (int i = 0; i < Model.DailyStats.Count; i++)
+{
+    var d = Model.DailyStats[i];
+    var sep = i < Model.DailyStats.Count - 1 ? "," : string.Empty;
+@:                '@d.DateUtc.ToLocalTime().ToString("dd.MM")'@sep
+}
+            ];
+
+            var totalEvents = [
+@for (int i = 0; i < Model.DailyStats.Count; i++)
+{
+    var d = Model.DailyStats[i];
+    var sep = i < Model.DailyStats.Count - 1 ? "," : string.Empty;
+@:                @d.TotalEvents@sep
+}
+            ];
+
+            var prompts = [
+@for (int i = 0; i < Model.DailyStats.Count; i++)
+{
+    var d = Model.DailyStats[i];
+    var sep = i < Model.DailyStats.Count - 1 ? "," : string.Empty;
+@:                @d.PromptGenerateCount@sep
+}
+            ];
+
+            var assistant = [
+@for (int i = 0; i < Model.DailyStats.Count; i++)
+{
+    var d = Model.DailyStats[i];
+    var sep = i < Model.DailyStats.Count - 1 ? "," : string.Empty;
+@:                @(d.AssistantChatCount + d.AssistantChatStreamCount)@sep
+}
+            ];
+
+            var ctx = document.getElementById('uaEventsTimeline');
+            if (ctx && labels.length > 0) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Gesamt‑Events',
+                                data: totalEvents,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.10)',
+                                tension: 0.35,
+                                fill: true,
+                                borderWidth: 2,
+                                pointRadius: 3,
+                                pointHoverRadius: 5
+                            },
+                            {
+                                label: 'Prompt‑Generierung',
+                                data: prompts,
+                                borderColor: '#22c55e',
+                                backgroundColor: 'transparent',
+                                tension: 0.35,
+                                borderDash: [5, 5],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                pointHoverRadius: 4
+                            },
+                            {
+                                label: 'Assistent‑Chats',
+                                data: assistant,
+                                borderColor: '#f97316',
+                                backgroundColor: 'transparent',
+                                tension: 0.35,
+                                borderDash: [2, 2],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                pointHoverRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        layout: {
+                            padding: {
+                                top: 12,
+                                right: 20,
+                                bottom: 18,
+                                left: 8
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                align: 'start',
+                                labels: {
+                                    usePointStyle: true,
+                                    boxWidth: 22,
+                                    padding: 26,
+                                    font: { size: 11 },
+                                    color: '#475569'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    title: function (items) { return 'Tag: ' + items[0].label; }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    maxTicksLimit: 10
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#e2e8f0',
+                                    borderDash: [4, 4]
+                                },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    precision: 0,
+                                    padding: 6
+                                },
+                                border: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            var breakdownLabels = ['Logins', 'Prompt‑Gen.', 'Filter‑Gen.', 'Smart‑Selection', 'Assistant‑Chats', 'Sammlung', 'Bibliothek'];
+            var breakdownValues = [
+                @Model.LoginCount,
+                @Model.PromptGenerateCount,
+                @Model.FilterGenerateCount,
+                @Model.SmartSelectionCount,
+                @Model.AssistantChatCount,
+                @Model.PromptSaveCollectionCount,
+                @Model.PromptPublishLibraryCount
+            ];
+
+            var hasBreakdownData = breakdownValues.some(function (v) { return v > 0; });
+            var ctx2 = document.getElementById('uaEventsBreakdown');
+            if (ctx2 && hasBreakdownData) {
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: breakdownLabels,
+                        datasets: [{
+                            data: breakdownValues,
+                            backgroundColor: ['#4f46e5', '#22c55e', '#0ea5e9', '#eab308', '#f97316', '#6366f1', '#14b8a6'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { 
+                                    usePointStyle: true, 
+                                    boxWidth: 8,
+                                    padding: 15,
+                                    font: { size: 11 }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+        })();
+    </script>
+}

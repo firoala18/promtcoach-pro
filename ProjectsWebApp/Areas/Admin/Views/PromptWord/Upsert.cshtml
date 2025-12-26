@@ -1,0 +1,112 @@
+﻿@model PromptWord
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Prompt‑Key-Management" : "Prompt‑Key-Management";
+}
+
+<style>
+    /* ------- reuse MakerSpace look ------- */
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .form-section {
+        background: #fff;
+        border: 1px solid #e4e4e4;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        transition: box-shadow .25s,transform .25s;
+    }
+
+        .form-section:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            transform: translateY(-2px);
+        }
+
+    .section-title {
+        color: #333;
+        border-bottom: 1px solid #e4e4e4;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 1.3rem;
+    }
+
+    .form-label {
+        color: #222;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        background: #fff;
+        border: 1px solid #ced4da;
+        color: #222;
+        padding: 10px 15px;
+        border-radius: 6px;
+        transition: all .2s;
+    }
+
+        .form-control:focus {
+            border-color: #4a86e8;
+            box-shadow: 0 0 0 .20rem rgba(74,134,232,.25);
+            background: #fff;
+            color: #222;
+        }
+
+    .btn-primary {
+        background: #00d084;
+        border: 1px solid #00d084;
+        color: #fff;
+        padding: 10px 25px;
+        font-weight: 500;
+        transition: transform .2s,box-shadow .2s;
+    }
+
+        .btn-primary:hover {
+            background: #00d084;
+            border-color: #00d084;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(74,134,232,.3);
+        }
+
+ 
+</style>
+
+<div class="mt-4">
+    <h2 class="mb-4"> @(Model.Id == 0 ? "Prompt‑Key hinzufügen" : "Prompt‑Key bearbeiten")</h2>
+
+    <form asp-action="Upsert" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+
+        <div class="form-section">
+            <h3 class="section-title"><i class="fas fa-sliders-h me-2"></i>Allgemeine Angaben</h3>
+
+            <div class="mb-3">
+                <label asp-for="Text" class="form-label">Wort / Verb</label>
+                <input asp-for="Text" class="form-control" placeholder="z. B. Analysiere" autofocus />
+                <span asp-validation-for="Text" class="text-danger"></span>
+            </div>
+@* 
+            <div class="mb-3">
+                <label asp-for="SortOrder" class="form-label">Reihenfolge</label>
+                <input asp-for="SortOrder" class="form-control" type="number" min="1" />
+                <span asp-validation-for="SortOrder" class="text-danger"></span>
+                <div class="form-text text-muted mt-2">Bestimmt die Position in der Wort‑Leiste.</div>
+            </div> *@
+        </div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2 flex-wrap mb-3">
+            <a asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+            <button type="submit" class="btn  me-2" style="color:white;background:black;"> <i class="bi bi-check-lg me-1"></i> Speichern</button>
+
+            <div/>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

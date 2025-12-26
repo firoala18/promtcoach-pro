@@ -1,0 +1,150 @@
+﻿<style>
+    /* Events Index Styles */
+    .events-admin-container {
+        padding: 2rem 1rem;
+        width: 100%;
+        margin: 0;
+    }
+
+    .events-table {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        border: none;
+    }
+
+        .events-table thead {
+            background: linear-gradient(135deg, #90bc14 0%, #76a614 100%);
+            color: white;
+        }
+
+        .events-table th {
+            border: none !important;
+            padding: 1.2rem 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .events-table td {
+            padding: 1rem 1.5rem;
+            vertical-align: middle;
+            border-color: #f3f4f6;
+        }
+
+        .events-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .events-table tr:hover {
+            background-color: #f1f5f9;
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-event-action {
+        padding: 0.5rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .btn-event-action i {
+            font-size: 1.1em;
+        }
+
+    .btn-edit {
+        background: #fff3d6;
+        border: 1px solid #ffe6b3;
+        color: #d97706;
+    }
+
+        .btn-edit:hover {
+            background: #ffecc7;
+            color: #b45309;
+        }
+
+    .btn-delete {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+    }
+
+        .btn-delete:hover {
+            background: #fecaca;
+            color: #b91c1c;
+        }
+
+    .btn-add-event {
+        padding: 0.8rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+        background: linear-gradient(135deg, #90bc14 0%, #76a614 100%);
+        border: none;
+    }
+
+        .btn-add-event:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(144, 188, 20, 0.3);
+        }
+
+    @@media (max-width: 768px) {
+        .events-table td:nth-child(3) {
+            min-width: 180px;
+        }
+
+        .btn-event-action {
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+<div class="events-admin-container">
+    <h2 class="mb-4 display-5 fw-bold " style="color:#90bc14">Veranstaltungsmanagement</h2>
+
+    <div class="d-flex justify-content-end mb-4">
+        <a asp-action="Upsert" class="btn btn-add-event text-white">
+            <i class="bi bi-plus-circle"></i> Neues Event
+        </a>
+    </div>
+
+
+    <table class="table events-table">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Titel</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ev in Model)
+            {
+                <tr>
+                    <td class="fw-medium">@ev.Termin.ToString("dd.MM.yyyy")</td>
+                    <td class="text-dark">@ev.Titel</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a asp-action="Upsert" asp-route-id="@ev.Id" class="btn btn-event-action btn-edit">
+                                <i class="bi bi-pencil-square"></i> Bearbeiten
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@ev.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-event-action btn-delete">
+                                    <i class="bi bi-trash3"></i> Löschen
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,312 @@
+﻿@model (IEnumerable<PortalCard> Cards, PortalVideo Video)
+
+
+@{
+    ViewData["Title"] = "Prompt Coach";
+}
+@{
+    int counter = 1; // Initialize a counter for unique IDs
+}
+
+    <title>Über das Portal</title>
+    <style>
+        /* General Styling */
+        body {
+            /*    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    margin: 0;
+                    padding: 0;
+                    background: #f4f4f4;
+                    color: #333; */
+        }
+
+        /* Video Section Styling */
+        .video-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            margin: 0 auto;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+            .video-container video {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transform: translate(-50%, -50%);
+            }
+
+        /* Card Styling */
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin: 2rem 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        .card {
+            /* background: linear-gradient(145deg, #ffffff, #e6e6e6); */
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            position: relative;
+        }
+
+            .card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            }
+
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+            .card-title:after {
+                content: "";
+                display: block;
+                width: 50px;
+                height: 4px;
+            background: #89ba17;
+                margin-top: 8px;
+                border-radius: 2px;
+            }
+
+        .card-content {
+            /* Always show full rich content so images from PortalCards are visible */
+            overflow: visible;
+            max-height: none;
+        }
+
+        .card-content.is-collapsed {
+            overflow: hidden;
+            max-height: 7.5rem;
+        }
+
+        .card-content.expanded {
+            overflow: visible;
+            max-height: none;
+        }
+
+            .card-content img {
+                max-width: 100%;
+                height: auto;
+                display: block;
+                margin-top: 0.75rem;
+            }
+
+
+        .read-more, .read-less {
+        color: #89ba17;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 1rem;
+            display: inline-block;
+            margin-top: 10px;
+            transition: color 0.3s;
+        }
+
+            .read-more:hover, .read-less:hover {
+            color: #89ba17;
+            }
+
+        .d-none {
+            display: none;
+        }
+
+        /* Accordion Animation */
+        .expand-animation {
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        }
+
+            .expand-animation.hidden {
+                max-height: 0;
+                opacity: 0;
+            }
+
+            .expand-animation.visible {
+                max-height: 500px;
+                opacity: 1;
+            }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .video-container {
+                height: 300px;
+                margin: 1rem auto;
+                border-radius: 10px;
+            }
+
+            .card {
+                width: 100%;
+            }
+        }
+
+    /* Responsive Media Wrapper -------------------------------------------- */
+    .media-box {
+        position: relative;
+        width: 100%;
+        margin: 20px 0 0;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    }
+
+        .media-box > img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain; /* nichts wird abgeschnitten */
+        }
+
+        .media-box > video {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+    /* Mobile Feinjustierung */
+    @@media (max-width:768px) {
+        .media-box
+
+    {
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+    }
+
+    }
+
+    /* (deine Karten-Stile bleiben) */
+
+    </style>
+
+
+    <!-- Video Section -->
+@if (Model.Video?.ShowImageInsteadOfVideo == true && !string.IsNullOrEmpty(Model.Video?.ImagePath))
+{
+    <div class="media-box">
+        @{
+            var _imgPath = (Model.Video?.ImagePath ?? string.Empty).TrimStart('/', '\\');
+        }
+        <img src="@Url.Content("~/" + _imgPath)" alt="Portal Banner">
+    </div>
+}
+else
+{
+    <div class="media-box">
+        @{
+            var _vidPath = (Model.Video?.VideoPath ?? string.Empty).TrimStart('/', '\\');
+        }
+        <video autoplay muted loop playsinline>
+            <source src="@Url.Content("~/" + _vidPath)" type="video/mp4" />
+            Ihr Browser unterstützt dieses Video nicht.
+        </video>
+    </div>
+}
+
+
+
+    <!-- Card Section -->
+    <div class="card-container">
+
+        @foreach (var card in Model.Cards.OrderBy(p => p.DisplayOrder))
+        {
+            <div class="card">
+                <div class="card-title">@card.Title</div>
+                <div class="card-content" id="content-@counter">
+                    @Html.Raw(card.Content)
+                </div>
+                <a href="javascript:void(0)" class="read-more d-none" data-id="@counter">Mehr anzeigen</a>
+                <a href="javascript:void(0)" class="read-less d-none" data-id="@counter">Weniger anzeigen</a>
+            </div>
+            counter++; // Increment the counter for the next card
+        }
+
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const readMoreLinks = document.querySelectorAll('.read-more');
+            const readLessLinks = document.querySelectorAll('.read-less');
+
+            function toggleContent(id, isExpand) {
+                const content = document.getElementById(`content-${id}`);
+                const readMore = document.querySelector(`.read-more[data-id="${id}"]`);
+                const readLess = document.querySelector(`.read-less[data-id="${id}"]`);
+
+                if (content && readMore && readLess) {
+                    if (isExpand) {
+                        content.classList.remove('is-collapsed');
+                        content.classList.add('expanded');
+                        readMore.classList.add('d-none');
+                        readLess.classList.remove('d-none');
+                    } else {
+                        content.classList.remove('expanded');
+                        content.classList.add('is-collapsed');
+                        readLess.classList.add('d-none');
+                        readMore.classList.remove('d-none');
+                    }
+                }
+            }
+
+            function checkContentHeight() {
+                readMoreLinks.forEach(link => {
+                    const id = link.getAttribute('data-id');
+                    const content = document.getElementById(`content-${id}`);
+                    const readLess = document.querySelector(`.read-less[data-id="${id}"]`);
+
+                    if (content) {
+                        content.classList.add('is-collapsed');
+                        const isOverflowing = content.scrollHeight > content.offsetHeight + 1;
+
+                        if (!isOverflowing) {
+                            content.classList.remove('is-collapsed');
+                            content.classList.remove('expanded');
+                            link.classList.add('d-none');
+                            if (readLess) readLess.classList.add('d-none');
+                        } else {
+                            content.classList.remove('expanded');
+                            link.classList.remove('d-none');
+                            if (readLess) readLess.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+
+            readMoreLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    toggleContent(id, true);
+                });
+            });
+
+            readLessLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    toggleContent(id, false);
+                });
+            });
+
+            // Initial check for content height
+            checkContentHeight();
+        });
+
+    </script>
+

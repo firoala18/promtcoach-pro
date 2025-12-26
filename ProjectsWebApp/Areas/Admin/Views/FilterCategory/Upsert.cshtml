@@ -1,0 +1,407 @@
+@model ProjectsWebApp.Models.FilterCategory
+@using ProjectsWebApp.Models
+
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Kategorie-Management" : "Kategorie-Management";
+}
+
+<style>
+    /* ——— Card & Layout ——— */
+    .card.upsert {
+        background-color: #ffffff;
+        color: #000000;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        transition: box-shadow .25s ease, transform .25s;
+    }
+
+        .card.upsert:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+            transform: translateY(-2px);
+        }
+
+        /* ——— Form controls inside upsert ——— */
+        .card.upsert .form-control,
+        .card.upsert .form-select {
+            background-color: #f8f9fa;
+            color: #000000;
+            border-color: #ced4da;
+        }
+
+    /* ——— CKEditor light mode ——— */
+    .ck-editor__editable_inline,
+    .ck-editor__editable {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        caret-color: #000000 !important;
+    }
+
+    .ck-content {
+        color: #000000 !important;
+    }
+
+    /* ——— Drag handle icon ——— */
+    .drag-icon {
+        cursor: grab;
+    }
+
+    .filter-item:active .drag-icon {
+        cursor: grabbing;
+    }
+
+    /* ——— Scalable textarea ——— */
+    .scalable-textarea {
+        resize: vertical;
+        min-height: 2.5rem;
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .drag-disabled .drag-icon {
+        opacity: .35;
+        cursor: not-allowed;
+    }
+
+</style>
+
+<h2 class="mb-4">
+    @(Model.Id == 0 ? "Filter-Struktur bearbeiten" : "Kategorie bearbeiten")
+</h2>
+
+<div class="card upsert shadow-lg mb-4">
+    <div class="card-body">
+        <form asp-action="Upsert" method="post" autocomplete="off" id="upsertForm">
+            <input type="hidden" asp-for="Id" />
+
+            <div class="d-flex justify-content-end gap-2 mb-4">
+                <a asp-action="Index"
+                   asp-route-type="@Model.Type"
+                   class="btn btn-secondary">
+                    Abbrechen
+                </a>
+                <button type="submit" class="btn " style="background:black; color:white">
+                    <i class="bi bi-check-lg me-1"></i>Speichern
+                </button>
+            </div>
+
+            @if (Model.Id == 0)
+            {
+                <div class="mb-4">
+                    <label asp-for="Type" class="form-label fw-semibold">Prompt-Typ</label>
+                    <select asp-for="Type" class="form-select">
+                        @foreach (PromptType pt in Enum.GetValues(typeof(PromptType)))
+                        {
+                            <option value="@pt">@pt</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Type" class="text-danger"></span>
+                </div>
+            }
+            else
+            {
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Prompt-Typ</label>
+                    <input class="form-control" value="@Model.Type" disabled />
+                    <input type="hidden" asp-for="Type" />
+                </div>
+            }
+
+            <div class="mb-4">
+                <label asp-for="DisplayOrder" class="form-label fw-semibold">Reihenfolge</label>
+                <input asp-for="DisplayOrder"
+                       type="number"
+                       class="form-control"
+                       min="0" step="1" />
+                <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+                <div class="form-text text-muted">
+                    Kleinere Zahlen erscheinen weiter oben in der Liste.
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Name" class="form-label fw-semibold">Kategorie-Name</label>
+                <input asp-for="Name" class="form-control" required />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <!-- NEW: per-category item sort mode -->
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Sortierung der Filter-Einträge</label>
+                <div class="btn-group" role="group">
+                    <input class="btn-check" type="radio" name="ItemSortMode" id="itm_sort_manual" value="SortOrder"
+                           @(Model.ItemSortMode == ItemSortMode.SortOrder ? "checked" : "")>
+                    <label class="btn btn-outline-dark" for="itm_sort_manual">Manuell (SortOrder)</label>
+
+                    <input class="btn-check" type="radio" name="ItemSortMode" id="itm_sort_alpha" value="Alphabetic"
+                           @(Model.ItemSortMode == ItemSortMode.Alphabetic ? "checked" : "")>
+                    <label class="btn btn-outline-dark" for="itm_sort_alpha">Alphabetisch (A–Z)</label>
+                </div>
+                <div class="form-text text-muted">Bei „Alphabetisch“ ist Drag & Drop deaktiviert (Vorschau hier in der Ansicht).</div>
+            </div>
+
+           
+            <h5 class="mb-3 fw-semibold">Filter-Kriterien</h5>
+
+            <div class="mb-2">
+                <button type="button" class="btn btn-secondary add-filter-btn" id="add-filter-top">
+                    <i class="bi bi-plus-lg me-1"></i>Filter-Einträge hinzufügen
+                </button>
+            </div>
+
+            <div id="filter-items" class="vstack gap-3">
+                @{
+                    var items = (Model.FilterItems ?? new List<FilterItem>()).ToList();
+                    items = (Model.ItemSortMode == ItemSortMode.Alphabetic)
+                    ? items.OrderBy(i => i.Title, StringComparer.OrdinalIgnoreCase).ToList()
+                    : items.OrderBy(i => i.SortOrder).ToList();
+                    var idxCounter = 0;
+                    
+                }
+
+                @for (int i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+
+                    <div class="border rounded-3 p-3 position-relative filter-item">
+                        <!-- Provide explicit index so binder tolerates gaps when items are removed -->
+                        <input type="hidden" name="FilterItems.Index" value="@i" />
+                        <input type="hidden" name="FilterItems[@i].Id" value="@item.Id" />
+                        <input type="hidden" name="FilterItems[@i].FilterCategoryId" value="@Model.Id" />
+                        <div class="position-absolute top-0 end-0 p-2 d-flex align-items-center gap-2 order-tools @(Model.ItemSortMode == ItemSortMode.Alphabetic ? "d-none" : "")"
+                             title="Ziehen oder Zahl setzen">
+                            <input type="number"
+                                   name="FilterItems[@i].SortOrder"
+                                   class="form-control form-control-sm order-input sort-order-input"
+                                   min="0" step="1"
+                                   value="@(item.SortOrder)" />
+                            <i class="bi bi-grip-vertical fs-5 drag-icon"></i>
+                        </div>
+
+
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Titel</label>
+                            <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[@i].Title"
+                                  placeholder="Titel">@item.Title</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tooltip-Info</label>
+                            <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[@i].Info"
+                                  placeholder="Tooltip-Info">@item.Info</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Anweisung (Instruction)</label>
+                            <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[@i].Instruction"
+                                  placeholder="Optionaler Prompt-Text">@item.Instruction</textarea>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-danger remove-item">
+                                <i class="bi bi-x-lg me-1"></i>Entfernen
+                            </button>
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+
+            <button type="button" class="btn btn-secondary mt-3 add-filter-btn" id="add-filter">
+                <i class="bi bi-plus-lg me-1"></i>Filter-Einträge hinzufügen
+            </button>
+
+            <hr />
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a asp-action="Index"
+                   asp-route-type="@Model.Type"
+                   class="btn btn-secondary">
+                    Abbrechen
+                </a>
+                <button type="submit" class="btn " style="background:black; color:white">
+                    <i class="bi bi-check-lg me-1"></i>Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        (function() {
+            const editorMap = new WeakMap();
+            function initializeEditors(scope) {
+                (scope || document).querySelectorAll('textarea.scalable-textarea').forEach(ta => {
+                    if (editorMap.has(ta)) return;
+                    ClassicEditor.create(ta, {
+                        toolbar: ['heading','bold','italic','underline','bulletedList','numberedList','link','blockQuote','insertTable','undo','redo'],
+                        language: 'de'
+                    })
+                    .then(ed => editorMap.set(ta, ed))
+                    .catch(console.error);
+                });
+            }
+            document.addEventListener('DOMContentLoaded', () => initializeEditors());
+
+            const container   = document.getElementById("filter-items");
+            let filterIndex   = @Model.FilterItems?.Count() ?? 0;
+            const isNew       = @Html.Raw((Model.Id == 0).ToString().ToLower());
+                   const sortable = Sortable.create(container, {
+            animation: 150,
+            handle: '.drag-icon',
+            onEnd: () => {
+                container.querySelectorAll(".filter-item").forEach((el, i) => {
+                    el.querySelector(".sort-order-input").value = i;
+                });
+            }
+        });
+
+        // NEW: preview + enable/disable drag based on radio
+               function applyItemSortMode() {
+          const mode = document.querySelector('input[name="ItemSortMode"]:checked')?.value || 'SortOrder';
+
+          if (mode === 'Alphabetic') {
+            sortable.option('disabled', true);
+            container.classList.toggle('drag-disabled', true);
+
+            // NEW: hide the entire order/handle block
+            container.querySelectorAll('.order-tools')
+                     .forEach(el => el.classList.add('d-none'));
+
+            const blocks = Array.from(container.querySelectorAll('.filter-item'));
+            blocks.sort((a, b) => {
+              const ta = a.querySelector('textarea[name$=".Title"]').value.trim();
+              const tb = b.querySelector('textarea[name$=".Title"]').value.trim();
+              return ta.localeCompare(tb, 'de', { sensitivity: 'base' });
+            });
+            blocks.forEach(el => container.appendChild(el));
+          } else {
+            sortable.option('disabled', false);
+            container.classList.toggle('drag-disabled', false);
+
+            // NEW: show the order/handle block
+            container.querySelectorAll('.order-tools')
+                     .forEach(el => el.classList.remove('d-none'));
+
+            const blocks = Array.from(container.querySelectorAll('.filter-item'));
+            blocks.sort((a, b) => {
+              const sa = parseInt(a.querySelector('.sort-order-input').value) || 0;
+              const sb = parseInt(b.querySelector('.sort-order-input').value) || 0;
+              return sa - sb;
+            });
+            blocks.forEach(el => container.appendChild(el));
+          }
+        }
+
+
+        // init once on load
+        applyItemSortMode();
+        document.querySelectorAll('input[name="ItemSortMode"]').forEach(r =>
+            r.addEventListener('change', applyItemSortMode)
+        );
+
+
+            function addFilterItem() {
+                const idx = filterIndex++;
+                const html = `
+                    <div class="border rounded-3 p-3 position-relative filter-item">
+                      <!-- Provide explicit index so binder tolerates gaps when items are removed -->
+                      <input type="hidden" name="FilterItems.Index" value="${idx}" />
+                      <input type="hidden" name="FilterItems[${idx}].Id" value="0" />
+                      <input type="hidden" name="FilterItems[${idx}].FilterCategoryId" value="@Model.Id" />
+                      <div class="position-absolute top-0 end-0 p-2 d-flex align-items-center gap-2 order-tools" title="Zum Sortieren ziehen">
+                        <input type="number"
+                               name="FilterItems[${idx}].SortOrder"
+                               class="form-control form-control-sm order-input sort-order-input"
+                               min="0" step="1" value="${idx}" />
+                        <i class="bi bi-grip-vertical fs-5 drag-icon"></i>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label fw-semibold">Titel</label>
+                        <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[${idx}].Title"
+                                  placeholder="Titel"></textarea>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label fw-semibold">Tooltip-Info</label>
+                        <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[${idx}].Info"
+                                  placeholder="Tooltip-Info"></textarea>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label fw-semibold">Anweisung (Instruction)</label>
+                        <textarea class="form-control scalable-textarea"
+                                  name="FilterItems[${idx}].Instruction"
+                                  placeholder="Optionaler Prompt-Text"></textarea>
+                      </div>
+                      <div class="text-end">
+                        <button type="button" class="btn btn-danger remove-item">
+                          <i class="bi bi-x-lg me-1"></i>Entfernen
+                        </button>
+                      </div>
+                    </div>`;
+                container.insertAdjacentHTML("beforeend", html);
+                const newEl = container.lastElementChild;
+                initializeEditors(newEl);
+                applyItemSortMode();
+                updateAddButtons();
+                setTimeout(() => {
+                    newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    const ta = newEl.querySelector('textarea[name$=".Title"]');
+                    if (ta) ta.focus();
+                }, 50);
+            }
+
+            document.querySelectorAll('.add-filter-btn, #add-filter').forEach(btn =>
+                btn.addEventListener('click', addFilterItem)
+            );
+
+            document.addEventListener("click", e => {
+                if (e.target.closest(".remove-item")) {
+                    e.target.closest(".filter-item").remove();
+                    updateAddButtons();
+                }
+            });
+
+            // Show bottom add button only when there is at least one item
+            function updateAddButtons() {
+                const bottomBtn = document.getElementById('add-filter');
+                if (!bottomBtn) return;
+                const count = container.querySelectorAll('.filter-item').length;
+                bottomBtn.classList.toggle('d-none', count === 0);
+            }
+            // initial
+            updateAddButtons();
+
+            /* ───── Prevent save if no items on new category ───── */
+            document.getElementById("upsertForm").addEventListener("submit", ev => {
+                if (isNew === true && container.querySelectorAll('.filter-item').length === 0) {
+                    ev.preventDefault();
+                    ev.stopImmediatePropagation();
+                    console.log('No filter items');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Keine Filter-Einträge',
+                        text: 'Zum Speichern muss mindestens ein Filter-Eintrag angelegt werden.'
+                    });
+                    return false;
+                }
+            });
+        })();
+                onEnd: () => {
+            container.querySelectorAll(".filter-item").forEach((el, pos) => {
+                el.querySelector(".sort-order-input").value = pos; // pos = neuer Index
+            });
+        }
+
+
+
+    </script>
+}

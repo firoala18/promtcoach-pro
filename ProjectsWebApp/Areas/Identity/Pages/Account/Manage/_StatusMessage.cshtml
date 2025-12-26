@@ -1,0 +1,49 @@
+﻿@model string
+
+@if (!String.IsNullOrEmpty(Model))
+{
+    var isError = Model.StartsWith("Error", StringComparison.OrdinalIgnoreCase);
+    var bgColor = isError ? "#fef2f2" : "#ecfdf5";
+    var borderColor = isError ? "#fecaca" : "#a7f3d0";
+    var iconColor = isError ? "#dc2626" : "#059669";
+    var textColor = isError ? "#991b1b" : "#065f46";
+    var iconClass = isError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill";
+
+    <div class="status-alert" style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: @bgColor;
+        border: 1px solid @borderColor;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    " role="alert">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="bi @iconClass" style="font-size: 1.25rem; color: @iconColor;"></i>
+            <span style="font-size: 0.95rem; font-weight: 500; color: @textColor;">@Model</span>
+        </div>
+        <button type="button"
+                class="status-alert-close"
+                data-bs-dismiss="alert"
+                aria-label="Schließen"
+                style="
+                    background: transparent;
+                    border: none;
+                    padding: 0.5rem;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    transition: background 0.15s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: @textColor;
+                    opacity: 0.7;
+                "
+                onmouseover="this.style.background='rgba(0,0,0,0.05)'; this.style.opacity='1';"
+                onmouseout="this.style.background='transparent'; this.style.opacity='0.7';">
+            <i class="bi bi-x-lg" style="font-size: 1rem;"></i>
+        </button>
+    </div>
+}

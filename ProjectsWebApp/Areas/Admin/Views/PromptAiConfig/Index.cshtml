@@ -1,0 +1,678 @@
+@model IEnumerable<ProjectsWebApp.Models.GlobalPromptConfig>
+@{
+    ViewData["Title"] = "System-Prompt Konfiguration";
+}
+<style>
+    /* Primary button aligned to app style */
+    .btn-primary { background: #000; color: #fff; border-color: #000; }
+    .btn-primary:hover { background: #fff; color: #000; border: 1px solid #000; }
+
+    /* Header row (title + Neuer Konfig‑Button) */
+    .pc-header-row {
+        row-gap: .75rem;
+    }
+
+    /* Accordion styling */
+    .pc-accordion .accordion-item {
+        border-radius: 14px;
+        border: 1px solid #d4d7dd;
+        overflow: hidden;
+        background: #f9fafb;
+        box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+        margin-bottom: 16px;
+    }
+
+    .pc-accordion .accordion-item:hover {
+        box-shadow: 0 10px 24px rgba(15,23,42,0.09);
+        border-color: #cbd5e1;
+    }
+
+    .pc-accordion .accordion-button {
+        background: #f8f9fa;
+        color: #111;
+        font-weight: 600;
+        padding: 14px 18px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .pc-accordion .accordion-button:not(.collapsed) {
+        background: #eef1f4;
+        color: #111;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,0.05);
+    }
+
+    .pc-accordion .accordion-button:focus {
+        box-shadow: 0 0 0 .18rem rgba(0,0,0,0.08);
+    }
+
+    /* Active config highlighting */
+    .pc-accordion .accordion-item.pc-active-config {
+        border: 2px solid #198754; /* Success green */
+        box-shadow: 0 0 12px rgba(25, 135, 84, 0.15);
+    }
+
+    .pc-accordion .accordion-item.pc-active-config .accordion-button {
+        background-color: #f0fdf4; /* Very light green */
+        color: #14532d;
+    }
+
+    .pc-accordion .accordion-item.pc-active-config .accordion-button:not(.collapsed) {
+        background-color: #dcfce7; /* Slightly darker light green */
+        color: #14532d;
+        box-shadow: inset 0 -1px 0 rgba(20, 83, 45, 0.1);
+    }
+
+    .pc-accordion .accordion-body {
+        background: #ffffff;
+        padding: 1.25rem 1.5rem;
+    }
+
+    /* Card styling inside accordions */
+    .pc-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        background: #ffffff;
+    }
+
+    .pc-card + .pc-card { margin-top: 18px; }
+    .pc-card .card-header { background: #f6f7f9; border: 0; font-weight: 600; }
+    .pc-card .card-body { background: #fff; }
+
+    /* Inputs */
+    textarea.form-control { border-radius: 10px; border-color: #e4e6ea; }
+    textarea.form-control:focus { box-shadow: 0 0 0 .2rem rgba(0,0,0,0.06); border-color: #cfd3d9; }
+
+    /* Headline spacing */
+    .pc-title { font-weight: 700; letter-spacing: .2px; }
+
+    .clone-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        background: #fff;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    .clone-toggle .form-check {
+        margin: 0;
+    }
+
+    .clone-toggle .form-check-input {
+        cursor: pointer;
+        width: 2.4rem;
+        height: 1.25rem;
+        margin-top: 0;
+    }
+
+    .clone-toggle .clone-label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    /* Config toolbar & rename form helpers */
+    .pc-config-toolbar {
+        gap: .75rem;
+    }
+
+    .pc-rename-form {
+        flex-wrap: nowrap;
+    }
+
+    .pc-rename-form .form-control-sm {
+        width: 260px;
+        max-width: 260px;
+        flex: 0 1 auto;
+    }
+
+    /* Local button styles (only in this view) */
+    .pc-btn-rename,
+    .pc-btn-delete,
+    .pc-btn-activate {
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: .85rem;
+        line-height: 1.2;
+        padding-inline: 0.85rem;
+        padding-block: 0.32rem;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+    }
+
+    .pc-btn-rename {
+        background: #111827;
+        color: #f9fafb;
+        border: 1px solid #111827;
+    }
+
+    .pc-btn-rename:hover {
+        background: #f9fafb;
+        color: #111827;
+        border-color: #111827;
+    }
+
+    .pc-btn-delete {
+        background: #ffffff;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .pc-btn-delete:hover {
+        background: #fee2e2;
+        border-color: #b91c1c;
+        color: #7f1d1d;
+    }
+
+    /* Keep delete icon visually attached to rename controls (inline with rename) */
+    .pc-config-toolbar .js-confirm-delete {
+        margin-left: .25rem;
+        margin-top: 0;
+    }
+
+    .pc-config-toolbar .js-confirm-delete .pc-btn-delete {
+        min-width: 32px;
+        padding-inline: 0.5rem;
+    }
+
+    .pc-btn-activate {
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid #d1d5db;
+        box-shadow: none;
+    }
+
+    .pc-btn-activate:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        box-shadow: none;
+        color: #111827;
+    }
+
+    /* Responsive tweaks for tablets & phones */
+    @@media (max-width: 991.98px) {
+        .pc-header-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .pc-header-row h2 {
+            width: 100%;
+        }
+
+        #btnNewConfig {
+            width: 100%;
+        }
+
+        .pc-accordion .accordion-button {
+            padding: 12px 14px;
+            font-size: .95rem;
+        }
+
+        .pc-accordion .accordion-body {
+            padding: 1rem 1.1rem;
+        }
+
+        .pc-config-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .pc-config-toolbar > div:last-child {
+            width: 100%;
+        }
+
+        .pc-config-toolbar .pc-btn-activate {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .pc-rename-form {
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: nowrap;
+            width: 100%;
+        }
+
+        .pc-rename-form .form-control-sm {
+            flex: 1 1 auto;
+            width: auto;
+            max-width: 100%;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .pc-accordion .accordion-body {
+            padding: .85rem .9rem;
+        }
+
+        .pc-accordion .accordion-button {
+            font-size: .9rem;
+        }
+    }
+</style>
+<div class="py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 pc-header-row">
+        <h2 class="mb-0">System-Prompt Konfiguration</h2>
+        <button id="btnNewConfig" class="btn btn-primary ms-auto" data-post-url="@Url.Action("CreateConfig")" type="button">
+            <i class="bi bi-plus-lg me-1"></i>System Prompt
+        </button>
+    </div>
+    <div id="newConfigToken" class="d-none">
+        @Html.AntiForgeryToken()
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="accordion pc-accordion" id="cfgList">
+        @foreach (var cfg in Model)
+        {
+            var cfgId = $"cfg_{cfg.Id}";
+            var panelId = $"panel_{cfg.Id}";
+            var activeClass = cfg.IsActive ? "pc-active-config" : "";
+            <div class="accordion-item @activeClass">
+                <h2 class="accordion-header" id="@cfgId">
+                    <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#@panelId" aria-expanded="false" aria-controls="@panelId">
+                        <span class="me-2">@cfg.Name</span>
+                        @if (cfg.IsActive)
+                        {
+                            <span class="badge text-bg-success ms-2">Aktiv</span>
+                        }
+                    </button>
+                </h2>
+                <div id="@panelId" class="accordion-collapse collapse" aria-labelledby="@cfgId" data-bs-parent="#cfgList">
+                    <div class="accordion-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3 pc-config-toolbar">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                @if (!cfg.IsActive)
+                                {
+                                    <form asp-action="RenameConfig" method="post" class="d-flex flex-wrap gap-2 align-items-center pc-rename-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@cfg.Id" />
+                                        <input class="form-control form-control-sm" style="max-width:260px" type="text" name="name" value="@cfg.Name" />
+                                        <button class="btn btn-secondary btn-sm pc-btn-rename" type="submit">Umbenennen</button>
+                                    </form>
+                                }
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+                                @if (!cfg.IsActive)
+                                {
+                                    <form asp-action="DeleteConfig" method="post" class="js-confirm-delete">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@cfg.Id" />
+                                        <button class="btn btn-danger btn-sm pc-btn-delete" type="submit"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    <form asp-action="ActivateConfig" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@cfg.Id" />
+                                        <button class="btn btn-success btn-sm pc-btn-activate" type="submit"><i class="bi bi-check2-circle me-1"></i>Aktivieren</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="accordion" id="acc_@cfg.Id">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="gen_head_@cfg.Id">
+                                    <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#gen_body_@cfg.Id" aria-expanded="true" aria-controls="gen_body_@cfg.Id">Prompt generieren</button>
+                                </h2>
+                                <div id="gen_body_@cfg.Id" class="accordion-collapse collapse show" aria-labelledby="gen_head_@cfg.Id" data-bs-parent="#acc_@cfg.Id">
+                                    <div class="accordion-body">
+                                        <div class="card pc-card mb-4">
+                                            <div class="card-header fw-semibold">System-Preamble</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigPreamble" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="systemPreamble" class="form-control" rows="6">@cfg.SystemPreamble</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <div class="card pc-card mt-4">
+                                            <div class="card-header fw-semibold">User-Prompt</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigUserInstruction" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="userInstruction" class="form-control" rows="6">@cfg.UserInstruction</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <div class="card pc-card mb-4 mt-4">
+                                            <div class="card-header fw-semibold">KI‑Assistent‑System-Preamble</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigKiAssistant" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="kiAssistantSystemPrompt" class="form-control" rows="6">@cfg.KiAssistantSystemPrompt</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item mt-3">
+                                <h2 class="accordion-header" id="filter_head_@cfg.Id">
+                                    <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filter_body_@cfg.Id" aria-expanded="false" aria-controls="filter_body_@cfg.Id">Filter generieren</button>
+                                </h2>
+                                <div id="filter_body_@cfg.Id" class="accordion-collapse collapse" aria-labelledby="filter_head_@cfg.Id" data-bs-parent="#acc_@cfg.Id">
+                                    <div class="accordion-body">
+                                        <div class="card pc-card mb-4">
+                                            <div class="card-header fw-semibold">System-Preamble</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigFilterPreamble" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="filterSystemPreamble" class="form-control" rows="6">@cfg.FilterSystemPreamble</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <div class="card pc-card mb-4">
+                                            <div class="card-header fw-semibold">User-Prompt</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigFilterFirstLine" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="filterFirstLine" class="form-control" rows="3">@cfg.FilterFirstLine</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <div class="card pc-card">
+                                            <div class="card-header fw-semibold">Typ‑Guidance</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigTypeGuidances" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <div class="row g-3">
+                                                        @foreach (var t in Enum.GetValues(typeof(ProjectsWebApp.Models.PromptType)).Cast<ProjectsWebApp.Models.PromptType>())
+                                                        {
+                                                            var existing = cfg.TypeGuidances?.FirstOrDefault(x => x.Type == t);
+                                                            <div class="col-12">
+                                                                <label class="form-label fw-semibold">@t</label>
+                                                                <input type="hidden" name="types" value="@t" />
+                                                                <textarea name="texts" class="form-control" rows="3">@(existing?.GuidanceText ?? "")</textarea>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="text-end mt-3">
+                                                        <button class="btn btn-dark" type="submit">Alle speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item mt-3">
+                                <h2 class="accordion-header" id="smart_head_@cfg.Id">
+                                    <button class="accordion-button fw-semibold collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#smart_body_@cfg.Id" aria-expanded="false" aria-controls="smart_body_@cfg.Id">Smart Selection</button>
+                                </h2>
+                                <div id="smart_body_@cfg.Id" class="accordion-collapse collapse" aria-labelledby="smart_head_@cfg.Id" data-bs-parent="#acc_@cfg.Id">
+                                    <div class="accordion-body">
+                                        <div class="card pc-card mb-4">
+                                            <div class="card-header fw-semibold">System-Preamble (Smart Selection)</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigSmartSelectionPreamble" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="smartSelectionSystemPreamble" class="form-control" rows="6">@cfg.SmartSelectionSystemPreamble</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        <div class="card pc-card">
+                                            <div class="card-header fw-semibold">User‑Prompt</div>
+                                            <div class="card-body">
+                                                <form asp-action="SaveConfigSmartSelectionUser" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="configId" value="@cfg.Id" />
+                                                    <textarea name="smartSelectionUserPrompt" class="form-control" rows="4">@cfg.SmartSelectionUserPrompt</textarea>
+                                                    <div class="text-end mt-2">
+                                                        <button class="btn btn-dark" type="submit">Speichern</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const btnNew = document.getElementById('btnNewConfig');
+        if (!btnNew) return;
+        const postUrl = btnNew.getAttribute('data-post-url');
+        const tokenField = document.querySelector('#newConfigToken input[name="__RequestVerificationToken"]');
+
+        const submitCreate = (name, clone) => {
+            if (!postUrl) return Promise.reject(new Error('Zieladresse fehlt.'));
+            const formData = new FormData();
+            if (tokenField) formData.append('__RequestVerificationToken', tokenField.value);
+            formData.append('name', name);
+            formData.append('cloneActive', clone ? 'true' : 'false');
+            return fetch(postUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(resp => {
+                if (!resp.ok) throw new Error('Serverfehler (' + resp.status + ').');
+                return resp.text();
+            });
+        };
+
+        btnNew.addEventListener('click', () => {
+            if (!(window.Swal && typeof window.Swal.fire === 'function')) {
+                const name = prompt('Name der neuen Konfiguration:');
+                if (name === null) return;
+                    const clone = confirm('Vom aktiven Systemprompt klonen?');
+                submitCreate((name || '').trim(), clone)
+                    .then(() => window.location.reload())
+                    .catch(err => {
+                        console.error(err);
+                        if (window.toastr) toastr.error('Erstellung fehlgeschlagen.');
+                        else alert('Erstellung fehlgeschlagen: ' + (err.message || err));
+                    });
+                return;
+            }
+
+            Swal.fire({
+                    title: 'Neuer Systemprompt',
+                html: `<div class="text-start">
+                        <label class="form-label fw-semibold" for="swalConfigName">Name</label>
+                            <input id="swalConfigName" class="form-control mb-3" type="text" placeholder="Titel des Systemprompts" />
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="swalCloneActive" checked>
+                                <label class="form-check-label" for="swalCloneActive">Vom aktiven Systemprompt klonen</label>
+                        </div>
+                    </div>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Erstellen',
+                cancelButtonText: 'Abbrechen',
+                showLoaderOnConfirm: true,
+                allowOutsideClick: () => !Swal.isLoading(),
+                preConfirm: () => {
+                    const nameInput = document.getElementById('swalConfigName');
+                    const cloneInput = document.getElementById('swalCloneActive');
+                    const rawName = (nameInput?.value || '').trim();
+                    if (!rawName) {
+                        Swal.showValidationMessage('Bitte einen Namen eingeben.');
+                        return false;
+                    }
+                    if (!tokenField) {
+                        Swal.showValidationMessage('Sicherheits-Token fehlt.');
+                        return false;
+                    }
+                    return submitCreate(rawName, !!(cloneInput?.checked)).catch(err => {
+                        Swal.showValidationMessage(err.message || 'Erstellung fehlgeschlagen.');
+                    });
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    window.location.reload();
+                }
+            });
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const forms = document.querySelectorAll('form.js-confirm-delete');
+        if (!forms.length || !(window.Swal && typeof window.Swal.fire === 'function')) return;
+
+        forms.forEach(form => {
+            form.addEventListener('submit', function (ev) {
+                ev.preventDefault();
+                Swal.fire({
+                    title: 'Konfiguration löschen?',
+                    text: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ja, löschen',
+                    cancelButtonText: 'Abbrechen',
+                    focusCancel: true
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(f => {
+            if (!f.querySelector('input[name="configId"]')) return;
+            f.addEventListener('submit', function (ev) {
+                ev.preventDefault();
+                const btn = f.querySelector('button[type="submit"]');
+                const prev = btn ? btn.innerHTML : null;
+                if (btn) { btn.disabled = true; btn.innerHTML = 'Speichern...'; }
+                fetch(f.getAttribute('action') || window.location.href, {
+                    method: 'POST',
+                    body: new FormData(f),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(async resp => {
+                    let ok = false, msg = '';
+                    try { const data = await resp.json(); ok = !!data.ok; msg = data.message || ''; }
+                    catch { ok = resp.ok; msg = ok ? 'Gespeichert.' : 'Fehler beim Speichern.'; }
+                    if (window.toastr) { ok ? toastr.success(msg || 'Gespeichert.') : toastr.error(msg || 'Fehler beim Speichern.'); }
+                    else if (msg) { alert(msg); }
+                }).catch(() => {
+                    if (window.toastr) toastr.error('Fehler beim Speichern.');
+                }).finally(() => {
+                    if (btn) { btn.disabled = false; btn.innerHTML = prev; }
+                });
+            });
+        });
+    });
+    </script>
+
+<script>
+    // Persist and restore which accordion panels are open
+    (function(){
+        const KEY_MAIN = 'pc_cfg_open_main';
+        const KEY_SUB = 'pc_cfg_open_sub';
+
+        function getOpenMain() {
+            const open = document.querySelector('#cfgList > .accordion-item .accordion-collapse.show');
+            return open ? open.id : '';
+        }
+        function getOpenSub() {
+            const main = document.querySelector('#cfgList > .accordion-item .accordion-collapse.show');
+            if (!main) return '';
+            const sub = main.querySelector('.accordion .accordion-collapse.show');
+            return sub ? sub.id : '';
+        }
+        function saveState() {
+            try {
+                localStorage.setItem(KEY_MAIN, getOpenMain() || '');
+                localStorage.setItem(KEY_SUB, getOpenSub() || '');
+            } catch {}
+        }
+        function restoreState() {
+            try {
+                const mainId = localStorage.getItem(KEY_MAIN) || '';
+                const subId = localStorage.getItem(KEY_SUB) || '';
+                if (mainId) {
+                    const main = document.getElementById(mainId);
+                    if (main) {
+                        main.classList.add('show');
+                        const btn = document.querySelector(`[data-bs-target="#${mainId}"]`);
+                        if (btn) btn.classList.remove('collapsed');
+                    }
+                }
+                if (subId) {
+                    const sub = document.getElementById(subId);
+                    if (sub) {
+                        sub.classList.add('show');
+                        const btn = document.querySelector(`[data-bs-target="#${subId}"]`);
+                        if (btn) btn.classList.remove('collapsed');
+                    }
+                }
+            } catch {}
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            restoreState();
+            // Save on accordion button clicks
+            document.querySelectorAll('#cfgList .accordion-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setTimeout(saveState, 0);
+                });
+            });
+            // Save before non-AJAX form submits (rename/delete/activate/create)
+            document.querySelectorAll('form').forEach(f => {
+                if (f.querySelector('input[name="configId"]')) return; // AJAX ones already handled
+                f.addEventListener('submit', () => { try { saveState(); } catch {} });
+            });
+        });
+    })();
+</script>
+
+</div>

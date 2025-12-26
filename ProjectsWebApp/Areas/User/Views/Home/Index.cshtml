@@ -1,0 +1,1176 @@
+﻿@model IEnumerable<ProjectsWebApp.Models.Project>
+
+@{
+    ViewData["Title"] = "Projekte";
+}
+
+<style>
+    /* ===============================
+       Slider / Carousel Styles
+       (kept mostly as-is)
+    =============================== */
+    .slider-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+
+    .slider-container {
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+    }
+
+    .slider-container img {
+        object-fit: contain;
+        width: 100%;
+        height: 100%;
+        object-position: top;
+    }
+
+    @@media (min-width: 769px) {
+        .slider-container img {
+            object-position: center;
+        }
+    }
+
+    .slider-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        text-align: center;
+    }
+
+    .slider-overlay .text-container h1 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .slider-overlay .text-container p {
+        font-size: 1.2rem;
+        font-weight: 400;
+    }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+    }
+
+    .carousel-control-prev-icon:hover,
+    .carousel-control-next-icon:hover {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    /* ===============================
+       Main Container / Filter Section
+    =============================== */
+    .container {
+        margin-top: 1rem; 
+    }
+
+    .mehrEfrahrenbtn {
+        color: #90bc14;
+    }
+
+    #toggleFilters {
+        padding: 8px 10px;
+        border: 2px solid #90bc14;
+        border-radius: 30px;
+        background-color: #fff;
+        color: #333;
+        font-size: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+    }
+
+    #toggleFilters:hover {
+            background-color: #90bc14; /* Darker green on hover */
+        color: white;
+    }
+
+    /* Filter button container (hidden initially) */
+    #filterButtons {
+        display: none;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+    }
+
+    /* ===============================
+       Search Bar Styles
+    =============================== */
+    .search-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto 0.25rem;
+        text-align: center; 
+    }
+
+    .search-input {
+        width: 0;
+        padding: 10px;
+        border: 2px solid #90bc14;
+        border-radius: 30px;
+        font-size: 1rem;
+        transition: all 0.3s ease-in-out;
+        opacity: 0;
+        outline: none;
+        visibility: hidden;
+    }
+
+    .search-input.expanded {
+        width: 100%;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .search-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+        color: #90bc14;
+        font-size: 1.5rem;
+        transition: transform 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center; 
+    }
+
+    .search-container.active .search-icon {
+        transform: translate(-50%, -50%) rotate(360deg);
+        opacity: 0;
+        pointer-events: none; 
+    }
+
+    .search-container.active .search-input {
+        visibility: visible;
+        opacity: 1;
+        width: 100%;
+    }
+
+    /* ===============================
+       Filter Dropdown Styles
+    =============================== */
+    .filter-button-container{
+     display: flex;          /* Lay them out in a row */
+    flex-wrap: wrap;        /* Wrap on smaller screens if needed */
+    gap: 1rem;              /* Spacing between buttons */
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+     
+    }
+    .filter-dropdown {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        max-width: 300px;
+        margin: 1rem auto;
+   
+    }
+
+    .filter-dropdown-button {
+        width: 60%;
+        padding: 8px 10px;
+        border: 2px solid #90bc14;
+        border-radius: 30px;
+        background-color: #fff;
+        color: #333;
+        font-size: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .filter-dropdown-button:hover {
+        background-color: #f9f9f9;
+    }
+
+    .filter-dropdown-content {
+         display: none; /* Default: dropdown hidden */
+    position: absolute;
+    width: 100%; /* Full width of the parent container */
+    max-height: 300px; /* Limit the height for scrollable content */
+    overflow-y: auto; /* Enable scrolling for long content */
+    background-color: #fff; /* Background color */
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2); /* Subtle shadow for dropdown */
+    z-index: 10;
+    border-radius: 10px;
+    padding: 10px; /* Add padding for better spacing */
+    text-align: left; /* Align text to the left */
+    }
+
+    .filter-dropdown-content.show {
+        display: block;
+    }
+
+    .filter-checkbox {
+          display: flex; /* Align checkbox and label horizontally */
+    align-items: flex-start; /* Align checkbox with the top of the label */
+    gap: 8px; /* Add spacing between the checkbox and the label */
+    padding: 10px; /* Add padding for better spacing */
+    line-height: 1.4; /* Adjust line height for readability */
+    border-bottom: 1px solid #ddd; /* Add a subtle divider between options */
+    }
+
+        .filter-checkbox:last-child {
+            border-bottom: none; /* Remove border for the last item */
+        }
+    .filter-checkbox input[type="checkbox"] {
+            margin-top: 5px; /* Adjust for vertical alignment with multi-line text */
+            accent-color: #90bc14; /* Match the brand color */
+    }
+
+    .filter-checkbox label {
+            font-size: 0.95rem; /* Adjust font size */
+    color: #333; /* Ensure the label text color is readable */
+    cursor: pointer; /* Indicate the label is clickable */
+    white-space: normal; /* Allow wrapping for long text */
+    word-wrap: break-word; /* Break long words if necessary */
+    flex: 1; /* Allow label to take up the remaining space */
+    }
+        /* Hover Effects */
+        .filter-checkbox:hover {
+            background-color: #f0f0f0; /* Light gray background on hover */
+        }
+
+    .filter-dropdown-content.show {
+        display: block; /* Show dropdown when active */
+    }
+
+    /* Scrollbar Styling (Optional) */
+    .filter-dropdown-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .filter-dropdown-content::-webkit-scrollbar-thumb {
+        background-color: #90bc14;
+        border-radius: 5px;
+    }
+    /* Filter Dropdown Header */
+    .dropdown-header {
+        padding: 10px 15px;
+        text-align: center;
+        font-size: 1rem;
+        color: #6c757d;
+        font-weight: 600;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        background-color: #f9f9f9; /* Subtle background color for the header */
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background-color: #ddd;
+        margin: 0 10px;
+    }
+
+    /* ===============================
+       Card Container + Card Styles
+    =============================== */
+    /* Replacing the Bootstrap row/col with our own flex container */
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+        margin: 0 auto;           /* center the whole block */
+             /* optional max width */
+        padding: 0 10px;          /* a bit of side padding */
+    }
+
+    /* The clickable card */
+    .card {
+        width: 30%;             /* fixed width (adjust as you like) */
+        border: none;
+        border-radius: 12px;
+        background-color: #fff;
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.1);
+       
+        overflow: hidden;
+        position: relative;
+        /* We'll rely on the .card-clickable hover effect */
+    }
+
+    .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .card-body {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-body h5 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+    }
+
+    .card-text {
+        font-size: 0.95rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+    }
+
+    /* The "Mehr erfahren" button inside the card if needed */
+    .card-body .mehrEfrahrenbtn {
+        margin-top: auto;
+        font-weight: 500;
+    }
+
+/*     .status-label {
+        padding: 0.5rem 1rem;
+        font-size: 0.7rem;
+        font-weight: bold;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-bottom-left-radius: 10px;
+        text-transform: uppercase;
+    } */
+
+    /* Fully clickable: Add .card-clickable to do fancy hover */
+    .card-clickable {
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card-clickable:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 
+       Fancy gradient glow border on hover using ::before
+       We'll also animate the gradient for extra fanciness
+    */
+    .card-clickable {
+        position: relative;
+        border-radius: 12px; /* match .card's radius */
+    }
+
+    .card-clickable::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 2px; /* thickness of border */
+        background: linear-gradient( 
+            90deg, 
+            #76a614 0%, 
+            #90bc14 30%, 
+            #90bc14 70%, 
+            #76a614 100% 
+        );
+        /* For an animated shifting gradient: */
+        background-size: 200% 200%;
+        animation: glowBorder 4s linear infinite;
+
+        /* 
+           The "mask-composite" trick: keep center white (card), 
+           show gradient only on the edges
+        */
+        mask:
+          linear-gradient(#fff 0 0) content-box,
+          linear-gradient(#fff 0 0) border-box;
+        mask-composite: exclude;
+        -webkit-mask-composite: destination-out; 
+        pointer-events: none;
+        opacity: 0; 
+        transition: opacity 0.3s ease;
+    }
+
+    .card-clickable:hover::before {
+        opacity: 1;
+    }
+
+    @@media (min-width: 768px) and (max-width: 1410px) {
+        .card {
+            width: calc(50% - 20px); /* two cards per row with proper gap */
+        }
+    }
+
+
+    @@media (min-width: 768px) and (max-width: 110px) {
+        .card {
+            width: calc(80% - 20px);
+        }
+    }
+
+    .tag-scroll {
+        display: inline-flex; /* Place badges side-by-side in a row */
+        gap: 6px; /* Spacing between badges */
+        overflow-x: auto; /* Horizontal scrollbar if content is too wide */
+        max-width: 100%; /* Don’t exceed the card width */
+        white-space: nowrap; /* Keep badges on a single line */
+        padding-bottom: 4px; /* Optional: spacing so scrollbar doesn’t overlap text */
+    }
+
+        /* Optional custom scrollbar styling (WebKit-only) */
+        .tag-scroll::-webkit-scrollbar {
+            height: 6px; /* Height of horizontal scrollbar */
+        }
+
+      /*   .tag-scroll::-webkit-scrollbar-thumb {
+            background-color: #90bc14; 
+            border-radius: 3px;
+        } */
+
+
+    /* Animate the gradient background to shift left-right */
+    @@keyframes glowBorder {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    /* ===============================
+       No-Results + Pagination Styles
+    =============================== */
+    #noResults {
+        display: none; 
+        text-align: center; 
+        font-size: 1.2rem; 
+        color: gray;
+    }
+
+    .pagination .page-link {
+        color: black; 
+        border: 1px solid black;
+    }
+
+    .pagination .page-link:hover {
+            background-color: black;
+        color: white;
+            border-color: black;
+    }
+
+    .pagination .active .page-link {
+        background-color: black;
+        color: white;
+        border-color: black;
+    }
+
+    .pagination-btn {
+        background-color: #ffffff;
+        color: black;
+        border: 2px solid black;
+        border-radius: 30px;
+        margin: 0 5px;
+        padding: 8px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .pagination-btn:hover {
+            background-color: black;
+        color: #ffffff;
+    }
+
+    .pagination-btn.active {
+            background-color: black;
+        color: #ffffff;
+        cursor: default;
+    }
+
+    .pagination-btn.disabled {
+        color: #cccccc;
+        border-color: #cccccc;
+        cursor: not-allowed;
+    }
+
+    /* ===============================
+       Mobile / Responsive Tweaks
+    =============================== */
+    @@media (max-width: 768px) {
+        .slider-container {
+            margin-top: 1rem; 
+            height: auto; 
+        }
+        .slider-container img {
+            object-fit: cover;
+            height: auto;
+        }
+
+        .slider-overlay .text-container h1 {
+            font-size: 1.6rem;
+        }
+        .slider-overlay .text-container p {
+            font-size: 1rem;
+        }
+
+        #toggleFilters {
+            padding: 10px 20px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 400px;
+        }
+        .card-img-top {
+            height: 150px; 
+        }
+
+        .card-container {
+            gap: 15px;
+        }
+
+        .pagination-btn {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            margin: 5px;
+            min-width: 40px;
+        }
+    }
+</style>
+
+
+
+<!-- ===============================
+     Carousel / Slider Section (Dynamic)
+=============================== -->
+@if (ViewBag.SliderItems != null && ViewBag.SliderItems.Count > 0)
+{
+    var orderedSlides = ((List<SliderItem>)ViewBag.SliderItems).OrderBy(s => s.DisplayOrder).ToList();
+
+    <div class="slider-wrapper">
+        <div class="slider-container">
+            <div id="photoCarousel" class="carousel slide" data-bs-ride="carousel">
+                <!-- Indicators -->
+                <div class="carousel-indicators">
+                    @for (int i = 0; i < orderedSlides.Count; i++)
+                    {
+                        <button type="button" data-bs-target="#photoCarousel" data-bs-slide-to="@i"
+                                class="@(i == 0 ? "active" : "")" aria-current="true" aria-label="Slide @(i+1)"></button>
+                    }
+                </div>
+
+                <!-- Slides -->
+                <div class="carousel-inner">
+                    @for (int i = 0; i < orderedSlides.Count; i++)
+                    {
+                        var item = orderedSlides[i]; // Get the correctly sorted slide
+                        <div class="carousel-item @(i == 0 ? "active" : "")">
+                            <img src="@item.ImageUrl" class="d-block w-100" alt="@item.Title">
+                            <div class="slider-overlay">
+                                <div class="text-container">
+                                    <h1> @Html.Raw(item.Title)</h1>
+                                    <p>@Html.Raw(item.Description)</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Controls -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+
+<!-- ===============================
+     Filter + Search Section
+=============================== -->
+<div class="row justify-content-center align-items-center mt-5 mb-5">
+    <!-- "Filter Einblenden" Button -->
+    <div class="col-auto">
+        <button id="toggleFilters" class="btn btn-outline-success rounded-pill px-4">
+            <i class="bi bi-funnel"></i> Filter Einblenden
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="col-md-4">
+        <div class="input-group" style="border: 2px solid #90bc14; border-radius: 30px; overflow: hidden;">
+            <input type="text" id="searchInput" class="form-control"
+                   placeholder="Schlagwortsuche eingeben..."
+                   style="border: none; box-shadow: none; font-size: 1rem; padding: 8px 12px;">
+            <span class="input-group-text" style="background: white; border: none;">
+                <i class="bi bi-search" style="color: #90bc14; font-size: 1.2rem;"></i>
+            </span>
+        </div>
+    </div>
+
+    <div class="col-auto count-text">
+        <span id="projectCount" class="project-count-text">@Model.Count() Inhalte</span>
+    </div>
+</div>
+
+<!-- Filter Buttons Container -->
+<div id="filterButtons" class="container filter-button-container">
+    <!-- Category Filter -->
+    <div class="filter-dropdown">
+        <button class="filter-dropdown-button" id="categoryDropdownButton">Kategorien</button>
+        <div class="filter-dropdown-content" id="categoryDropdownContent">
+            <div class="dropdown-header">
+                <span class="gray-text">Auswahl markieren</span>
+                <hr class="dropdown-divider" />
+            </div>
+            @foreach (var category in ViewBag.Categories as List<string>)
+            {
+                <div class="filter-checkbox">
+                    <input type="checkbox" id="category-@category" value="@category" class="category-checkbox">
+                    <label for="category-@category">@category</label>
+                </div>
+            }
+        </div>
+    </div>
+
+
+
+    <!-- Fakultaet Filter -->
+    <div class="filter-dropdown">
+        <button class="filter-dropdown-button" id="fakultaetDropdownButton">Organisation</button>
+        <div class="filter-dropdown-content" id="fakultaetDropdownContent">
+            <div class="dropdown-header">
+                <span class="gray-text">Auswahl markieren</span>
+                <hr class="dropdown-divider" />
+            </div>
+            @foreach (var fakultaet in ViewBag.Fakultaet as List<string>)
+            {
+                <div class="filter-checkbox">
+                    <input type="checkbox" id="fakultaet-@fakultaet" value="@fakultaet" class="fakultaet-checkbox">
+                    <label for="fakultaet-@fakultaet">@fakultaet</label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Fachgruppen Filter -->
+    <div class="filter-dropdown">
+        <button class="filter-dropdown-button" id="fachgruppenDropdownButton">Fachgruppe</button>
+        <div class="filter-dropdown-content" id="fachgruppenDropdownContent">
+            <div class="dropdown-header">
+                <span class="gray-text">Auswahl markieren</span>
+                <hr class="dropdown-divider" />
+            </div>
+            @foreach (var fachgruppe in ViewBag.Fachgruppen as List<string>)
+            {
+                <div class="filter-checkbox">
+                    <input type="checkbox" id="fachgruppe-@fachgruppe" value="@fachgruppe" class="fachgruppen-checkbox">
+                    <label for="fachgruppe-@fachgruppe">@fachgruppe</label>
+                </div>
+            }
+        </div>
+    </div>
+
+
+
+    <!-- TechAnforderung Filter -->
+    <div class="filter-dropdown">
+        <button class="filter-dropdown-button" id="techDropdownButton">Technik</button>
+        <div class="filter-dropdown-content" id="techDropdownContent">
+            <div class="dropdown-header">
+                <span class="gray-text">Auswahl markieren</span>
+                <hr class="dropdown-divider" />
+            </div>
+            @foreach (var tech in ViewBag.TechAnforderungen as List<string>)
+            {
+                <div class="filter-checkbox">
+                    <input type="checkbox" id="tech-@tech" value="@tech" class="tech-checkbox">
+                    <label for="tech-@tech">@tech</label>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="clearFiltersBtn" class="btn btn-outline-danger rounded-pill px-4">
+            <i class="bi bi-x-circle"></i> Filter Zurücksetzen
+        </button>
+    </div>
+</div>
+
+<!-- ===============================
+     Projects + Pagination
+=============================== -->
+<!-- "No Results" Message -->
+<p id="noResults">Keine Projekte gefunden.</p>
+
+<div class="card-container" id="projectsContainer">
+    @foreach (var project in Model.OrderByDescending(p => p.DisplayOrder))
+    {
+        <div class="card project-card card-clickable"
+             onclick="window.location.href='@Url.Action("Details", "Home", new { area = "User", id = project.Id })'"
+             data-title="@project.Title"
+             data-description="@project.longDescription"
+             data-acronym="@project.ProjectAcronym"
+             data-tags="@project.Tags"
+             data-kurzeBeschreibung="@project.KurzeBeschreibung"
+             data-year="@project.ReleaseYear"
+             data-version="@project.Version"
+             data-lizenz="@project.Lizenz"
+             data-openSource="@project.OpenSource"
+             data-creativeCommons="@project.CreativeCommons"
+             data-url="@project.Url"
+             data-dokuLink="@project.DokuLink"
+             data-downloadUrl="@project.DownloadURL"
+           @*   data-videoUrl="@project.VideoUrl" *@
+             data-projectResponsibility="@project.ProjectResponsibility"
+            @*  data-foerderung="@project.Foerderung" *@
+             data-projectDevelopment="@project.ProjectDevelopment"
+            @*  data-projectLeadership="@project.ProjectLeadership"
+             data-projectManagement="@project.ProjectManagement"
+             data-projectPartners="@project.ProjectPartners"
+             data-netzwerk="@project.Netzwerk"
+             data-expertise="@project.Expertise"
+             data-projectCoordination="@project.ProjectCoordination"
+             data-projectConception="@project.ProjectConception"
+             data-projectSupport="@project.ProjectSupport" *@
+             data-zusaetzlicheInformationen="@project.zusaetzlicheInformationen"
+            @*  data-development="@project.Development"
+             data-softwareDevelopers="@project.SoftwareDevelopers"
+             data-programming="@project.Programming"
+             data-design="@project.Design"
+             data-didacticDesign="@project.DidacticDesign"
+             data-mediaDesign="@project.MediaDesign"
+             data-uxDesign="@project.UXDesign"
+             data-interactionDesign="@project.InteractionDesign"
+             data-soundDesign="@project.SoundDesign"
+             data-threeDArtist="@project.ThreeDArtist"
+             data-didactics="@project.Didactics" *@
+            @*  data-contentDevelopment="@project.ContentDevelopment"
+             data-storyDesign="@project.StoryDesign"
+             data-research="@project.Research"
+             data-evaluation="@project.Evaluation"
+             data-primaryTargetGroup="@project.PrimaryTargetGroup" *@
+             data-projectGoals="@project.ProjectGoals"
+            @*  data-taxonomyLevel="@project.TaxonomyLevel"
+             data-methods="@project.Methods" *@
+             data-applications="@project.Applications"
+             @* data-recommendations="@project.Recommendations" *@
+             data-documents="@project.Documents"
+             data-references="@project.References"
+             data-media="@project.Media"
+             data-category="@project.CategoryIds"
+             data-fachgruppen="@project.FachgruppenIds"
+             data-fakultaet="@project.FakultaetIds"
+             data-techAnforderungen="@project.TechAnforderungIds">
+
+            <div style="position: relative;">
+                <img class="card-img-top"
+                     src="@((project.Images?.FirstOrDefault(i => i.IsMainImage)?.Url) 
+                            ?? (project.Images?.FirstOrDefault()?.Url))"
+                     alt="@project.Title" />
+            @*     <span class="status-label position-absolute top-0 end-0">
+                     @Html.Raw(ProjectHelper.GetFormattedStatus(project.Status.ToString())) 
+                </span> *@
+            </div>
+
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(project.Tags))
+                {
+                    var tags = project.Tags.Split(',').Take(3);
+                    <div class="tag-scroll">
+                        <p>
+                            @foreach (var tag in tags)
+                            {
+                                <span class="badge bg-secondary me-1">@tag.Trim()</span>
+                            }
+                        </p>
+                    </div>
+                }
+                <h5 class="card-title">@project.Title</h5>
+                <p class="card-text">@project.KurzeBeschreibung</p>
+
+             
+
+                <!-- Optional: Keep the button if desired, even though the card is clickable -->
+                <a href="@Url.Action("Details", "Home", new { area = "User", id = project.Id })"
+                   class="btn mehrEfrahrenbtn">
+                    Mehr erfahren
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- PAGINATION container for numbered links -->
+<div id="paginationContainer" class="d-flex justify-content-center mt-3"></div>
+
+
+<!-- ===============================
+     Scripts: Filters + Pagination
+=============================== -->
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Which filters we have (buttons, content, checkboxes, dataAttr)
+        const dropdowns = [
+            { button: 'categoryDropdownButton', content: 'categoryDropdownContent', checkboxes: 'category-checkbox', dataAttr: 'data-category' },
+            { button: 'fachgruppenDropdownButton', content: 'fachgruppenDropdownContent', checkboxes: 'fachgruppen-checkbox', dataAttr: 'data-fachgruppen' },
+            { button: 'fakultaetDropdownButton', content: 'fakultaetDropdownContent', checkboxes: 'fakultaet-checkbox', dataAttr: 'data-fakultaet' },
+            { button: 'techDropdownButton', content: 'techDropdownContent', checkboxes: 'tech-checkbox', dataAttr: 'data-techAnforderungen' }
+        ];
+
+        const projectCards = [...document.querySelectorAll('.project-card')];
+        const noResults = document.getElementById('noResults');
+        const searchInput = document.getElementById('searchInput');
+        const paginationContainer = document.getElementById('paginationContainer');
+
+        let currentPage = 1;
+        let pageSize = 24;
+        const MAX_PAGE_LINKS = 5;
+
+        function showPage(cards, page, pageSize) {
+            cards.forEach(c => c.style.display = 'none');
+            const startIndex = (page - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            cards.slice(startIndex, endIndex).forEach(c => c.style.display = '');
+        }
+
+        function createPageButton(pageNumber, label = null) {
+            const btn = document.createElement('button');
+            btn.classList.add('pagination-btn');
+            btn.textContent = label || pageNumber;
+
+            if (pageNumber === currentPage) {
+                btn.classList.add('active');
+            }
+
+            btn.addEventListener('click', () => {
+                currentPage = pageNumber;
+                filterProjects();
+            });
+            return btn;
+        }
+
+        function updatePaginationLinks(totalItems, pageSize) {
+            paginationContainer.innerHTML = '';
+            const pageCount = Math.ceil(totalItems / pageSize);
+            if (pageCount <= 1) return;
+
+            // Prev
+            const prevBtn = createPageButton(currentPage - 1, '«');
+            if (currentPage <= 1) prevBtn.classList.add('disabled');
+            paginationContainer.appendChild(prevBtn);
+
+            // Range
+            let startPage = Math.max(1, currentPage - Math.floor(MAX_PAGE_LINKS / 2));
+            let endPage = startPage + MAX_PAGE_LINKS - 1;
+            if (endPage > pageCount) {
+                endPage = pageCount;
+                startPage = Math.max(1, endPage - MAX_PAGE_LINKS + 1);
+            }
+            for (let i = startPage; i <= endPage; i++) {
+                paginationContainer.appendChild(createPageButton(i));
+            }
+
+            // Next
+            const nextBtn = createPageButton(currentPage + 1, '»');
+            if (currentPage >= pageCount) nextBtn.classList.add('disabled');
+            paginationContainer.appendChild(nextBtn);
+        }
+
+        function getSelectedValues(checkboxes) {
+            return [...checkboxes].filter(cb => cb.checked).map(cb => cb.value);
+        }
+
+        function matchesSelectedValues(cardValues, selectedValues) {
+            if (!selectedValues.length) return true;
+            if (!cardValues) return false;
+            const arr = cardValues.split(',').map(v => v.trim());
+            return selectedValues.some(val => arr.includes(val));
+        }
+
+        function filterProjects() {
+            const searchTerm = searchInput.value.toLowerCase();
+
+            let filtered = projectCards.filter(card => {
+                let visible = true;
+                const fields = [
+                    card.dataset.title,
+                    card.dataset.kurzeBeschreibung,
+                    card.dataset.description,
+                    card.dataset.tags,
+                    card.dataset.acronym,
+                    card.dataset.version,
+                    card.dataset.year,
+                    card.dataset.lizenz,
+                    card.dataset.openSource,
+                    card.dataset.creativeCommons,
+                    card.dataset.url,
+                    card.dataset.dokuLink,
+                    card.dataset.downloadUrl,
+                    card.dataset.videoUrl,
+                    card.dataset.projectResponsibility,
+                    card.dataset.foerderung,
+                    card.dataset.projectDevelopment,
+                    card.dataset.projectLeadership,
+                    card.dataset.projectManagement,
+                    card.dataset.projectPartners,
+                    card.dataset.netzwerk,
+                    card.dataset.expertise,
+                    card.dataset.projectCoordination,
+                    card.dataset.projectConception,
+                    card.dataset.projectSupport,
+                    card.dataset.zusaetzlicheInformationen,
+                    card.dataset.development,
+                    card.dataset.softwareDevelopers,
+                    card.dataset.programming,
+                    card.dataset.design,
+                    card.dataset.didacticDesign,
+                    card.dataset.mediaDesign,
+                    card.dataset.uxDesign,
+                    card.dataset.interactionDesign,
+                    card.dataset.soundDesign,
+                    card.dataset.threeDArtist,
+                    card.dataset.didactics,
+                    card.dataset.contentDevelopment,
+                    card.dataset.storyDesign,
+                    card.dataset.research,
+                    card.dataset.evaluation,
+                    card.dataset.primaryTargetGroup,
+                    card.dataset.projectGoals,
+                    card.dataset.taxonomyLevel,
+                    card.dataset.methods,
+                    card.dataset.applications,
+                    card.dataset.recommendations,
+                    card.dataset.documents,
+                    card.dataset.references,
+                    card.dataset.media
+                ].map(a => (a || '').toLowerCase());
+
+                // text search
+                if (searchTerm) {
+                    const foundSearch = fields.some(f => f.includes(searchTerm));
+                    if (!foundSearch) visible = false;
+                }
+
+                // checkboxes
+                dropdowns.forEach(d => {
+                    const cbs = document.querySelectorAll(`.${d.checkboxes}`);
+                    const selectedVals = getSelectedValues(cbs);
+                    const cardVals = card.getAttribute(d.dataAttr) || '';
+                    if (!matchesSelectedValues(cardVals, selectedVals)) {
+                        visible = false;
+                    }
+                });
+
+                return visible;
+            });
+                // -------------------------------------------------------------------------
+         
+
+                const updateClearButtonHighlight = () => {
+                    const anyChecked = document.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+                    const clearBtn = document.getElementById('clearFiltersBtn');
+                    if (clearBtn) {
+                        clearBtn.classList.toggle('highlighted', anyChecked);
+                    }
+                };
+
+                clearFiltersBtn.addEventListener('click', () => {
+                    document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+                    searchInput.value = '';
+                    filterProjects();
+                    dropdowns.forEach(d => {
+                        const btn = document.getElementById(d.button);
+                        btn.classList.remove('active-filter');
+                    });
+                    updateClearButtonHighlight();
+                });
+            // -------------------------------------------------------------------------
+            projectCards.forEach(c => c.style.display = 'none');
+
+            if (!filtered.length) {
+                noResults.style.display = 'block';
+                updatePaginationLinks(0, pageSize);
+                return;
+            }
+            noResults.style.display = 'none';
+
+            const pageCount = Math.ceil(filtered.length / pageSize);
+            if (currentPage > pageCount && pageCount > 0) {
+                currentPage = pageCount;
+            } else if (currentPage < 1) {
+                currentPage = 1;
+            }
+
+            showPage(filtered, currentPage, pageSize);
+            updatePaginationLinks(filtered.length, pageSize);
+        }
+
+            // attach events
+            dropdowns.forEach(d => {
+                const btn = document.getElementById(d.button);
+                const content = document.getElementById(d.content);
+                const cbs = document.querySelectorAll(`.${d.checkboxes}`);
+
+        @*  btn.addEventListener('click', () => content.classList.toggle('show')); *@
+
+                       const highlightFilterButton = (checkboxClass, buttonId) => {
+                    const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
+                    const button = document.getElementById(buttonId);
+                    const isActive = Array.from(checkboxes).some(cb => cb.checked);
+                    if (isActive) {
+                        button.classList.add('active-filter');
+                    } else {
+                        button.classList.remove('active-filter');
+                    }
+                };
+
+                btn.addEventListener('click', () => content.classList.toggle('show'));
+                cbs.forEach(cb => cb.addEventListener('change', () => {
+                    currentPage = 1;
+                    filterProjects();
+                    highlightFilterButton(d.checkboxes, d.button);
+                }));
+                highlightFilterButton(d.checkboxes, d.button);
+
+
+                document.addEventListener('click', e => {
+                    if (!btn.contains(e.target) && !content.contains(e.target)) {
+                        content.classList.remove('show');
+                    }
+                });
+
+                cbs.forEach(cb => cb.addEventListener('change', () => {
+                    currentPage = 1;
+                    filterProjects();
+                }));
+            });
+
+            searchInput.addEventListener('input', () => {
+                currentPage = 1;
+                filterProjects();
+            });
+
+            filterProjects();
+
+        // optional search bar open/close
+        const searchContainer = document.querySelector('.search-container');
+        const searchIcon = document.querySelector('.search-icon');
+        if (searchContainer && searchIcon) {
+            searchIcon.addEventListener('click', function () {
+                searchContainer.classList.add('active');
+                searchInput.classList.add('expanded');
+                searchInput.focus();
+            });
+            document.addEventListener('click', function (e) {
+                if (!searchContainer.contains(e.target)) {
+                    searchContainer.classList.remove('active');
+                    searchInput.classList.remove('expanded');
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input'));
+                }
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleFiltersButton = document.getElementById('toggleFilters');
+        const filterButtons = document.getElementById('filterButtons');
+
+        toggleFiltersButton.addEventListener('click', function () {
+            if (filterButtons.classList.contains('show')) {
+                filterButtons.style.opacity = '0';
+                setTimeout(() => {
+                    filterButtons.classList.remove('show');
+                    filterButtons.style.display = 'none';
+                }, 500);
+                toggleFiltersButton.innerHTML = '<i class="bi bi-funnel"></i> Filter Einblenden';
+            } else {
+                filterButtons.style.display = 'block';
+                setTimeout(() => {
+                    filterButtons.classList.add('show');
+                    filterButtons.style.opacity = '1';
+                }, 10);
+                toggleFiltersButton.innerHTML = '<i class="bi bi-funnel-fill"></i> Filter Ausblenden';
+            }
+        });
+    });
+    document.querySelectorAll('.card-text').forEach(function (element) {
+        let sanitizedText = element.innerHTML
+            // Remove HTML tags
+            .replace(/<\/?p>/gi, '') // <p> tags
+            .replace(/<\/?b>/gi, '') // <b> tags
+            .replace(/<\/?strong>/gi, '') // <strong> tags
+            .replace(/<\/?br>/gi, '') // <br> tags
+            .replace(/<\/?ul>/gi, '') // <ul> tags
+            .replace(/<\/?ol>/gi, '') // <ol> tags
+            .replace(/<\/?li>/gi, '') // <li> tags
+            .replace(/<\/?blockquote>/gi, '') // <blockquote> tags
+
+            // Handle encoded entities for HTML tags
+            .replace(/&lt;p&gt;/gi, ' ') // Encoded <p> tags
+            .replace(/&lt;\/p&gt;/gi, ' ') // Encoded </p> tags
+            .replace(/&lt;ul&gt;/gi, ' ') // Encoded <ul> tags
+            .replace(/&lt;\/ul&gt;/gi, ' ') // Encoded </ul> tags
+            .replace(/&lt;ol&gt;/gi, ' ') // Encoded <ol> tags
+            .replace(/&lt;\/ol&gt;/gi, ' ') // Encoded </ol> tags
+            .replace(/&lt;li&gt;/gi, ' ') // Encoded <li> tags
+            .replace(/&lt;\/li&gt;/gi, ' ') // Encoded </li> tags
+            .replace(/&lt;blockquote&gt;/gi, ' ') // Encoded <blockquote> tags
+            .replace(/&lt;\/blockquote&gt;/gi, ' ') // Encoded </blockquote> tags
+            .replace(/&lt;strong&gt;/gi, ' ') // Encoded <strong> tags
+            .replace(/&lt;\/strong&gt;/gi, ' ') // Encoded </strong> tags
+            .replace(/&lt;br\/&gt;/gi, ' ') // Encoded <br> tags
+
+            // Remove additional non-breaking spaces or special characters
+            .replace(/&nbsp;/gi, ' ') // Non-breaking spaces
+            .replace(/&lt;/gi, '<') // Encoded <
+            .replace(/&gt;/gi, '>') // Encoded >
+
+            // Remove any remaining encoded tags (safety net)
+            .replace(/<\/?[a-z][a-z0-9]*[^<>]*>/gi, ''); // Matches any HTML-like tags
+
+        console.log(sanitizedText)
+        // Update the sanitized text back into the element
+        element.innerHTML = sanitizedText.trim();
+    });
+
+
+
+</script>
+}

@@ -1,0 +1,215 @@
+﻿@model IEnumerable<PromptWord>
+@{
+    ViewData["Title"] = "Prompt Keys-Managment";
+}
+
+<style>
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .form-section {
+        background: #fff;
+        border: 1px solid #e4e4e4;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        transition: box-shadow .25s,transform .25s;
+    }
+
+        .form-section:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,.12);
+            transform: translateY(-2px);
+        }
+
+    .section-title {
+        color: #333;
+        border-bottom: 1px solid #e4e4e4;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 1.3rem;
+    }
+
+    .btn-black {
+        background: #000;
+        color: #fff;
+        border: 1px solid #000;
+    }
+
+        .btn-black:hover {
+            background: #333;
+            border-color: #333;
+            color: #fff;
+        }
+
+    .btn-primary {
+        background: #00d084;
+        border: 1px solid #00d084;
+        color: #fff;
+        padding: 8px 18px;
+        font-weight: 500;
+    }
+
+        .btn-primary:hover {
+            background: #3b74d4;
+            border-color: #3b74d4;
+            box-shadow: 0 6px 18px rgba(74,134,232,.3);
+        }
+
+    .btn-success {
+        background: #00d084;
+        border-color: #00d084;
+    }
+        /* unify “Neu” with primary look */
+        .btn-success:hover {
+            background: #3b74d4;
+            border-color: #3b74d4;
+        }
+
+    .btn-secondary {
+        background: #f0ad4e;
+        border: 1px solid #e2e2e2;
+        color: #444;
+        padding: 8px 18px;
+    }
+
+    .btn-warning {
+      
+        padding: 8px 18px;
+    }
+
+        .btn-secondary:hover {
+            background: #e6e6e6;
+            color: black;
+            border-color: #d9d9d9;
+        }
+
+    .table thead th {
+        background: #fafafa;
+        font-weight: 600;
+        border-bottom: 1px solid #e4e4e4;
+    }
+
+    .table tbody tr td {
+        vertical-align: middle;
+    }
+
+    .handle {
+        cursor: grab;
+        width: 48px;
+        text-align: center;
+    }
+
+        .handle i {
+            font-size: 1.2rem;
+            color: #888;
+        }
+
+    .actions-wrap .btn {
+        padding: 6px 12px;
+    }
+    /* gleiche Größe */
+
+</style>
+
+
+
+<div class="mt-4">
+    <h2 class="mb-4 ">Prompt Keys verwalten</h2>
+
+    <div class="form-section">
+        <h3 class="section-title"><i class="fas fa-list-ul me-2"></i>Wort‑/Verb‑Tastatur verwalten</h3>
+
+        <div class="d-flex justify-content-end mb-3">
+            <a asp-action="Upsert" class="btn btn-black">
+                <i class="bi bi-plus-circle me-1"></i> Prompt Key
+            </a>
+        </div>
+
+        @Html.AntiForgeryToken()
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width:60px">#</th>
+                    <th>Text</th>
+                    <th style="width:170px" class="text-center">Aktion</th>
+                </tr>
+            </thead>
+            <tbody id="sortable">
+                @foreach (var w in Model.OrderBy(x => x.Text))
+                {
+                    <tr data-id="@w.Id">
+                        <td class="handle"><i class="bi bi-list"></i></td>
+                        <td>@w.Text</td>
+                        <td class="text-center">
+                            <div class="d-inline-flex justify-content-center gap-2 actions-wrap">
+                                <a asp-action="Upsert" asp-route-id="@w.Id"
+                                   class="btn btn-sm btn-warning" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm btn-danger btn-delete"
+                                        title="Löschen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+        <div class="d-flex justify-content-end mb-3">
+            <a asp-action="Upsert" class="btn btn-black">
+                <i class="bi bi-plus-circle me-1"></i> Prompt Key hinzufügen
+            </a>
+        </div>
+    </div>
+  
+</div>
+
+@section Scripts {
+    <script>
+        // Drag & drop sorting
+        // $("#sortable").sortable({
+        //     handle: ".handle",
+        //     update: function () {
+        //         const ids = $("#sortable tr").map((_, r) => $(r).data("id")).get();
+        //         fetch("@Url.Action("Sort")", {
+        //             method: "POST",
+        //             headers: {
+        //                 "Content-Type": "application/json",
+        //                 "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').val()
+        //             },
+        //             body: JSON.stringify(ids)
+        //         });
+        //     }
+        // });
+
+       $(".btn-delete").on("click", function () {
+    const id = $(this).closest("tr").data("id");
+    Swal.fire({
+        title: "Löschen?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ja",
+        cancelButtonText: "Abbrechen"
+    }).then(r => {
+        if (!r.isConfirmed) return;
+
+        fetch(`@Url.Action("Delete")?id=${id}`, {          // id als Query
+            method: "POST",
+            headers: {
+                "RequestVerificationToken":
+                   $('input[name="__RequestVerificationToken"]').val()
+            }
+        }).then(res => res.ok && location.reload());
+    });
+});
+
+    </script>
+}

@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+@using Microsoft.AspNetCore.Identity
+@using ProjectsWebApp.DataAccsess.Services.Interfaces
+@inject SignInManager<IdentityUser> SignInManager
+@inject IContactEmailService ContactEmailService
+@inject UserManager<IdentityUser> UserManager
+
+
+
+<!--
+    
+Software Development: FiroTech
+Fachliche und prototypische Entwicklerin des Assistenz- und Trainingssystems PromptCoach: Dr. Heike Seehagen-Marx
+
+Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
+-->
+@{
+    var areaName = ViewContext?.RouteData?.Values["area"]?.ToString() ?? string.Empty;
+    var isAdmin = string.Equals(areaName, "Admin", StringComparison.OrdinalIgnoreCase);
+}
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] </title>
+    <link rel="icon" type="image/x-icon" href="/logo-PromptCoach-transparenz.svg">
+
+  <base href="@Context.Request.PathBase/" />
+
+
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <!-- Toastr & DataTables -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+    <link rel="stylesheet" href="//cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+
+    <!-- Font Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Summernote (used as primary rich-text editor in admin forms) -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.css" rel="stylesheet">
+
+    <!-- CKEditor 5 (kept for complex pages like Prompt-Entwicklung) -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/37.1.0/classic/ckeditor.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    @if (isAdmin)
+    {
+        <link rel="stylesheet" href="~/css/admin-responsive.css" asp-append-version="true" />
+    }
+</head>
+
+<style>
+
+    .active-nav-link {
+        border-bottom: 3px solid white;
+    }
+
+    /* ============================================================
+       NAVBAR LOGO - Responsive sizing for iPads & Tablets
+       ============================================================ */
+    .brand-logo {
+        height: 75px !important;
+        width: auto !important;
+        max-width: none !important; /* Override img-fluid constraint */
+        transition: height 0.2s ease;
+    }
+
+    /* iPad Pro Landscape & Large Tablets (1024px - 1366px) */
+    @@media (min-width: 992px) and (max-width: 1400px) {
+        .brand-logo {
+            height: 150px !important;
+        }
+    }
+
+    /* iPad Pro Portrait & Tablets (768px - 1024px) */
+    @@media (min-width: 768px) and (max-width: 991px) {
+        .brand-logo {
+            height: 130px !important;
+        }
+
+        .navbar-brand {
+            padding-left: 1rem !important;
+        }
+    }
+
+    @@media (min-width: 768px) and (max-width: 1199px) {
+        .headerSubdomains > .container {
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: .75rem !important;
+            padding-right: .75rem !important;
+        }
+
+        .headerSubdomains p {
+            padding-left: .75rem !important;
+            padding-right: .75rem !important;
+        }
+    }
+
+    /* Collapsed navbar / Mobile (< 768px) */
+    @@media (max-width: 767px) {
+        .brand-logo {
+            height: 55px !important;
+        }
+
+        .navbar-brand {
+            padding-left: 0.5rem !important;
+        }
+    }
+
+    /* Very small screens */
+    @@media (max-width: 480px) {
+        .brand-logo {
+            height: 45px !important;
+        }
+    }
+
+    /* ============================================================
+       Mobile/Tablet Navbar - Clean Full-Width Dropdown
+       ============================================================ */
+    @@media (max-width: 1199px) {
+        /* Stable header row */
+        .navbar .container-fluid {
+            position: relative;
+        }
+
+        /* Prevent logo movement */
+        .navbar-brand {
+            flex: 0 0 auto;
+        }
+
+        /* Better hamburger button */
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-toggler-icon {
+            width: 1.75em;
+            height: 1.75em;
+        }
+
+        /* Full-width collapse container */
+        .navbar-collapse {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #7daa15 0%, #6d9412 100%);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+            border-radius: 0 0 16px 16px;
+            padding: 0.5rem;
+            margin: 0 !important;
+            z-index: 1050;
+        }
+
+        /* Nav items container */
+        .navbar-collapse .navbar-nav {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.5rem;
+            gap: 0.25rem;
+        }
+
+        /* Individual nav links */
+        .navbar-collapse .nav-link {
+            color: #fff !important;
+            font-size: 1.05rem;
+            font-weight: 500;
+            padding: 0.9rem 1.25rem;
+            border-radius: 10px;
+            text-align: center;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .navbar-collapse .nav-link:hover,
+        .navbar-collapse .nav-link:focus {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+        }
+
+        .navbar-collapse .nav-link.active-nav-link {
+            background: rgba(255, 255, 255, 0.22);
+            border-bottom: none;
+        }
+
+        /* Remove default active border on mobile */
+        .navbar-collapse .active-nav-link {
+            border-bottom: none !important;
+        }
+    }
+
+    /* Desktop - reset to normal */
+    @@media (min-width: 1200px) {
+        .navbar-collapse {
+            position: static;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+        }
+
+        .navbar-collapse .navbar-nav {
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .navbar-collapse .nav-link {
+            text-align: left;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+
+        .navbar-collapse .nav-link:hover {
+            transform: none;
+            background: transparent;
+        }
+    }
+
+</style>
+
+<!-- Accessibility Toolbar Styles -->
+<style>
+    /* ============================================================
+       ACCESSIBILITY TOOLBAR - Kontrast & Schriftgröße Dropdowns
+       ============================================================ */
+
+    /* Top toolbar buttons */
+    .accessibility-btn,
+    .uebersicht-btn,
+    .leichteSprache-btn {
+        font-size: 0.9rem !important;
+        font-weight: 500;
+        color: #374151 !important;
+        padding: 0.5rem 0.85rem !important;
+        border-radius: 8px !important;
+        transition: background 0.2s ease, color 0.2s ease !important;
+        border: none !important;
+    }
+
+    .accessibility-btn:hover,
+    .uebersicht-btn:hover,
+    .leichteSprache-btn:hover {
+        background: rgba(137, 186, 23, 0.12) !important;
+        color: #6d9412 !important;
+    }
+
+    .accessibility-btn:focus,
+    .uebersicht-btn:focus,
+    .leichteSprache-btn:focus {
+        box-shadow: none !important;
+        outline: 2px solid #89ba17 !important;
+        outline-offset: 2px;
+    }
+
+    .accessibility-btn i {
+        transition: transform 0.2s ease;
+    }
+
+    .accessibility-btn:hover i {
+        transform: rotate(15deg);
+    }
+
+    /* Contrast dropdown menu */
+    .contrast-menu {
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+        padding: 0.5rem !important;
+        min-width: 240px !important;
+        margin-top: 0.25rem !important;
+    }
+
+    .contrast-menu .dropdown-header {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #6d9412;
+        padding: 0.75rem 1rem 0.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Contrast option buttons */
+    .contrast-option {
+        display: flex !important;
+        align-items: center !important;
+        padding: 0.65rem 1rem !important;
+        border-radius: 8px !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        color: #374151 !important;
+        background: transparent !important;
+        border: none !important;
+        width: 100%;
+        text-align: left;
+        transition: background 0.15s ease, color 0.15s ease !important;
+        margin: 2px 0;
+    }
+
+    .contrast-option i:first-child {
+        font-size: 1rem;
+        width: 24px;
+        color: #6b7280;
+        transition: color 0.15s ease;
+    }
+
+    .contrast-option:hover {
+        background: rgba(137, 186, 23, 0.12) !important;
+        color: #4a7c10 !important;
+    }
+
+    .contrast-option:hover i:first-child {
+        color: #89ba17;
+    }
+
+    .contrast-option:focus {
+        outline: none !important;
+        box-shadow: inset 0 0 0 2px rgba(137, 186, 23, 0.4) !important;
+    }
+
+    /* Active/selected state */
+    .contrast-option.active {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%) !important;
+        color: #fff !important;
+    }
+
+    .contrast-option.active i:first-child {
+        color: #fff !important;
+    }
+
+    .contrast-option.active:hover {
+        background: linear-gradient(135deg, #7aa814 0%, #5f820f 100%) !important;
+    }
+
+    /* Checkmark styling */
+    .contrast-option .check-mark {
+        margin-left: auto;
+        color: #89ba17;
+        font-size: 1.1rem;
+        display: none;
+    }
+
+    .contrast-option.active .check-mark {
+        display: inline-flex !important;
+        color: #fff !important;
+    }
+
+    /* Dropdown divider */
+    .contrast-menu .dropdown-divider {
+        margin: 0.5rem 0.75rem;
+        border-color: #e5e7eb;
+    }
+
+    /* WCAG info footer */
+    .contrast-menu .text-muted {
+        font-size: 0.75rem;
+        color: #6b7280 !important;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .contrast-menu .text-muted i {
+        color: #89ba17;
+    }
+
+    /* Font size dropdown styling */
+    #fontSizeDropdown {
+        font-size: 0.9rem !important;
+        font-weight: 500;
+        color: #374151 !important;
+        padding: 0.5rem 0.85rem !important;
+        border-radius: 8px !important;
+        transition: background 0.2s ease, color 0.2s ease !important;
+    }
+
+    #fontSizeDropdown:hover {
+        background: rgba(137, 186, 23, 0.12) !important;
+        color: #6d9412 !important;
+    }
+
+    #fontSizeDropdown:focus {
+        box-shadow: none !important;
+        outline: 2px solid #89ba17 !important;
+        outline-offset: 2px;
+    }
+
+    .dropdown-menu[aria-labelledby="fontSizeDropdown"] {
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+        margin-top: 0.25rem !important;
+    }
+
+    .dropdown-menu[aria-labelledby="fontSizeDropdown"] .form-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.85rem;
+    }
+
+    /* Custom range slider */
+    #fontSlider {
+        accent-color: #89ba17;
+    }
+
+    #fontSlider::-webkit-slider-thumb {
+        cursor: pointer;
+    }
+
+    #fontValueLabel {
+        font-weight: 600;
+        color: #6d9412;
+    }
+</style>
+
+<style>
+    :root {
+        --primary-dark: #191919;
+        --primary-light: #f1f1f1;
+        --accent-color: #4e9a51;
+        --light-gray: #e0e0e0;
+    }
+
+
+    /* ============================================================
+       IMPROVED FOOTER STYLES - Fully Responsive
+       ============================================================ */
+    .footer {
+        background-color: #89ba17;
+        color: #ffffff;
+        padding: 3rem 0 1.5rem;
+        font-size: clamp(0.875rem, 1.5vw, 0.95rem);
+    }
+
+    .footer a {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        transition: all 0.25s ease;
+    }
+
+    .footer a:hover {
+        color: #ffffff;
+        text-decoration: none;
+    }
+
+    .footer-title {
+        display: inline-block;
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.5rem;
+        font-size: clamp(1.05rem, 2vw, 1.15rem);
+        position: relative;
+        letter-spacing: 0.025em;
+    }
+
+    .footer-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.4);
+        border-radius: 2px;
+    }
+
+    .footer-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .footer-links li {
+        margin-bottom: 0.35rem;
+    }
+
+    .footer-links li:last-child {
+        margin-bottom: 0;
+    }
+
+    .footer-links a {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .footer-links a:hover {
+        transform: translateX(5px);
+    }
+
+    .footer-links a i {
+        transition: transform 0.2s ease;
+    }
+
+    .footer-links a:hover i {
+        transform: translateX(3px);
+    }
+
+    .footer-divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 2rem 0 1.5rem;
+    }
+
+    .footer-bottom {
+        padding-top: 0.5rem;
+        text-align: center;
+        font-size: 0.875rem;
+    }
+
+    .footer-bottom p {
+        margin: 0;
+        color: #fff;
+    }
+
+    .footer-logo {
+        max-height: 80px;
+        width: auto;
+        margin-bottom: 1.25rem;
+        opacity: 0.95;
+        transition: all 0.3s ease;
+    }
+
+    .footer-logo:hover {
+        opacity: 1;
+    }
+
+    .footer-description {
+        color: rgba(255, 255, 255, 0.95);
+        line-height: 1.7;
+        font-size: 0.9rem;
+    }
+
+    /* Legal links row */
+    .legal-links {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem 0;
+        margin-bottom: 1rem;
+    }
+
+    .legal-links a {
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.9rem !important;
+        color: #fff !important;
+        transition: all 0.2s ease;
+    }
+
+    .legal-links a:hover {
+        opacity: 0.85;
+    }
+
+    .legal-links-separator {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.5rem;
+        padding: 0 0.25rem;
+    }
+
+    /* ============================================================
+       FOOTER RESPONSIVE BREAKPOINTS
+       ============================================================ */
+
+    /* Large tablets and small desktops */
+    @@media (max-width: 992px) {
+        .footer {
+            padding: 2.5rem 0 1.25rem;
+        }
+
+        .footer-title {
+            font-size: 1.05rem;
+        }
+
+        .footer .col-md-6:last-child {
+            text-align: center;
+        }
+
+        .footer .col-md-6:last-child .text-md-end {
+            text-align: center !important;
+        }
+
+        .footer-description {
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+
+    /* Tablets */
+    @@media (max-width: 768px) {
+        .footer {
+            padding: 2rem 0 1rem;
+            text-align: center;
+        }
+
+        .footer .row {
+            gap: 1rem 0;
+        }
+
+        .footer .col-md-6 {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .footer .col-md-6:last-child {
+            margin-bottom: 0;
+        }
+
+        .footer-title {
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .footer-title::after {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .footer-links {
+            text-align: center;
+        }
+
+        .footer-links a {
+            justify-content: center;
+        }
+
+        .footer-links a:hover {
+            transform: none;
+        }
+
+        .footer-logo {
+            max-height: 70px;
+        }
+
+        .footer-description {
+            font-size: 0.875rem;
+            max-width: 100%;
+            padding: 0 1rem;
+        }
+
+        .footer-divider {
+            margin: 1.5rem 0 1rem;
+        }
+
+        .legal-links a {
+            font-size: 0.85rem !important;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .footer-bottom {
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Mobile phones */
+    @@media (max-width: 576px) {
+        .footer {
+            padding: 1.75rem 0 1rem;
+        }
+
+        .footer .col-md-6 {
+            margin-bottom: 1.25rem;
+        }
+
+        .footer-title {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-logo {
+            max-height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-description {
+            font-size: 0.825rem;
+            line-height: 1.6;
+        }
+
+        .legal-links {
+            flex-direction: column;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .legal-links a {
+            padding: 0.35rem 0;
+        }
+
+        .legal-links-separator {
+            display: none;
+        }
+
+        .footer-bottom {
+            font-size: 0.75rem;
+            padding-top: 0.25rem;
+        }
+
+        .footer-divider {
+            margin: 1.25rem 0 0.75rem;
+        }
+    }
+
+    /* Extra small devices */
+    @@media (max-width: 400px) {
+        .footer {
+            padding: 1.5rem 0 0.75rem;
+        }
+
+        .footer .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .footer-title {
+            font-size: 0.95rem;
+        }
+
+        .footer-links a {
+            font-size: 0.85rem;
+        }
+
+        .footer-logo {
+            max-height: 50px;
+        }
+
+        .footer-description {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<style>
+    .note-editor.note-frame {
+        border-radius: 0.5rem;
+        border-color: #ced4da;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+    }
+
+    .note-toolbar {
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    .note-editable {
+        background-color: #ffffff;
+        min-height: 220px;
+    }
+</style>
+
+
+<body class="d-flex flex-column min-vh-100 @(isAdmin ? "admin-area" : string.Empty)">
+    <!-- Wrapper section -->
+    <section class="section">
+        <!-- 1) Thin top toolbar -->
+        <div class="bg-light border-bottom" style="min-height: 40px;">
+            <div class="d-flex flex-wrap justify-content-end align-items-center" style="min-height: 40px; background:white;">
+
+                <a class="btn btn-link text-dark uebersicht-btn d-flex align-items-center flex-wrap"
+                   href="mailto:@ContactEmailService.GetEmail()"
+                   style="text-decoration: none; color: black; font-size: 1rem;">
+                    <span>E-Mail</span>
+                </a>
+
+
+
+                <!-- Übersicht Link styled as Button -->
+                <a class="btn btn-link text-dark uebersicht-btn d-flex align-items-center flex-wrap"
+                   asp-controller="Home" asp-area="user" asp-action="Uebersicht"
+                   style="text-decoration: none; color: black; font-size: 1rem;">
+                    <span>Übersicht</span>
+                </a>
+
+
+
+                <!-- Barrierefreiheit: Kontrast-Umschalter -->
+                <div class="dropdown">
+                    <button class="btn btn-link text-dark dropdown-toggle accessibility-btn" type="button"
+                            id="contrastDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                            aria-label="Kontrastmodus auswählen" style="text-decoration: none;">
+                        <i class="bi bi-circle-half me-1"></i>
+                        <span class="d-none d-sm-inline">Kontrast</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end contrast-menu" aria-labelledby="contrastDropdown">
+                        <li class="dropdown-header">Kontrastmodus</li>
+                        <li>
+                            <button class="dropdown-item contrast-option" data-contrast="normal" type="button">
+                                <i class="bi bi-sun me-2"></i>Standard
+                                <span class="check-mark ms-auto"><i class="bi bi-check-lg"></i></span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item contrast-option" data-contrast="high-contrast-dark" type="button">
+                                <i class="bi bi-moon-fill me-2"></i>Hoher Kontrast (Dunkel)
+                                <span class="check-mark ms-auto"><i class="bi bi-check-lg"></i></span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item contrast-option" data-contrast="high-contrast-light" type="button">
+                                <i class="bi bi-brightness-high me-2"></i>Hoher Kontrast (Hell)
+                                <span class="check-mark ms-auto"><i class="bi bi-check-lg"></i></span>
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="px-3 py-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                WCAG 2.1 AA konform
+                            </small>
+                        </li>
+                    </ul>
+                </div>
+
+
+                <!-- Schriftgröße Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-link text-dark dropdown-toggle" type="button" id="fontSizeDropdown"
+                            data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration: none;">
+                        <i class="fas fa-font me-1"></i> <span class="d-none d-sm-inline">Schriftgröße</span>
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="fontSizeDropdown" style="min-width: 220px;">
+                        <li>
+                            <label for="fontSlider" class="form-label mb-1">Textgröße:</label>
+                            <input type="range" id="fontSlider" min="80" max="150" step="5" value="100" class="form-range" />
+                            <div class="text-end small text-muted" id="fontValueLabel">100%</div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Leichte Sprache Link styled as Button -->
+                <a class="btn btn-link text-dark me-2 leichteSprache-btn"
+                   asp-controller="Home" asp-area="user" asp-action="Leichtesprache"
+                   style="text-decoration: none; color: black;">
+                    <span class="d-inline-block btn">
+                        <img src= "@Url.Content("~/images/Leichte_sprache_logo.svg")" alt="Leichte Sprache Icon" style="width: 16px; height: 16px; margin-right: 8px;" />
+                        <span class="d-none d-sm-inline">Leichte Sprache</span>
+                    </span>
+
+                </a>
+
+                @if (!SignInManager.IsSignedIn(User))
+                {
+                    <a class="btn btn-link text-dark ms-2"
+                       asp-area="Identity" asp-page="/Account/Login"
+                       style="text-decoration: none; color: black; font-size: 1rem;">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                        <span class="d-none d-sm-inline">Login</span>
+                    </a>
+                }
+
+            </div>
+        </div>
+
+
+        <!-- 2) Green Navbar with Responsive Behavior -->
+        <header>
+            <nav class="navbar navbar-expand-xl" style="background-color: #89ba17;" data-bs-theme="dark">
+               
+                <div class="container-fluid">
+                    <a class="navbar-brand me-auto ps-md-4 ps-lg-5" href="https://promptcoach.xr-adiqu.de/">
+                        <img src="@Url.Content("~/images/logo_header_white.svg")" style="height: 90px; width: auto; margin: 0 8px 0 0;" alt="App Logo" class="img-fluid brand-logo" />
+                    </a>
+
+                    <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="mainNavbar">
+
+                        <ul class="navbar-nav me-auto d-flex align-items-center gap-3 mb-0">
+                            <li class="nav-item mx-2">
+                                <!-- Removed <br/> and added flex alignment -->
+                              <a class="nav-link text-light d-flex align-items-center @IsActive("Home", "Home")"
+                                asp-area="User"
+                                asp-controller="Home"
+                                asp-action="Home"
+                                   style="height:50px; white-space: nowrap;">
+                                Prompt Coach
+                                </a>
+
+                            </li>
+
+                         @*    <li class="nav-item mx-2">
+                                <a class="nav-link text-light text-center @IsActive("Home", "Landing")"
+                                   asp-area="User" asp-controller="Home" asp-action="Landing"
+                                   style="height: 50px;">
+                                    Prompt<br class="d-sm-none" />
+                                    Engineering
+                                </a>
+                            </li> *@
+
+                            <li class="nav-item mx-2">
+                                <a class="nav-link text-light d-flex align-items-center @IsActive("Home", "PromptEngineering")"
+                                   asp-area="User"
+                                   asp-controller="Home"
+                                   asp-action="PromptEngineering"
+                                   style="height:50px; white-space: nowrap;">
+                                    Prompt Engineering
+                                </a>
+                            </li>
+
+
+                           @*  
+                            <li class="nav-item mx-2">
+                                <!-- Removed <br/> and added flex alignment -->
+                             
+                                <a class="nav-link text-light d-flex align-items-center @IsActive("Home", "Bibliothek")"
+                                    asp-area="User"
+                                    asp-controller="Home"
+                                    asp-action="Bibliothek"
+                                    style="height: 50px;">
+                                    Bibliothek
+                                </a>
+                            </li> *@
+
+                         @*    <li class="nav-item mx-2">
+                                <a class="nav-link text-light d-flex align-items-center"
+                                   asp-area="User"
+                                   asp-controller="Skills"
+                                   asp-action="Index"
+                                   style="height: 50px;">
+                                    Skills
+                                </a>
+                            </li> *@
+
+                            <li class="nav-item">
+                                <a class="nav-link text-light @IsActive("Home", "KIBar")"
+                                   asp-area="User"
+                                   asp-controller="Home"
+                                   asp-action="KIBar">KIBar</a>
+                            </li>
+
+              
+                          
+                          
+                            <li class="nav-item mx-2">
+                                <a class="nav-link text-light d-flex align-items-center @IsActive("Home", "Tipps")"
+                                   asp-area="User"
+                                   asp-controller="Home"
+                                   asp-action="Tipps"
+                                   style="height: 50px;">
+                                    Tipps
+                                </a>
+                            </li>
+
+                        
+                            <li class="nav-item mx-2">
+                                <a class="nav-link text-light d-flex align-items-center @IsActive("Home", "Kontakt")"
+                                   asp-area="User"
+                                   asp-controller="Home"
+                                   asp-action="Kontakt"
+                                   style="height: 50px;">
+                                    Kontakt
+                                </a>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </nav>
+
+        </header>
+
+        <!-- 2.5) Login Partial Row - Only show when logged in -->
+        @if (SignInManager.IsSignedIn(User))
+        {
+            <div class="border-top bg-dark border-bottom py-1 px-4 d-flex justify-content-end">
+                <div class="d-flex gap-3 align-items-center">
+                    <!-- Added flex container -->
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        }
+        <!-- 3) Thick subheader -->
+        <a class="thickSubheader" href="https://medienlabor.uni-wuppertal.de/apps/promptcoach/">
+            <div class="headerSubdomains" style="background-color: #f1f1f1;">
+                <div class="container" style="padding: 0;margin-top:0px">
+                    <div class="row position-relative align-items-center">
+                        <div class="col-9 d-flex align-items-center">
+                            <p class="mb-0 fs-4 fw-normal p-3">
+                                Prompt Coach
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </a>
+
+
+
+        <!-- 4) Main Content -->
+        <div class="mt-3">
+            <main role="main">
+                @await Component.InvokeAsync("Breadcrumb") <!-- ✅ HERE -->
+                <partial name="_Notification" />
+                @RenderBody()
+            </main>
+        </div>
+    </section>
+
+    <button id="scrollTopBtn" type="button" aria-label="Nach oben">
+        <i class="bi bi-arrow-up-short"></i>
+    </button>
+
+    <!-- Redesigned Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <!-- Quick Links -->
+                <div class="col-md-6 mb-4 mb-md-0 mt-5">
+                    <h5 class="footer-title">Schnellzugriff</h5>
+                    <ul class="footer-links">
+                        <li>
+                            <a asp-area="User"
+                               asp-controller="Home"
+                               asp-action="PromptEngineering"><i class="bi bi-arrow-right me-2"></i>Prompt Engineering</a>
+                        </li>
+                      @*   <li>
+                            <a asp-area="User"
+                               asp-controller="Home"
+                               asp-action="Bibliothek"><i class="bi bi-arrow-right me-2"></i>Bibliothek</a>
+                        </li> *@
+                        <li>
+                            <a asp-area="User"
+                               asp-controller="Home"
+                               asp-action="KIBar"><i class="bi bi-arrow-right me-2"></i>KIBar</a>
+                        </li>
+                        <li>
+                            <a asp-area="User"
+                               asp-controller="Home"
+                               asp-action="Tipps"><i class="bi bi-arrow-right me-2"></i>Tipps</a>
+                        </li>
+                        <li>
+                            <a asp-area="User"
+                               asp-controller="Home"
+                               asp-action="Kontakt"><i class="bi bi-arrow-right me-2"></i>Kontakt</a>
+                        </li>
+                    </ul>
+
+                  
+                </div>
+
+                <!-- Logo and Project Info -->
+                <div class="col-md-6 mt-5">
+                    <div class="text-center text-md-end">
+                        <img src="@Url.Content("~/logo-PromptCoach-transparenz.svg")" alt="Prompt Coach Logo" class="footer-logo">
+                        <p class="footer-description">Prompt Coach: Future Skills für den KI-Alltag.<br/>Essenzielles Wissen im Prompt-Engineering – für alle, die KI sicher, kreativ und berufsorientiert einsetzen möchten.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-divider"></div>
+
+            <!-- Legal Links -->
+            <div class="legal-links">
+                <a asp-area="User" asp-controller="Home" asp-action="Urheberrecht">Urheberrecht</a>
+                <span class="legal-links-separator">•</span>
+                <a asp-area="User" asp-controller="Home" asp-action="Impressum">Impressum</a>
+                <span class="legal-links-separator">•</span>
+                <a href="https://www.uni-wuppertal.de/de/datenschutz/" target="_blank">Datenschutz</a>
+            </div>
+
+            <!-- Copyright -->
+            <div class="footer-bottom">
+                <p>&copy; @DateTime.Now.Year Prompt Coach - Dr. Heike Seehagen-Marx</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- JavaScript Dependencies -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <!-- Summernote JS (depends on jQuery, load right after jQuery) -->
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/bibliothek-filters.js" asp-append-version="true"></script>
+
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/localization/messages_de.min.js"></script>
+    <!-- ✅ DataTables, SweetAlert & Toastr -->
+    <script src="//cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+
+    <!-- ✅ jQuery UI fallback -->
+    <script>
+        // ============================================================
+        // Barrierefreiheit: Kontrastmodus-Verwaltung (WCAG 2.1 AA)
+        // ============================================================
+        (function() {
+            const CONTRAST_MODES = ['normal', 'high-contrast-dark', 'high-contrast-light'];
+            const STORAGE_KEY = 'accessibilityContrastMode';
+
+            function setContrastMode(mode) {
+                // Remove all contrast classes
+                CONTRAST_MODES.forEach(m => {
+                    document.body.classList.remove(m);
+                    document.documentElement.classList.remove(m);
+                });
+
+                // Add new mode class (except for 'normal')
+                if (mode && mode !== 'normal') {
+                    document.body.classList.add(mode);
+                    document.documentElement.classList.add(mode);
+                }
+
+                // Save preference
+                localStorage.setItem(STORAGE_KEY, mode || 'normal');
+
+                // Update checkmarks in dropdown
+                document.querySelectorAll('.contrast-option').forEach(btn => {
+                    const isActive = btn.dataset.contrast === (mode || 'normal');
+                    btn.classList.toggle('active', isActive);
+                    const checkMark = btn.querySelector('.check-mark');
+                    if (checkMark) {
+                        checkMark.style.display = isActive ? 'inline' : 'none';
+                    }
+                });
+
+                // Announce change to screen readers
+                announceToScreenReader('Kontrastmodus geändert zu: ' + getModeName(mode));
+            }
+
+            function getModeName(mode) {
+                const names = {
+                    'normal': 'Standard',
+                    'high-contrast-dark': 'Hoher Kontrast (Dunkel)',
+                    'high-contrast-light': 'Hoher Kontrast (Hell)'
+                };
+                return names[mode] || 'Standard';
+            }
+
+            function announceToScreenReader(message) {
+                const announcement = document.createElement('div');
+                announcement.setAttribute('role', 'status');
+                announcement.setAttribute('aria-live', 'polite');
+                announcement.setAttribute('aria-atomic', 'true');
+                announcement.className = 'visually-hidden';
+                announcement.textContent = message;
+                document.body.appendChild(announcement);
+                setTimeout(() => announcement.remove(), 1000);
+            }
+
+            // Initialize on DOM ready
+            document.addEventListener('DOMContentLoaded', function() {
+                // Load saved preference
+                const savedMode = localStorage.getItem(STORAGE_KEY) || 'normal';
+                setContrastMode(savedMode);
+
+                // Attach click handlers to contrast options
+                document.querySelectorAll('.contrast-option').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const mode = this.dataset.contrast;
+                        setContrastMode(mode);
+                    });
+                });
+
+                // Support system preference for high contrast
+                if (window.matchMedia) {
+                    const prefersContrast = window.matchMedia('(prefers-contrast: more)');
+                    if (prefersContrast.matches && !localStorage.getItem(STORAGE_KEY)) {
+                        setContrastMode('high-contrast-dark');
+                    }
+                    prefersContrast.addEventListener('change', (e) => {
+                        if (e.matches && !localStorage.getItem(STORAGE_KEY)) {
+                            setContrastMode('high-contrast-dark');
+                        }
+                    });
+                }
+            });
+        })();
+
+        (function(){
+            try {
+                if (typeof window.jQuery === 'undefined' || typeof $.ui === 'undefined') {
+                    var s = document.createElement('script');
+                    s.src = 'https://code.jquery.com/ui/1.13.2/jquery-ui.min.js';
+                    s.defer = true;
+                    document.head.appendChild(s);
+                }
+            } catch {}
+        })();
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const slider = document.getElementById("fontSlider");
+            const label = document.getElementById("fontValueLabel");
+            const savedSize = localStorage.getItem("fontSizePercentage") || 100;
+
+            document.documentElement.style.fontSize = savedSize + '%';
+            slider.value = savedSize;
+            label.textContent = savedSize + '%';
+
+            slider.addEventListener("input", function () {
+                const size = slider.value;
+                document.documentElement.style.fontSize = size + '%';
+                localStorage.setItem("fontSizePercentage", size);
+                label.textContent = size + '%';
+            });
+        });
+    </script>
+    @functions {
+        public string IsActive(string controller, string action)
+        {
+            var routeData = ViewContext.RouteData;
+            var currentController = routeData.Values["controller"]?.ToString();
+            var currentAction = routeData.Values["action"]?.ToString();
+
+            return (controller == currentController && action == currentAction) ? "active-nav-link" : "";
+        }
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

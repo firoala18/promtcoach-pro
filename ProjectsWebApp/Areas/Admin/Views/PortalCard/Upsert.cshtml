@@ -1,0 +1,100 @@
+﻿@model PortalCard
+@{
+    ViewData["Title"] = "Startseite Text-Feld";
+}
+
+
+
+<div class="mt-5">
+    <h2>@(Model.Id == 0 ? "Text Feld hinzufügen" : "Text Feld bearbeiten")</h2>
+
+    <div class="d-flex justify-content-end mt-4">
+        <button type="submit" class="btn " style="background:black; color:white">
+            <i class="bi bi-check-lg me-1"></i> Speichern
+        </button>
+        <a asp-action="Index" class="btn btn-secondary ms-2">Abbrechen</a>
+    </div>
+    <form asp-action="Upsert" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+
+        <!-- Server‐side validation summary -->
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group">
+            <label asp-for="Title"><strong>Title</strong></label>
+            <input asp-for="Title" class="form-control" required />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="Content"><strong>Inhalt</strong></label>
+            <textarea id="Content"
+                      class="form-control"
+                      asp-for="Content"
+                      rows="5">@Html.Raw(Model.Content)</textarea>
+            <span asp-validation-for="Content" class="text-danger"></span>
+        </div>
+
+        <div class="d-flex justify-content-end mt-4">
+            <button type="submit" class="btn " style="background:black; color:white">
+                <i class="bi bi-check-lg me-1"></i> Speichern
+            </button>
+            <a asp-action="Index" class="btn btn-secondary ms-2">Abbrechen</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+
+            function uploadImage(file, $editor) {
+                var data = new FormData();
+                data.append('file', file);
+
+                $.ajax({
+                    url: '@Url.Action("UploadImage", "FileUpload", new { area = "Admin" })',
+                    type: 'POST',
+                    data: data,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        if (response && response.url) {
+                            $editor.summernote('insertImage', response.url);
+                        }
+                    },
+                    error: function () {
+                        alert('Das Bild konnte nicht hochgeladen werden.');
+                    }
+                });
+            }
+
+            $('#Content').summernote({
+                height: 350,
+                minHeight: 250,
+                tabsize: 2,
+                placeholder: 'Inhalt eingeben...',
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                    ['fontname', ['fontname']],
+                    ['fontsize', ['fontsize']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['insert', ['link', 'picture', 'table', 'hr']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ],
+                callbacks: {
+                    onImageUpload: function (files) {
+                        var $editor = $(this);
+                        for (var i = 0; i < files.length; i++) {
+                            uploadImage(files[i], $editor);
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
+

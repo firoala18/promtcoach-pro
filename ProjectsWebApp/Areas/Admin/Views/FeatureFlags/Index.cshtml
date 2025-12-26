@@ -1,0 +1,41 @@
+@model ProjectsWebApp.Models.PromptFeatureSetting
+@{
+    ViewData["Title"] = "Feature Flags";
+}
+
+<div class="py-4">
+    <h2 class="mb-3">Systemeinstellungen – Feature Flags</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="Set" method="post">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="ff-generate" name="enableFilterGeneration" value="true" @(Model.EnableFilterGeneration ? "checked" : "") />
+                    <label class="form-check-label" for="ff-generate">
+                        KI‑Filter‑Generierung erlauben (Button „Filter generieren“)
+                    </label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="ff-smart" name="enableSmartSelection" value="true" @(Model.EnableSmartSelection ? "checked" : "") />
+                    <label class="form-check-label" for="ff-smart">
+                        Smart Selection erlauben (Button „Smart Selection“)
+                    </label>
+                </div>
+                <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" id="ff-technique" name="enablePromptTechnique" value="true" @(((bool)(ViewBag.EnablePromptTechnique ?? true)) ? "checked" : "") />
+                    <label class="form-check-label" for="ff-technique">
+                        Prompt‑Techniken generieren erlauben (Button „Prompt generieren“ im Editor)
+                    </label>
+                </div>
+                <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" id="ff-analytics" name="enableAnalytics" value="true" @(((bool)(ViewBag.EnableAnalytics ?? true)) ? "checked" : "") />
+                    <label class="form-check-label" for="ff-analytics">
+                        Nutzungs‑Tracking (Analytics) aktivieren
+                    </label>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

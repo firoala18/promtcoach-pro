@@ -1,0 +1,277 @@
+﻿@{
+    var subject = $"Event Anfrage: {Model.Titel}";
+    var body = $"Ich bin interessiert am Event \"{Model.Titel}\" am {Model.Termin.ToString("dd.MM.yyyy")}";
+    var mailtoLink = $"mailto:{ViewBag.ContactEmail}?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(body)}";
+}
+
+
+<style>
+    /* Event Details Styles */
+    .event-detail-container {
+        width: 100%;
+        margin: 2rem 0;
+        padding: 0 1rem;
+    }
+
+    .event-detail-card {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .event-header {
+        padding: 2rem;
+        background: #90bc14;
+        background: linear-gradient(145deg, #90bc14 0%, #90bc14 100%);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        
+    }
+
+    .event-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .detail-item {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        padding: 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-icon {
+        font-size: 1.4rem;
+        min-width: 40px;
+        color: #90bc14;
+    }
+
+    .event-anfrage {
+        border: 2px solid #90bc14;
+        color: #90bc14;
+        background-color: transparent;
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+
+        .event-anfrage:hover {
+            background-color: #90bc14;
+            color: white;
+            box-shadow: 0 6px 18px rgba(144, 188, 20, 0.3);
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+
+    .detail-content {
+        flex: 1;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .detail-value {
+        color: #4b5563;
+        line-height: 1.6;
+    }
+
+    .alert-section {
+        padding: 1.25rem;
+        border-radius: 12px;
+        margin: 1.5rem 0;
+        border: 1px solid;
+        background: #fff;
+    }
+
+    .alert-info-custom {
+        border-color: #90bc14;
+        background: #f0f9eb;
+    }
+
+    .alert-warning-custom {
+        border-color: #f59e0b;
+        background: #fffbeb;
+    }
+
+    .description-section {
+        padding: 1.5rem;
+        background: #ffffff;
+        border-radius: 12px;
+        margin-top: 2rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .ck-content {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #374151;
+    }
+
+    .ck-content p {
+        margin-bottom: 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .event-title {
+            font-size: 1.8rem;
+        }
+        
+        .detail-item {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<div class="event-detail-container">
+    <div class="event-detail-card">
+        <div class="event-header">
+            <h1 class="event-title">@Model.Titel</h1>
+            <p class="mb-0 fs-5">
+                <i class="bi bi-calendar-event me-2"></i>
+                @Model.Termin.ToString("dd.MM.yyyy")
+            </p>
+        </div>
+
+      
+   
+
+        <div class="card-body p-4">
+
+            @if (Model.Startzeit != null && Model.Endzeit != null)
+            {
+                <div class="detail-item">
+                    <i class="bi bi-clock-fill detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Uhrzeit</span>
+                        <p class="detail-value mb-0">
+                            @Model.Startzeit.ToString(@"hh\:mm") – @Model.Endzeit.ToString(@"hh\:mm")
+                        </p>
+                    </div>
+                </div>
+            }
+
+
+            @if (!string.IsNullOrWhiteSpace(Model.Art))
+            {
+                <div class="detail-item">
+                    <i class="bi bi-bookmark-fill detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Art des Events</span>
+                        <p class="detail-value mb-0">@Model.Art</p>
+                    </div>
+                </div>
+            }
+
+
+            @if (!string.IsNullOrWhiteSpace(Model.Referent))
+            {
+                <div class="detail-item">
+                    <i class="bi bi-person-fill detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Referent*innen</span>
+                        <p class="detail-value mb-0">@Model.Referent</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Veranstaltungsort))
+            {
+                <div class="detail-item">
+                    <i class="bi bi-geo-alt-fill detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Veranstaltungsort</span>
+                        <p class="detail-value mb-0">@Model.Veranstaltungsort</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Organisation))
+            {
+                <div class="detail-item">
+                    <i class="bi bi-building  detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Organisation</span>
+                        <p class="detail-value mb-0">@Model.Organisation</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Arbeitseinheiten))
+            {
+                <div class="detail-item">
+                    <i class="bi bi-hourglass-split  detail-icon"></i>
+                    <div class="detail-content">
+                        <span class="detail-label">Arbeitseinheiten</span>
+                        <p class="detail-value mb-0">@Model.Arbeitseinheiten</p>
+                    </div>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Beschreibung))
+            {
+                <div class="description-section mb-3 ">
+                    <h3 class="d-flex align-items-center gap-2 mb-4">
+                        <i class="bi bi-journal-text detail-icon"></i>
+                        Veranstaltungsbeschreibung
+                    </h3>
+                    <div class="ck-content">@Html.Raw(Model.Beschreibung)</div>
+                </div>
+            }
+
+        
+
+            @if (!string.IsNullOrWhiteSpace(Model.InfosFuerTeilnehmer))
+            {
+                <div class="alert-section alert-info-custom">
+                    <h4 class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-info-circle-fill detail-icon"></i>
+                        Informationen für Teilnehmer
+                    </h4>
+                    <div class="ck-content">@Html.Raw(Model.InfosFuerTeilnehmer)</div>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.Hinweis))
+            {
+                @*     <div class="alert alert-warning mt-3">
+            <strong>⚠️ Hinweis</strong><br />
+            @Model.Hinweis
+            </div> *@
+
+                <div class="alert alert-warning">
+                    <h4 class="d-flex align-items-center gap-2 mb-3">
+                        @* <i class="bi bi-info-circle-fill text-success"></i> *@
+                        ⚠️ Hinweis
+                    </h4>
+                    <div class="ck-content">@Model.Hinweis</div>
+                </div>
+            }
+
+            <div class="d-flex justify-content-center mt-5">
+                <a href="@mailtoLink"
+                   class="btn event-anfrage d-flex align-items-center gap-2 px-4 py-2"
+                   title="Event Anfrage senden">
+                    <i class="bi bi-envelope-fill" style="font-size: 1.1rem;"></i>
+                    <span>Event Anfrage</span>
+                </a>
+            </div>
+
+
+      
+        </div>
+    </div>
+</div>

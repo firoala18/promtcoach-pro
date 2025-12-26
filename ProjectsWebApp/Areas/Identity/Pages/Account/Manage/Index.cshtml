@@ -1,0 +1,195 @@
+@page
+@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<IdentityUser> SignInManager
+@inject IHttpContextAccessor HttpContextAccessor
+@model IndexModel
+@{
+    ViewData["Title"] = "Profil";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .profile-form {
+        max-width: 500px;
+    }
+
+    .form-section {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+    }
+
+    .form-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-section-title i {
+        color: #89ba17;
+    }
+
+    .form-floating-modern {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .form-floating-modern .form-control {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem 1rem 0.5rem;
+        height: auto;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: #fff;
+    }
+
+    .form-floating-modern .form-control:focus {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 3px rgba(137, 186, 23, 0.15);
+    }
+
+    .form-floating-modern .form-control:disabled {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    .form-floating-modern label {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.75rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6b7280;
+        pointer-events: none;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border: none;
+        color: #fff;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .btn-save:active {
+        transform: translateY(0);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.verified {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+</style>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-person"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Verwalten Sie Ihre persönlichen Informationen</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="profile-form">
+    <form id="profil-formular" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-person-badge"></i>
+                Kontoinformationen
+            </div>
+
+            <div class="form-floating-modern">
+                <input asp-for="Username" class="form-control" disabled />
+                <label asp-for="Username">Benutzername</label>
+            </div>
+
+            <div class="form-floating-modern">
+                <input asp-for="Input.PhoneNumber" class="form-control" placeholder=" " />
+                <label asp-for="Input.PhoneNumber">Telefonnummer</label>
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-save">
+            <i class="bi bi-check2-circle"></i>
+            Änderungen speichern
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

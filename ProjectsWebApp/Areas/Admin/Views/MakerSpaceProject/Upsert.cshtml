@@ -1,0 +1,601 @@
+@model ProjectsWebApp.Models.ViewModels.MakerSpaceVM
+
+@{
+    ViewData["Title"] = @Model.MakerSpaceProject.Id == 0 ? "KIBar-Managment" : "KIBar-Managment";
+}
+<style>
+    /* ——— Layout ——— */
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* ——— Card-like form sections ——— */
+    .form-section {
+        background: #ffffff; /* white surface */
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); /* soft shadow */
+        transition: box-shadow .25s ease, transform .25s;
+    }
+
+        .form-section:hover {
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+    /* ——— Section headline ——— */
+    .section-title {
+        color: #333;
+        border-bottom: 1px solid #e4e4e4;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        font-size: 1.3rem;
+    }
+
+    /* ——— Labels & helper text ——— */
+    .form-label {
+        color: #222;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .form-text.text-muted {
+        color: #777 !important;
+    }
+
+    /* ——— Inputs ——— */
+    .form-control,
+    textarea.form-control {
+        background: #fff;
+        border: 1px solid #ced4da;
+        color: #222;
+        padding: 10px 15px;
+        border-radius: 6px;
+        transition: all .2s;
+    }
+
+        .form-control:focus,
+        textarea.form-control:focus {
+            border-color: #4a86e8; /* accent */
+            box-shadow: 0 0 0 .20rem rgba(74, 134, 232, .25);
+            background: #fff;
+            color: #222;
+        }
+
+        /* placeholder tint */
+        input::placeholder,
+        textarea::placeholder,
+        .form-control::placeholder {
+            color: #9a9a9a;
+            opacity: .9;
+        }
+
+    /* ——— Drag-drop image zone ——— */
+    .image-preview-container {
+        background: #fafafa;
+        border: 2px dashed #c8c8c8;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        min-height: 250px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .2s, border-color .2s;
+    }
+
+        .image-preview-container.active {
+            border-color: #4a86e8;
+            background: rgba(74, 134, 232, 0.05);
+        }
+
+    /* preview image */
+    .image-preview {
+        max-width: 100%;
+        max-height: 200px;
+        display: none;
+    }
+
+    /* upload placeholder text */
+    .upload-placeholder {
+        color: #888;
+    }
+
+        .upload-placeholder i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+            color: #bbb;
+        }
+
+    /* ——— Tag badges ——— */
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .tag-badge {
+        background: rgba(74, 134, 232, .1);
+        color: #4a86e8;
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: .9rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+        .tag-badge .remove-tag {
+            margin-left: 8px;
+            cursor: pointer;
+            opacity: .7;
+        }
+
+            .tag-badge .remove-tag:hover {
+                opacity: 1;
+            }
+
+    /* ——— Buttons ——— */
+    .btn-primary {
+        background: #4a86e8;
+        border: 1px solid #4a86e8;
+        color: #fff;
+        padding: 10px 25px;
+        font-weight: 500;
+        transition: transform .2s, box-shadow .2s;
+    }
+
+        .btn-primary:hover {
+            background: #3b74d4;
+            border-color: #3b74d4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(74, 134, 232, .3);
+        }
+
+  /*   .btn-secondary {
+        background: #f1f1f1;
+        border: 1px solid #e2e2e2;
+        color: #444;
+        padding: 10px 25px;
+    }
+
+        .btn-secondary:hover {
+            background: #e6e6e6;
+            color: black;
+            border-color: #d9d9d9;
+        } */
+
+    /* ——— Titles inside previews, etc. ——— */
+    .preview-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .cat-row {
+        --bs-gutter-x: .5rem;
+        --bs-gutter-y: .4rem;
+    }
+
+        .cat-row .form-check {
+            margin-bottom: .25rem;
+        }
+
+        .cat-row .form-check-label {
+            margin-left: .35rem;
+            line-height: 1.1;
+        }
+
+    /* sehr kleine Geräte */
+    @@media (max-width: 400px) {
+        .cat-row .form-check-label
+
+    {
+        font-size: .85rem;
+    }
+
+    }
+</style>
+<div class="mt-4">
+
+
+    <h2 class="mb-4">KIBar Inhalte  @(@Model.MakerSpaceProject.Id == 0 ? "hinzufügen" : " bearbeiten")</h2>
+
+
+
+
+    <form asp-action="Upsert" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="@Model.MakerSpaceProject.Id" />
+
+            <div class="d-flex justify-content-end mt-3 gap-2 flex-wrap mb-3">
+        <a asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+        <button type="submit" class="btn  me-2" style="color:white;background:black;"> <i class="bi bi-check-lg me-1"></i> Speichern</button>
+
+    </div>
+
+        <div class="form-section">
+            <h3 class="section-title"><i class="fas fa-sliders-h me-2"></i>Allgemeine Einstellungen</h3>
+
+           
+                <div class=" mb-3">
+                    <label asp-for="@Model.MakerSpaceProject.DisplayOrder" class="form-label">Verlauf</label>
+                    <input asp-for="@Model.MakerSpaceProject.DisplayOrder" class="form-control" />
+                    <span asp-validation-for="@Model.MakerSpaceProject.DisplayOrder" class="text-danger"></span>
+                    <div class="form-text text-muted mt-2">Bestimmt die Reihenfolge in der Projektliste</div>
+                </div>
+
+             
+           
+            <div class=" mb-3">
+                <label asp-for="@Model.MakerSpaceProject.Title" class="form-label">Titel</label>
+                <textarea asp-for="@Model.MakerSpaceProject.Title" class="form-control" placeholder="APP Titel" required> </textarea>
+                <span asp-validation-for="@Model.MakerSpaceProject.Title" class="text-danger"></span>
+            </div>
+
+            <!-- Tags -------------------------------------------------------- -->
+            <div class="mb-4">
+                <label asp-for="MakerSpaceProject.Tags" class="form-label">Tags</label>
+
+                <!-- sichtbares Eingabefeld -->
+                <input id="tagsInput"
+                       class="form-control"
+                       placeholder="Tags eingeben (durch Komma trennen)"
+                       list="projectTagsOptions"
+                       autocomplete="off" />
+
+                <!-- Hidden‑Field fürs Model -->
+                <input type="hidden"
+                       asp-for="MakerSpaceProject.Tags"
+                       id="tagsHidden" />
+
+                <datalist id="projectTagsOptions">
+                    @foreach (var tag in Model.ExistingTags.Distinct().Where(t => !string.IsNullOrWhiteSpace(t)))
+                    {
+                        <option value="@tag.Trim()"></option>
+                    }
+                </datalist>
+
+                <div class="tag-container" id="tagsContainer"></div>
+            </div>
+
+            <!--  HINWEIS ---------------------------------------------------- -->
+            <div class="alert alert-info py-2 px-3 mb-4" style="font-size:.9rem">
+                <strong>Hinweis:</strong> Es muss <em>mindestens</em> ein Tag <u>oder</u> eine
+                Kategorie ausgewählt sein, damit der Eintrag gespeichert werden kann.
+            </div>
+
+            <hr class="my-4" />
+
+            <label class="form-label d-block mb-2">Kategorien</label>
+
+            <div class="row cat-row g-3 row-cols-2 row-cols-sm-3 row-cols-lg-4">
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.lesezeichen" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.lesezeichen" class="form-check-label">Tipp</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.Forschung" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.Forschung" class="form-check-label">Forschung</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.Top" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.Top" class="form-check-label">Lehre</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.events" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.events" class="form-check-label">Lernen</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.tutorial" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.tutorial" class="form-check-label">Tutorial</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.ITRecht" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.ITRecht" class="form-check-label">IT‑Recht</label>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="form-check form-switch">
+                        <input asp-for="MakerSpaceProject.Beitraege" class="form-check-input" />
+                        <label asp-for="MakerSpaceProject.Beitraege" class="form-check-label">Beiträge</label>
+                    </div>
+                </div>
+            </div>
+
+
+            <span asp-validation-summary="ModelOnly" class="text-danger"></span>
+
+            <div class="mb-4">
+                <label for="@Model.MakerSpaceProject.Description" class="form-label mt-4">Beschreibung:</label>
+                <textarea id="Content" asp-for="@Model.MakerSpaceProject.Description" class="form-control" rows="8" required></textarea>
+            </div>
+        </div>
+
+
+        <div class="form-section">
+            <h3 class="section-title"><i class="fas fa-image me-2"></i>Bildverwaltung</h3>
+
+
+
+            <div class="image-preview-container" id="dropZone">
+                <!-- GOOD – no comment inside the tag -->
+                @{
+                    var __raw = Model.MakerSpaceProject.ImageUrl ?? string.Empty;
+                    var __s = __raw.Replace("\\", "/");
+                    var __src = string.IsNullOrWhiteSpace(__s)
+                        ? string.Empty
+                        : (__s.StartsWith("http", StringComparison.OrdinalIgnoreCase) || __s.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                            ? __s
+                            : Url.Content(__s.StartsWith("~/") ? __s : __s.StartsWith("/") ? ("~" + __s) : ("~/" + __s));
+                }
+                <img id="imagePreview"
+                     src="@__src"
+                     class="image-preview"
+                     style="@(string.IsNullOrWhiteSpace(Model.MakerSpaceProject.ImageUrl) ? "display:none;" : "display:block;")" />
+
+
+                <div id="uploadPlaceholder"
+                     class="upload-placeholder"
+                     style="@(string.IsNullOrWhiteSpace(Model.MakerSpaceProject.ImageUrl)
+                                                           ? "" : "display:none;")">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h5>Bild hier ablegen</h5>
+                    <p class="text-muted">oder klicken um Datei auszuwählen</p>
+                    <p class="mt-2"><small>Empfohlenes Format: SVG (Max. 5 MB)</small></p>
+                </div>
+            </div>
+
+
+
+            <div class="row">
+                <div class="col-md-6 mb-4" style="display:none;">
+                    <label class="form-label">Bild hochladen</label>
+                    <input type="file" name="file" class="form-control" id="fileUpload" />
+                </div>
+
+                <div class="col-md-6">
+                    <div class="divider mb-4">
+                        <span class="px-2" style="color:black;">ODER</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="@Model.MakerSpaceProject.ImageUrl" class="form-label">Bild-URL</label>
+                        <input asp-for="@Model.MakerSpaceProject.ImageUrl" class="form-control"
+                               placeholder="https://example.com/dein-bild.jpg"
+                               id="imageUrlInput" />
+                        <span asp-validation-for="@Model.MakerSpaceProject.ImageUrl" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3 class="section-title"><i class="fas fa-link me-2"></i>Projektinformationen</h3>
+
+            <div class="mb-4">
+                <label asp-for="@Model.MakerSpaceProject.ProjectUrl" class="form-label">Projekt-Webseite</label>
+                <input asp-for="@Model.MakerSpaceProject.ProjectUrl" class="form-control" placeholder="https://..." />
+                <span asp-validation-for="@Model.MakerSpaceProject.ProjectUrl" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3 gap-2 flex-wrap mb-3">
+            <a asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+            <button type="submit" class="btn  me-2" style="color:white;background:black;"> <i class="bi bi-check-lg me-1"></i> Speichern</button>
+           
+        <div/>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
+
+    <script>
+        /* ========== 1. CKEditor init ========== */
+        ClassicEditor
+            .create(document.querySelector('#Content'), {
+                toolbar: [
+                    'heading', '|',
+                    'bold', 'italic', 'underline', '|',
+                    'fontColor', 'fontBackgroundColor', '|',
+                    'bulletedList', 'numberedList', '|',
+                    'blockQuote', 'link', 'insertTable', '|',
+                    'undo', 'redo'
+                ]
+                
+            })
+            .catch(console.error);
+
+
+
+        /* ========== 2. Image preview (upload, URL, drag-drop) ========== */
+        const dropZone          = document.getElementById('dropZone');
+        const fileUpload        = document.getElementById('fileUpload');
+        const imageUrlInput     = document.getElementById('imageUrlInput');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+
+        let imagePreview = document.getElementById('imagePreview');
+
+        function ensurePreview() {
+            if (!imagePreview) {
+                imagePreview           = document.createElement('img');
+                imagePreview.id        = 'imagePreview';
+                imagePreview.className = 'image-preview';
+                dropZone.appendChild(imagePreview);
+            }
+            return imagePreview;
+        }
+
+        function updateImagePreview(src) {
+            const img = ensurePreview();
+            if (src) {
+                img.src           = src;
+                img.style.display = 'block';
+                uploadPlaceholder.style.display = 'none';
+            } else {
+                img.style.display           = 'none';
+                uploadPlaceholder.style.display = 'block';
+            }
+        }
+
+        /* file picker */
+        fileUpload.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => updateImagePreview(evt.target.result);
+            reader.readAsDataURL(file);
+            imageUrlInput.value = '';
+        });
+
+        /* image URL (debounced) */
+        let urlTimer;
+        imageUrlInput.addEventListener('input', e => {
+            clearTimeout(urlTimer);
+            urlTimer = setTimeout(() => {
+                const url = e.target.value.trim();
+                updateImagePreview(url || null);
+                if (url) fileUpload.value = '';
+            }, 250);
+        });
+
+        /* drag & drop */
+        ['dragenter','dragover','dragleave','drop'].forEach(evt =>
+            dropZone.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); })
+        );
+        ['dragenter','dragover'].forEach(evt =>
+            dropZone.addEventListener(evt, () => dropZone.classList.add('active'))
+        );
+        ['dragleave','drop'].forEach(evt =>
+            dropZone.addEventListener(evt, () => dropZone.classList.remove('active'))
+        );
+        dropZone.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = evt => updateImagePreview(evt.target.result);
+            reader.readAsDataURL(file);
+            fileUpload.value = '';          // don’t keep the file in the hidden input
+        });
+
+        /* click = open file picker */
+        dropZone.addEventListener('click', () => fileUpload.click());
+
+
+
+        /* ========== 3. Tag management ========== */
+        /*  HTML required:
+            <input id="tagsInput"  class="form-control" placeholder="Tags eingeben …" ... />
+            <input id="tagsHidden" asp-for="MakerSpaceProject.Tags" type="hidden" />
+        */
+        const tagsInput     = document.getElementById('tagsInput');    // editor
+        const tagsHidden    = document.getElementById('tagsHidden');   // CSV for server
+        const tagsContainer = document.getElementById('tagsContainer');
+
+        function saveTagsToHidden() {
+            tagsHidden.value = [...tagsContainer.querySelectorAll('.tag-badge')]
+                .map(b => b.dataset.tag)
+                .join(',');
+        }
+
+        function addTagElement(tag) {
+            /* prevent duplicates (case-insensitive) */
+            const exists = [...tagsContainer.querySelectorAll('.tag-badge')]
+                           .some(b => b.dataset.tag.toLowerCase() === tag.toLowerCase());
+            if (exists) return;
+
+            const badge = document.createElement('span');
+            badge.className   = 'tag-badge';
+            badge.dataset.tag = tag;
+            badge.innerHTML   = `
+                ${tag}
+                <span class="remove-tag" title="entfernen"><i class="fas fa-times"></i></span>`;
+            badge.querySelector('.remove-tag').onclick = () => {
+                badge.remove();
+                saveTagsToHidden();
+            };
+            tagsContainer.appendChild(badge);
+        }
+
+        /* initial load (edit mode) */
+        document.addEventListener('DOMContentLoaded', () => {
+            tagsContainer.innerHTML = '';
+            (tagsHidden.value || '')
+                .split(',')
+                .map(t => t.trim())
+                .filter(Boolean)
+                .forEach(addTagElement);
+        });
+
+        /* add on comma / Enter */
+        tagsInput.addEventListener('keydown', e => {
+            if (e.key === ',' || e.key === 'Enter') {
+                e.preventDefault();
+                const tag = tagsInput.value.replace(',', '').trim();
+                if (tag) {
+                    addTagElement(tag);
+                    tagsInput.value = '';
+                    saveTagsToHidden();
+                }
+            }
+        });
+
+        /* user pastes / types a comma quickly */
+        tagsInput.addEventListener('input', () => {
+            if (tagsInput.value.includes(',')) {
+                const tag = tagsInput.value.replace(',', '').trim();
+                if (tag) {
+                    addTagElement(tag);
+                    tagsInput.value = '';
+                    saveTagsToHidden();
+                }
+            }
+        });
+
+        /* final safety – be sure tags are synced before the form goes out */
+        document.querySelector('form').addEventListener('submit', saveTagsToHidden);
+
+                document.querySelector('form').addEventListener('submit', e => {
+            const hasTags   = document.getElementById('tagsHidden').value.trim() !== '';
+            const anyToggle = [...document.querySelectorAll('.form-check-input')]
+                              .some(cb => cb.checked);
+
+            if (!hasTags && !anyToggle) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Fehlende Angaben',
+                    text: 'Bitte mindestens einen Tag oder eine Kategorie wählen.'
+                });
+            }
+        });
+
+    </script>
+
+}

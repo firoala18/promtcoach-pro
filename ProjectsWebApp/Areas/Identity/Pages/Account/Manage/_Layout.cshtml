@@ -1,0 +1,209 @@
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout != null)
+    {
+        Layout = parentLayout.ToString();
+    }
+    else
+    {
+        Layout = "/Views/Shared/_Layout.cshtml";
+    }
+}
+
+<style>
+    :root {
+        --manage-primary: #89ba17;
+        --manage-primary-dark: #6d9412;
+        --manage-teal: #004f72;
+        --manage-teal-light: #006d9e;
+        --manage-dark: #1f2937;
+        --manage-gray: #6b7280;
+        --manage-light: #f8fafc;
+        --manage-border: #e5e7eb;
+        --manage-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        --manage-radius: 16px;
+    }
+
+    .manage-wrapper {
+        min-height: calc(100vh - 200px);
+        padding: 2rem 0 4rem;
+    }
+
+    /* Header Section - integrated, card-like banner */
+    .manage-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f7fb 100%);
+        border-radius: var(--manage-radius);
+        padding: 1.75rem 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: visible;
+        border: 1px solid var(--manage-border);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+    }
+
+    /* Subtle decorative wash, much softer than before */
+    /* .manage-header::before {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -5%;
+        width: 280px;
+        height: 160%;
+        background: radial-gradient(circle at 0 0, rgba(137, 186, 23, 0.12), transparent 60%);
+        border-radius: 50%;
+        opacity: .8;
+    } */
+
+    /* .manage-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 180px;
+        height: 100%;
+        background: linear-gradient(135deg, transparent 0%, rgba(0, 79, 114, 0.08) 100%);
+        border-radius: 0 var(--manage-radius) var(--manage-radius) 0;
+    } */
+
+    .manage-header-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .manage-header h1 {
+        color: var(--manage-dark);
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .manage-header h1 i {
+        background: linear-gradient(135deg, var(--manage-primary) 0%, var(--manage-primary-dark) 100%);
+        color: #fff;
+        font-size: 1.4rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .manage-header p {
+        color: #4b5563;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    /* Main Container */
+    .manage-container {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    /* Sidebar */
+    .manage-sidebar {
+        background: #fff;
+        border-radius: var(--manage-radius);
+        box-shadow: var(--manage-shadow);
+        padding: 1.5rem;
+        position: sticky;
+        top: 100px;
+    }
+
+    .manage-sidebar-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--manage-gray);
+        padding: 0 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Content Area */
+    .manage-content {
+        background: #fff;
+        border-radius: var(--manage-radius);
+        box-shadow: var(--manage-shadow);
+        padding: 2rem;
+        min-height: 400px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 991px) {
+        .manage-container {
+            grid-template-columns: 1fr;
+        }
+
+        .manage-sidebar {
+            position: static;
+            margin-bottom: 1.5rem;
+        }
+
+        .manage-header {
+            padding: 1.5rem;
+        }
+
+        .manage-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .manage-wrapper {
+            padding: 1rem 0 2rem;
+        }
+
+        .manage-header {
+            padding: 1.25rem;
+            border-radius: 12px;
+        }
+
+        .manage-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .manage-header p {
+            font-size: 0.875rem;
+        }
+
+        .manage-sidebar,
+        .manage-content {
+            border-radius: 12px;
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="manage-wrapper">
+    <!-- Header -->
+    <div class="manage-header">
+        <div class="manage-header-content">
+            <h1><i class="bi bi-person-gear"></i> Kontoverwaltung</h1>
+            <p>Verwalten Sie Ihre Kontoeinstellungen, Sicherheit und persönliche Daten</p>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="manage-container">
+        <!-- Sidebar Navigation -->
+        <aside class="manage-sidebar">
+            <div class="manage-sidebar-title">Navigation</div>
+            <partial name="_ManageNav" />
+        </aside>
+
+        <!-- Content Area -->
+        <main class="manage-content">
+            @RenderBody()
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

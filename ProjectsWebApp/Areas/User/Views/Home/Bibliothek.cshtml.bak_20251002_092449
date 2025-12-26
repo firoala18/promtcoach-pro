@@ -1,0 +1,812 @@
+@model IEnumerable<PromptTemplate>
+@using System.Text.Json
+@using System.Linq
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Identity
+@inject Microsoft.AspNetCore.Identity.UserManager<IdentityUser> UserManager
+
+@{
+    ViewData["Title"] = "Bibliothek";
+
+    // counts per PromptType
+    var total = Model.Count();
+    var cntText = Model.Count(p => p.PromptType.Equals("Text", StringComparison.OrdinalIgnoreCase));
+    var cntBild = Model.Count(p => p.PromptType.Equals("Bild", StringComparison.OrdinalIgnoreCase));
+    var cntVideo = Model.Count(p => p.PromptType.Equals("Video", StringComparison.OrdinalIgnoreCase));
+    var cntSound = Model.Count(p => p.PromptType.Equals("Sound", StringComparison.OrdinalIgnoreCase));
+    var cntLehr = Model.Count(p => p.PromptType.Equals("Akademisch", StringComparison.OrdinalIgnoreCase));
+    var cntMeta = Model.Count(p => p.PromptType.Equals("Meta", StringComparison.OrdinalIgnoreCase));
+    
+    var myId = UserManager.GetUserId(User);
+}
+
+@functions {
+    IEnumerable<string> Tags(string json)
+    {
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<JsonElement>>(json);
+
+            return list
+                .Select(e =>
+                {
+                    var raw = e.GetProperty("value").GetString() ?? "";
+                    // alles zwischen <...> entfernen
+                    var plain = Regex.Replace(raw, "<.*?>", string.Empty);
+                    return plain.Trim();
+                })
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Take(4);
+        }
+        catch { return Enumerable.Empty<string>(); }
+    }
+
+    string Gradient(string type) => type.ToLower() switch
+    {
+        "bild" => "#5c5c5c",
+        "video" => "#828282",
+        "sound" => "#aaaaaa",
+        "lehr" => "#393939",
+        "meta" => "#191919",
+        _ => "#5c5c5c" // Text / default
+    };
+
+    string IconClass(string type) => type.ToLower() switch
+    {
+        "bild" => "bi-image",
+        "video" => "bi-play-btn",
+        "sound" => "bi-volume-up",
+        "lehr" => "bi-journal-bookmark",
+        "meta" => "bi-gear",
+        _ => "bi-text-paragraph"
+    };
+}
+
+
+<style>
+    :root {
+        --clr-main: #191919;
+        --clr-secondary: #5c5c5c;
+        --clr-accent: #5c5c5c;
+        --clr-bg: #ffffff;
+        --clr-card: #ffffff;
+        --clr-text: #191919;
+        --clr-muted: #828282;
+        --clr-border: #d4d4d4;
+        --radius: 1rem;
+        --shadow: 0 .5rem 1rem rgba(0,0,0,0.1);
+        --shadow-hover: 0 1rem 2rem rgba(0,0,0,0.15);
+    }
+
+    body {
+        background: var(--clr-bg);
+        color: var(--clr-text);
+    }
+
+    h2 {
+        color: var(--clr-main);
+        font-weight: 700;
+        letter-spacing: -.5px;
+        margin: 0;
+    }
+
+    .subtitle {
+        color: var(--clr-muted);
+        font-size: 1.1rem;
+    }
+
+    .btn-outline-main {
+        border: 1px solid #336633;
+        color: #336633;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .25s;
+    }
+
+        .btn-outline-main:hover {
+            background: #336633;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 .35rem 1rem rgba(0, 79, 114, .2);
+        }
+
+    /* einmalig definieren – doppelte .TypeTab-Blöcke entfernen */
+    .TypeTab {
+        color: #5c5c5c !important;
+        background: #f0f0f0;
+        cursor: pointer;
+        padding: .5rem 1.25rem;
+        border-radius: .75rem;
+        font-weight: 500;
+        transition: .2s;
+    }
+
+        .TypeTab:hover {
+            color: #191919;
+        }
+
+        .TypeTab.active {
+            background: #336633 !important;
+            color: #fff !important;
+            box-shadow: 0 .35rem 1rem rgba(92,92,92,.2);
+        }
+
+
+
+    .search-box {
+        position: relative;
+        max-width: 700px;
+    }
+
+        .search-box input {
+            width: 100%;
+            padding: .5rem 1rem .5rem 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid #004f72;
+        }
+
+        .search-box .bi-search {
+            position: absolute;
+            left: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #004f72;
+        }
+
+    input[type=search] {
+        border-radius: 1rem !important;
+        border: 1px solid #004f72;
+        padding: .75rem 1.25rem .75rem 3rem;
+        font-size: 1rem;
+        box-shadow: 0 .15rem .5rem rgba(0,0,0,.03);
+        transition: .3s;
+    }
+
+        input[type=search]:focus {
+            border-color: #004f72;
+            box-shadow: 0 0 0 .25rem rgba(27, 187, 57, .15);
+        }
+
+
+
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--clr-muted);
+    }
+
+    .stats-card {
+        background: #393939;
+        color: #fff;
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.2);
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+
+    .stats-label {
+        font-size: .9rem;
+        opacity: .9;
+    }
+
+    .empty-state {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 4rem 2rem;
+        text-align: center;
+        box-shadow: var(--shadow);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #e9ecef;
+        margin-bottom: 1.5rem;
+    }
+
+
+    /* ── Card Styles ── */
+    .card-glass {
+        background: var(--clr-card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform .3s, box-shadow .3s;
+        min-height: 270px;
+    }
+
+        .card-glass:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+    .card-header-gradient {
+        height: 6px;
+        width: 100%;
+    }
+
+    .card-content {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .card-top .icon-wrapper {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: .5rem;
+            background: rgba(92, 92, 92, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .edit-btn, .delete-btn {
+        /* background: transparent; */
+
+        border: none;
+        margin:3px;
+        font-size: 1.4rem;
+        color: #393939;
+        transition: color .2s;
+    }
+
+        .edit-btn:hover {
+            color: #004b62;
+        }
+
+        .delete-btn:hover {
+            color: red;
+        }
+
+    .tags {
+        margin-top: .75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+    }
+
+        .tags .badge-tag {
+            background: red;
+            color: #191919;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+        }
+
+    .akronym {
+        margin-top: auto;
+        font-weight: 600;
+        color: var(--clr-muted);
+        text-transform: uppercase;
+        font-size: .85rem;
+    }
+
+    .card-title {
+        margin: .25rem 0 .75rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 2.5em;
+    }
+
+
+    /* ── Filter bar ── */
+    .TypeTab {
+        cursor: pointer;
+        padding: .5rem 1rem;
+        border-radius: .75rem;
+        background: #f0f0f0;
+        transition: background .2s;
+    }
+
+        .TypeTab.active {
+            background: #5c5c5c;
+            color: #fff;
+        }
+
+   
+
+    .card-glass {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-content {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+
+    /* ─── Tag-slider ─── */
+    .tag-slider-wrapper {
+        position: relative;
+        margin: .75rem 0;
+    }
+
+    .tag-slider {
+        display: flex;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding-bottom: .25rem;
+    }
+
+        .tag-slider::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tag-slider .badge-tag {
+            flex: 0 0 auto;
+            margin-right: .5rem;
+            background: #336633;
+            color: white;
+            padding: .35rem .75rem;
+            border-radius: .75rem;
+            font-size: .75rem;
+            white-space: nowrap;
+            transition: transform .2s;
+        }
+
+            .tag-slider .badge-tag:hover {
+                /* background: #aaaaaa; */
+               /*  transform: translateY(-2px); */
+            }
+
+    .tag-slider-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 2.2rem;
+        height: 2.2rem;
+        border: none;
+        /* border-radius: 50%; */
+        background: #828282;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 5;
+        transition: background .2s;
+    }
+
+        .tag-slider-btn.prev {
+            left: 0rem;
+        }
+
+        .tag-slider-btn.next {
+            right: 0rem;
+        }
+
+        .tag-slider-btn:hover {
+            background: #5c5c5c;
+        }
+
+    .header-area{
+        height:75px;
+    }
+
+    .btn-bib {
+        background: #004f72;
+        color: #fff;
+        border: 1px solid #004f72;
+    }
+
+        .btn-bib:hover {
+            border: 1px solid #7d8791;
+            color: black;
+        }
+
+
+    .btn-neuPrompt {
+        background: #393939;
+        color: white;
+    }
+
+        .btn-neuPrompt:hover {
+            border: 1px solid black;
+            background: white;
+            color: black;
+        }
+</style>
+
+
+
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="d-flex gap-2">
+        <!-- Bibliothek‑Button -->
+        <a asp-area="User"
+           asp-controller="MyPrompts"
+           asp-action="Index"
+           class="btn btn-bib">
+            <i class="bi bi-archive-fill"></i> Zur Sammlung
+        </a>
+
+        <!-- Neuer Prompt -->
+        <a asp-controller="Home" asp-area="User" asp-action="PromptEngineering" class="btn btn-neuPrompt" >
+            <i class="bi bi-plus-circle me-1"></i>Neuen Prompts entwickeln
+        </a>
+    </div>
+</div>
+
+<div class="header-area mb-4">
+    <div class="container d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"> <i class="fa fa-university me-1" aria-hidden="true"></i> Unsere Prompt Bibliothek, bearbeiten & analysieren...</h2>
+
+    </div>
+</div>
+
+
+
+<div class="container">
+
+    <!-- ── Stats: 2 rows × 3 cols responsive ── -->
+    <!-- ── Stats: only show cards for types that actually have ≥1 ── -->
+    <div class="row g-3 mb-5 text-center">
+
+        <div class="col-6 col-sm-4">
+            <div class="stats-card">
+                <div class="stats-number">@total</div>
+                <div class="stats-label">Insgesamt</div>
+            </div>
+        </div>
+
+        @if (cntText > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntText</div>
+                    <div class="stats-label">Text</div>
+                </div>
+            </div>
+        }
+        @if (cntBild > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntBild</div>
+                    <div class="stats-label">Bild</div>
+                </div>
+            </div>
+        }
+        @if (cntVideo > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntVideo</div>
+                    <div class="stats-label">Video</div>
+                </div>
+            </div>
+        }
+        @if (cntSound > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntSound</div>
+                    <div class="stats-label">Sound</div>
+                </div>
+            </div>
+        }
+        @if (cntLehr > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntLehr</div>
+                    <div class="stats-label">Akademisch</div>
+                </div>
+            </div>
+        }
+        @if (cntMeta > 0)
+        {
+            <div class="col-6 col-sm-4">
+                <div class="stats-card">
+                    <div class="stats-number">@cntMeta</div>
+                    <div class="stats-label">Meta</div>
+                </div>
+            </div>
+        }
+    </div>
+
+
+    <!-- ── Filter bar ── -->
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-5">
+        <div class="d-flex flex-wrap gap-2 me-auto">
+            <div class="TypeTab active" data-type="all">Alle Prompts</div>
+            <div class="TypeTab" data-type="text">Text-Prompts</div>
+            <div class="TypeTab" data-type="bild">Bild-Prompts</div>
+            <div class="TypeTab" data-type="video">Video-Prompts</div>
+            <div class="TypeTab" data-type="sound">Sound-Prompts</div>
+            <div class="TypeTab" data-type="lehr">Akademische-Prompts</div>
+            <div class="TypeTab" data-type="meta">Meta-Prompts</div>
+        </div>
+      
+    </div>
+
+    <!-- ── Search row (centered and bigger) ── -->
+    <div class="row justify-content-center mb-5 mb-5">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+            <div class="search-box mx-auto w-100">
+                <i class="bi bi-search search-icon"></i>
+                <input id="tplSearch"
+                       type="search"
+                       class="form-control form-control-lg"
+                       placeholder="Bibliothek durchsuchen …" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Card grid -->
+    <div id="tplGrid" class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        @foreach (var t in Model)
+        {
+            var tags = Tags(t.FilterJson);
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = t.PromptType.ToLower(),
+                thema = t.Thema,
+                ziele = t.Ziele,
+                beschreibung = t.Beschreibung,
+                schluesselbegriffe = t.Schluesselbegriffe,
+                filterJson = t.FilterJson,
+                promptHtml = t.PromptHtml,
+                checkedItems = JsonSerializer.Deserialize<object>(t.FilterJson),
+                temperatur = t.Temperatur,
+                maxZeichen = t.MaxZeichen
+            });
+            <div class="col tpl-card"
+                 data-type="@t.PromptType.ToLower()"
+                 data-search="@($"{t.Akronym} {t.Title} {t.Thema} {t.Ziele} {t.Schluesselbegriffe}".ToLower())"
+                 data-payload='@Html.Raw(payload)'
+                 data-id="@t.Id">
+                <div class="card card-glass">
+                    <div class="card-header-gradient"
+                         style="background:@Gradient(t.PromptType)"></div>
+                    <div class="card-content">
+                        <div class="card-top">
+                            <div class="icon-wrapper">
+                                <i class="bi @(IconClass(t.PromptType))"
+                                   style="font-size:1.25rem; color: #5c5c5c"></i>
+                            </div>
+                          
+                                <div class="action-buttons">
+                                @if (User.IsInRole("Admin") || t.UserId == myId)
+                                {
+                                    <button type="button" class="edit-btn" title="Bearbeiten">
+                                        <i class="bi bi-pencil-fill"></i>
+
+                                    </button>
+
+                               }
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <button type="button" class="delete-btn delete-template" title="Löschen">
+                                        <i class="bi bi-trash-fill"></i>
+
+                                    </button>
+                                }
+                                </div>
+                           
+                        </div>
+                        <div class="tag-slider-wrapper my-2">
+                            <button class="tag-slider-btn prev">&lsaquo;</button>
+                            <div class="tag-slider">
+                                @foreach (var tag in tags)
+                                {
+                                    <span class="badge-tag">@tag</span>
+                                }
+                            </div>
+                            <button class="tag-slider-btn next">&rsaquo;</button>
+                        </div>
+                        <p class="akronym mb-1" style="color:#393939">@t.Akronym</p>
+                        <h5 class="card-title mb-3">@t.Title</h5>
+                        <a asp-action="PromptDetails" asp-route-id="@t.Id"
+                           class="btn btn-sm btn-outline-main">
+                            Mehr anzeigen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyMsg" class="text-center mt-5" style="display:none">
+        <i class="bi bi-search fs-1 text-muted"></i>
+        <p class="mt-3 text-muted">Keine Prompts gefunden.</p>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="d-flex gap-2">
+        <!-- Bibliothek‑Button -->
+        <a asp-area="User"
+           asp-controller="MyPrompts"
+           asp-action="Index"
+           class="btn btn-bib">
+            <i class="bi bi-archive-fill"></i> Zur Sammlung
+        </a>
+
+        <!-- Neuer Prompt -->
+        <a asp-controller="Home" asp-area="User" asp-action="PromptEngineering" class="btn btn-neuPrompt" >
+            <i class="bi bi-plus-circle me-1"></i>Neuen Prompts entwickeln
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ── Filter/Search logic ──
+            const tabs = [...document.querySelectorAll('.TypeTab')];
+            const cards = [...document.querySelectorAll('.tpl-card')];
+            const search = document.getElementById('tplSearch');
+            const reset = document.getElementById('resetFilters');
+            const empty = document.getElementById('emptyMsg');
+            let active = 'all', term = '';
+
+            function refresh() {
+                let shown = 0;
+                cards.forEach(c => {
+                    const okType = (active === 'all') || (c.dataset.type === active);
+                    const okText = !term || (c.dataset.search?.includes(term.toLowerCase()));
+                    c.style.display = (okType && okText) ? '' : 'none';
+                    if (okType && okText) shown++;
+                });
+                empty.style.display = shown ? 'none' : '';
+            }
+
+            tabs.forEach(tab => tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                active = tab.dataset.type;
+                refresh();
+            }));
+
+            if (search) search.addEventListener('input', e => {
+                term = e.target.value;
+                refresh();
+            });
+
+            if (reset) reset.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelector('.TypeTab[data-type="all"]').classList.add('active');
+                term = '';
+                if (search) search.value = '';
+                active = 'all';
+                refresh();
+            });
+
+            refresh();
+
+            // ── Delete ── (unchanged)
+            document.querySelectorAll('.delete-template').forEach(btn => {
+                btn.addEventListener('click', async e => {
+                    const card = e.target.closest('.tpl-card');
+                    const id = card.dataset.id;
+                    const ok = await Swal.fire({
+                        title: 'Vorlage löschen?',
+                        text: 'Diese Aktion kann nicht rückgängig gemacht werden.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Löschen',
+                        cancelButtonText: 'Abbrechen',
+                        confirmButtonColor: '#d33'
+                    }).then(r => r.isConfirmed);
+                    if (!ok) return;
+
+                    const form = new FormData();
+                    form.append('id', id);
+                    try {
+                        const url = '@Url.Action("Delete", "PromptTemplate", new { area = "Admin" })';
+                        const res = await fetch(`${url}?id=${encodeURIComponent(id)}`, {
+                            method: 'POST',
+                            body: form
+                        });
+                        if (!res.ok) throw await res.text();
+                        card.remove();
+                        Swal.fire({ icon: 'success', title: 'Gelöscht!', timer: 1500, showConfirmButton: false });
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'Fehler', text: String(err) });
+                    }
+                });
+            });
+
+            // ── Edit → export JSON & redirect ──
+            const secretKey = 'uni-wuppertal2025';
+            async function buf2hex(buf) {
+                return Array.from(new Uint8Array(buf))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+            }
+            async function sha256(str) {
+                const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+                return buf2hex(h);
+            }
+
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', async e => {
+            // find the containing card
+            const card = btn.closest('.tpl-card');
+            if (!card) return;
+
+            // parse the existing JSON payload
+            const payload = JSON.parse(card.dataset.payload);
+
+            // pull Title and Akronym out of the card
+            // (make sure your card markup has these elements)
+            payload.akronym = card
+              .querySelector('.akronym')
+              ?.innerText.trim() || '';
+            payload.title = card
+              .querySelector('.card-title')
+              ?.innerText.trim() || '';
+
+            // compute integrity hash over entire payload
+            const serialized = JSON.stringify(payload);
+            const hash = await sha256(secretKey + serialized);
+
+            // stash into localStorage for the assistant to pick up
+            localStorage.setItem(
+              'import_payload',
+              JSON.stringify({ data: payload, hash })
+            );
+
+            // finally redirect, preserving the prompt type
+            window.location.href =
+              `/promptcoach/user/Home/PromptAssistent?type=${encodeURIComponent(payload.type)}`;
+          });
+        });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.tag-slider-wrapper').forEach(wrapper => {
+                const slider = wrapper.querySelector('.tag-slider');
+                const btnPrev = wrapper.querySelector('.tag-slider-btn.prev');
+                const btnNext = wrapper.querySelector('.tag-slider-btn.next');
+
+                // amount to scroll per click (you can tweak)
+                const scrollAmount = wrapper.offsetWidth * 0.5;
+
+                btnPrev.addEventListener('click', () => {
+                    slider.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                });
+                btnNext.addEventListener('click', () => {
+                    slider.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                });
+
+                // optional: hide buttons if no overflow
+                function updateButtons() {
+                    btnPrev.style.visibility = slider.scrollLeft > 0 ? 'visible' : 'hidden';
+                    btnNext.style.visibility = slider.scrollWidth - slider.clientWidth - slider.scrollLeft > 1
+                        ? 'visible' : 'hidden';
+                }
+                slider.addEventListener('scroll', updateButtons);
+                // initial
+                updateButtons();
+                // on resize
+                window.addEventListener('resize', updateButtons);
+            });
+        });
+    </script>
+}

@@ -1,0 +1,443 @@
+@model IEnumerable<ProjectsWebApp.Models.Assistant>
+@{
+    ViewData["Title"] = "KI-Assistenten – Admin";
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Delete confirm (unchanged)
+  document.querySelectorAll('.js-delete-btn').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      const name = btn.getAttribute('data-name') || 'Assistent';
+      if (typeof Swal === 'undefined') {
+        if (confirm(name + ' löschen?')) btn.closest('form')?.submit();
+        return;
+      }
+      const res = await Swal.fire({
+        title: 'Assistent löschen?',
+        text: name + ' wird dauerhaft entfernt.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Ja, löschen',
+        cancelButtonText: 'Abbrechen',
+        confirmButtonColor: '#d33'
+      });
+      if (res.isConfirmed) btn.closest('form')?.submit();
+    });
+  });
+
+  // --- Smart search ---
+  const form  = document.getElementById('adminSearchForm');
+  const wrap  = document.querySelector('.smart-search');
+  const input = document.getElementById('adminSearch');
+  const clear = wrap?.querySelector('.btn-clear');
+
+  let lastValue = (input?.value || '').trim();
+
+  function syncUI() {
+    const has = (input?.value || '').trim().length > 0;
+    wrap?.classList.toggle('has-value', has);
+  }
+
+  function submitIfEmptyAfterTyping() {
+    const v = (input?.value || '').trim();
+    // Only submit when we transitioned from non-empty -> empty
+    if (v.length === 0 && lastValue.length > 0) {
+      form?.submit();
+    }
+    lastValue = v;
+  }
+
+  input?.addEventListener('input', function(){
+    syncUI();
+    submitIfEmptyAfterTyping();
+  });
+
+  // Clear button: empty the field, update UI, and show all immediately
+  clear?.addEventListener('click', function(e){
+    e.preventDefault();
+    input.value = '';
+    input.focus();
+    syncUI();
+    lastValue = '';          // avoid double submits
+    form?.submit();          // load full list right away
+  });
+
+  // Optional: ESC clears and submits too
+  input?.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      input.value = '';
+      syncUI();
+      lastValue = '';
+      form?.submit();
+    }
+  });
+
+  // init (if server rendered with a value)
+  syncUI();
+});
+</script>
+
+<style>
+    :root {
+        --accent: #3acc59;
+        --accent2: #00b36c;
+        --accentRing: #80d9b0;
+    }
+
+    .asst-hero {
+        border: 1px solid #eef1f4;
+        border-radius: 16px;
+        background: linear-gradient(135deg,#f8fffb,#f2fbf6);
+        padding: 1.25rem;
+        box-shadow: 0 10px 24px rgba(16,24,40,.06);
+        margin-bottom: 1rem;
+    }
+
+        .asst-hero h1 {
+            font-size: 1.6rem;
+            letter-spacing: .2px;
+            margin: 0;
+        }
+
+    .asst-toolbar {
+        border: 1px solid #eef1f4;
+        border-radius: 14px;
+        background: #fff;
+        padding: .6rem;
+        margin: .5rem 0 1rem;
+        box-shadow: 0 10px 24px rgba(16,24,40,.06);
+    }
+
+    /* --- Smart Search (like screenshot) --- */
+    .smart-search {
+        position: relative;
+        display: block;
+    }
+
+    .smart-input {
+        height: 44px;
+        padding-left: 2.25rem; /* space for search icon */
+        padding-right: 7.25rem; /* space for clear + submit */
+        border: 2px solid var(--accent);
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
+    }
+
+        .smart-input:focus {
+            outline: 0;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 .2rem rgba(58,204,89,.15);
+        }
+
+    .smart-icon {
+        position: absolute;
+        left: .65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+        color: #6b7280;
+        pointer-events: none;
+    }
+
+    .btn-clear {
+        position: absolute;
+        right: 6rem;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 0 .25rem;
+        line-height: 1;
+        border: 0;
+        background: transparent;
+        color: #2563eb;
+        text-decoration: none;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+        .btn-clear:hover {
+            text-decoration: underline;
+        }
+
+    .btn-smart-submit {
+        position: absolute;
+        right: .4rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 1px solid var(--accent);
+        background: #fff;
+        color: #0f172a;
+        padding: .3rem .7rem;
+        border-radius: .5rem;
+        font-weight: 600;
+        box-shadow: 0 1px 0 rgba(16,24,40,.04);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+        .btn-smart-submit:hover {
+            background: #f8fffb;
+            border-color: var(--accent2);
+        }
+
+    .smart-search.has-value .btn-clear,
+    .smart-search.has-value .btn-smart-submit {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .alpha-nav { display:flex; flex-wrap:wrap; justify-content:center; gap:.4rem; margin-top:.25rem; }
+    .alpha-nav .pill { border:1px solid #e5e7eb; background:#fff; color:#111827; border-radius:999px; padding:.25rem .5rem; line-height:1; font-weight:600; font-size:.9rem; min-height:auto; }
+    .alpha-nav .pill.active { border-color: var(--accent); color:#0f172a; box-shadow:0 0 0 .16rem rgba(58,204,89,.12); }
+    /* Single-letter alphabet buttons - perfect circles */
+    .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center; aspect-ratio:1/1; }
+
+    /* --- Cards: equal height + pinned footer + clamped desc --- */
+    .asst-card {
+        border: 1px solid #eef1f4;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(16,24,40,.06);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        background: #fff;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .asst-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px rgba(16,24,40,.12);
+            border-color: #dff4e7;
+        }
+
+    .card-body-fixed {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .asst-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(58,204,89,.15);
+    }
+
+    .asst-desc {
+        color: #6b7280;
+        font-size: .95rem;
+    }
+
+    .desc-clamp {
+        display: -webkit-box;
+        -webkit-line-clamp: 4; /* adjust as needed */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.25rem;
+        min-height: calc(1.25rem * 4); /* keeps footers aligned */
+        margin-bottom: 0;
+    }
+
+    .asst-footer {
+        margin-top: auto;
+        padding: .6rem .75rem .75rem;
+        border-top: 1px solid #f1f5f9;
+        min-height: 3.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+    }
+
+    /* Center icons in small action buttons */
+    .asst-footer .btn { display:inline-flex; align-items:center; justify-content:center; }
+    .asst-footer .btn i { line-height:1; }
+
+    .btn-accent {
+        background: linear-gradient(135deg,var(--accent),var(--accent2));
+        color: #fff;
+        border: 0;
+        border-radius: .65rem;
+        padding: .45rem .8rem;
+        font-weight: 700;
+    }
+
+        .btn-accent:hover {
+            filter: brightness(1.04);
+            color: #fff;
+        }
+
+    .asst-count {
+        color: #6b7280;
+        font-weight: 600;
+        margin-right: 13px;
+    }
+</style>
+
+<div class="asst-hero d-flex align-items-center justify-content-between">
+    <div>
+        <h1>KI-Assistenten – Admin</h1>
+        <div class="text-muted">Verwalten, durchsuchen und rollen Prompts bearbeiten.</div>
+    </div>
+</div>
+
+<form id="adminSearchForm" method="get" class="asst-toolbar">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-6">
+            <!-- Smart search field -->
+            <div class="smart-search">
+                <i class="bi bi-search smart-icon" aria-hidden="true"></i>
+                <input id="adminSearch"
+                       name="q"
+                       value="@ViewBag.Query"
+                       class="form-control smart-input"
+                       placeholder="Filter durchsuchen"
+                       autocomplete="off" />
+                <button type="button" class="btn btn-link btn-clear" title="Eingabe löschen" aria-label="Eingabe löschen">
+                    <i class="bi bi-x"></i>
+                </button>
+                <button type="submit" class="btn btn-smart-submit">Suchen</button>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 text-md-end ">
+            <span class="text-muted ms-md-3 asst-count">Gesamt: @(Model?.Count() ?? 0)</span>
+        </div>
+    </div>
+</form>
+
+<div id="alphaNavAdmin" class="alpha-nav mb-4">
+    <button type="button" class="pill active" data-alpha="all">Alle</button>
+    <button type="button" class="pill" data-alpha="0-9">0–9</button>
+    <button type="button" class="pill" data-alpha="A">A</button>
+    <button type="button" class="pill" data-alpha="B">B</button>
+    <button type="button" class="pill" data-alpha="C">C</button>
+    <button type="button" class="pill" data-alpha="D">D</button>
+    <button type="button" class="pill" data-alpha="E">E</button>
+    <button type="button" class="pill" data-alpha="F">F</button>
+    <button type="button" class="pill" data-alpha="G">G</button>
+    <button type="button" class="pill" data-alpha="H">H</button>
+    <button type="button" class="pill" data-alpha="I">I</button>
+    <button type="button" class="pill" data-alpha="J">J</button>
+    <button type="button" class="pill" data-alpha="K">K</button>
+    <button type="button" class="pill" data-alpha="L">L</button>
+    <button type="button" class="pill" data-alpha="M">M</button>
+    <button type="button" class="pill" data-alpha="N">N</button>
+    <button type="button" class="pill" data-alpha="O">O</button>
+    <button type="button" class="pill" data-alpha="P">P</button>
+    <button type="button" class="pill" data-alpha="Q">Q</button>
+    <button type="button" class="pill" data-alpha="R">R</button>
+    <button type="button" class="pill" data-alpha="S">S</button>
+    <button type="button" class="pill" data-alpha="T">T</button>
+    <button type="button" class="pill" data-alpha="U">U</button>
+    <button type="button" class="pill" data-alpha="V">V</button>
+    <button type="button" class="pill" data-alpha="W">W</button>
+    <button type="button" class="pill" data-alpha="X">X</button>
+    <button type="button" class="pill" data-alpha="Y">Y</button>
+    <button type="button" class="pill" data-alpha="Z">Z</button>
+</div>
+
+@if (!(Model?.Any() ?? false))
+{
+    <div class="text-center text-muted py-5">
+        <div class="mb-2"><i class="bi bi-robot" style="font-size:2rem;color:#9ca3af"></i></div>
+        <div>Keine Assistenten vorhanden.</div>
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3" id="adminAsstGrid">
+        @foreach (var a in Model)
+        {
+            <div class="col asst-item" data-name="@a.Name" data-desc="@a.Description" data-alpha="@(string.IsNullOrWhiteSpace(a.Name) ? "" : a.Name.Substring(0,1).ToUpperInvariant())">
+                <div class="asst-card h-100">
+                    <div class="card-body card-body-fixed">
+                        <div class="d-flex align-items-center mb-2">
+                            @{
+                                var av = a.AvatarUrl;
+                                if (!string.IsNullOrWhiteSpace(av))
+                                {
+                                    if (av.StartsWith("~/")) { av = Url.Content(av); }
+                                    else if (av.StartsWith("/") && !av.StartsWith("//")) { av = Url.Content("~" + av); }
+                                }
+                            }
+                            <img src="@av" alt="@a.Name" class="asst-avatar me-2" />
+                            <div>
+                                <div class="fw-bold">@a.Name</div>
+                                <div class="small text-muted">ID: @a.Id</div>
+                                @if (a.IsGlobal)
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-success">Global sichtbar</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Description clamped with ellipsis; full text on hover -->
+                        <div class="asst-desc flex-grow-1 desc-clamp" title="@a.Description">
+                            @Html.Raw(a.Description)
+                        </div>
+                    </div>
+
+                    <!-- Footer pinned to bottom; actions aligned across cards -->
+                    <div class="asst-footer">
+                        <div class="d-flex align-items-center gap-2">
+                            <a asp-area="Admin" asp-controller="Assistant" asp-action="Edit" asp-route-id="@a.Id" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Bearbeiten">
+                                <i class="bi bi-pencil-square fa-lg"></i>
+                            </a>
+                            <form asp-area="Admin" asp-controller="Assistant" asp-action="ToggleGlobal" asp-route-id="@a.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm @(a.IsGlobal ? "btn-success" : "btn-outline-secondary")" title="Globale Sichtbarkeit umschalten">
+                                    <i class="bi bi-globe2"></i>
+                                    <span class="ms-1 d-none d-sm-inline">@(a.IsGlobal ? "Global an" : "Global aus")</span>
+                                </button>
+                            </form>
+                            <form asp-area="Admin" asp-controller="Assistant" asp-action="Delete" asp-route-id="@a.Id" method="post" class="d-inline js-delete-form">
+                                @Html.AntiForgeryToken()
+                                <button type="button" class="btn btn-danger btn-sm js-delete-btn" data-name="@a.Name" title="Löschen" aria-label="Löschen">
+                                    <i class="bi bi-trash fa-lg"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <a asp-area="User" asp-controller="Home" asp-action="AssistantChat" asp-route-id="@a.Id" class="btn btn-accent btn-sm">
+                            <i class="bi bi-chat-dots"></i><span class="ms-1">Starten</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const grid = document.getElementById('adminAsstGrid');
+  const items = () => Array.from(grid?.querySelectorAll('.asst-item') || []);
+  const alphaNav = document.getElementById('alphaNavAdmin');
+  let alpha = 'all';
+
+  function applyAlpha(){
+    items().forEach(it => {
+      const name = (it.dataset.name || '').trim();
+      const first = name ? name.charAt(0).toUpperCase() : '';
+      const pass = (alpha === 'all') ? true : (alpha === '0-9' ? /[0-9]/.test(first) : first === alpha);
+      it.style.display = pass ? '' : 'none';
+    });
+  }
+
+  alphaNav?.addEventListener('click', function(e){
+    const btn = e.target.closest('.pill');
+    if (!btn) return;
+    alpha = btn.getAttribute('data-alpha') || 'all';
+    alphaNav.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p === btn));
+    applyAlpha();
+  });
+
+  applyAlpha();
+});
+</script>

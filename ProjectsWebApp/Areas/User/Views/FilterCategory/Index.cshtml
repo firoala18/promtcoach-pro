@@ -1,0 +1,445 @@
+﻿@model IEnumerable<ProjectsWebApp.Models.FilterCategory>
+@using ProjectsWebApp.Models
+
+@{
+    ViewData["Title"] = "Filter-Kategorien";
+
+    var currentType = (PromptType)ViewBag.Type;
+    var currentTypeStr = currentType.ToString();
+    var types = Enum.GetValues(typeof(PromptType))
+                   .Cast<PromptType>()
+                   .Where(pt => pt != PromptType.Eigenfilter
+                              && pt != PromptType.Framework
+                              && pt != PromptType.Meta);
+
+  
+}
+
+<style>
+    /* ——— Scoped styles for FilterCategory page ——— */
+
+    /* ——— Card & Layout ——— */
+    .fc-page .card {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transition: box-shadow .25s ease, transform .25s;
+    }
+
+    .fc-page .card:hover {
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+
+    /* ——— Card header ——— */
+    .fc-page .card-header {
+        background: #f1f1f1;
+        border-bottom: 1px solid #e4e4e4;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+    }
+
+    /* ——— Tabs ——— */
+    .fc-page .nav-tabs {
+        border-bottom: 2px solid #89ba17;
+        margin-bottom: 1.5rem;
+    }
+
+    .fc-page .nav-tabs .nav-link {
+        color: #555;
+        background: #f9f9f9;
+        border: 1px solid transparent;
+        border-radius: .4rem .4rem 0 0;
+        padding: .5rem 1.2rem;
+        transition: .3s;
+    }
+
+    .fc-page .nav-tabs .nav-link:hover {
+        background: #e6e6e6;
+        color: #333;
+    }
+
+    .fc-page .nav-tabs .nav-link.active {
+        background: #89ba17;
+        color: #fff;
+        font-weight: 600;
+        border-color: #89ba17 #89ba17 #e4e4e4;
+    }
+
+    /* ——— Table ——— */
+    .fc-page .table {
+        margin-bottom: 0;
+        background: #fff;
+    }
+
+    .fc-page .table thead th {
+        border-bottom: 2px solid #e4e4e4;
+        color: #333;
+    }
+
+    .fc-page .table tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .fc-page .table td,
+    .fc-page .table th {
+        vertical-align: middle;
+        color: #333;
+    }
+
+    /* ——— Badges ——— */
+    .fc-page .badge {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .fc-page .badge.bg-info {
+        background: #89ba17;
+        color: #fff;
+    }
+
+    /* ——— Buttons ——— */
+    .fc-page .btn {
+        border-radius: 6px;
+        padding: .5rem 1.25rem;
+        font-weight: 500;
+        transition: transform .2s, box-shadow .2s;
+        min-height: auto;
+    }
+
+    .fc-page .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .fc-page .btn-success {
+        background: #89ba17;
+        border: none;
+        color: #fff;
+    }
+
+    .fc-page .btn-success:hover {
+        background: #00b36c;
+        box-shadow: 0 6px 18px rgba(0, 128, 50, .3);
+    }
+
+    .fc-page .btn-outline-primary {
+        border-color: #89ba17;
+        color: #89ba17;
+    }
+
+    .fc-page .btn-outline-primary:hover {
+        background: #89ba17;
+        color: #fff;
+    }
+
+    .fc-page .btn-outline-danger {
+        border-color: #d9534f;
+        color: #d9534f;
+    }
+
+    .fc-page .btn-outline-danger:hover {
+        background: #d9534f;
+        color: #fff;
+    }
+
+    .fc-page .btn-outline-light {
+        border-color: #ccc;
+        color: #333;
+    }
+
+    .fc-page .btn-outline-light:hover {
+        background: #e6e6e6;
+        color: #333;
+    }
+
+    /* ——— Toolbar ——— */
+    .fc-page .category-toolbar {
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+
+    .fc-page .category-toolbar .btn {
+        margin: 0 .5rem;
+    }
+
+    .fc-page #filterTable_info {
+        margin-left: 1rem;
+    }
+</style>
+
+<div class="fc-page">
+<h2 class="mb-4"><i class="bi bi-funnel me-2"></i>Filter-Kategorien entwickeln</h2>
+
+
+
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0"> Übersicht </h4>
+
+        <!-- ▶︎ Button‑Gruppe direkt nebeneinander  -->
+        <div class="btn-group">
+            <a asp-controller="Home"
+                asp-action="PromptAssistent"
+               asp-route-type="Eigenfilter"
+               class="btn btn-sm btn-success">
+                <i class="bi bi-plus-lg me-1"></i> Szenarien anwenden
+            </a>
+
+            <a asp-action="Upsert"
+               class="btn btn-sm btn-success ms-3">
+                <i class="bi bi-plus-lg me-1"></i> Neue Kategorie entwickeln
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <table id="filterTable"
+               class="table table-hover table-striped align-middle">
+            <thead>
+                <tr>
+                    <th style="width:10%">Reihenfolge</th>
+                    <th style="width:60%">Name</th>
+                    <th style="width:30%" class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in Model)
+                {
+                    <tr>
+                        <td>
+                            <span class="badge bg-info">@cat.DisplayOrder</span>
+                        </td>
+                        <td class="fw-semibold">@cat.Name</td>
+                        <td class="text-end">
+                            <a asp-action="Upsert"
+                               asp-route-id="@cat.Id"
+                               class="btn btn-sm btn-warning me-1">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <!-- ❌ Delete – stays on page, handled by JS -->
+                            <form asp-action="Delete"
+                                  asp-route-id="@cat.Id"
+                                  method="post"
+                                  class="d-inline cat-delete-form">
+                                @Html.AntiForgeryToken()
+                                <button type="button" class="btn btn-sm btn-danger cat-delete-btn">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-header">
+        <h4 class="mb-0"> </h4>
+
+        <!-- ▶︎ Button‑Gruppe direkt nebeneinander  -->
+        <div class="btn-group">
+            <a asp-controller="Home"
+               asp-action="PromptAssistent"
+               asp-route-type="Eigenfilter"
+               class="btn btn-sm btn-success">
+                <i class="bi bi-plus-lg me-1"></i> Szenarien anwenden
+            </a>
+
+
+            <a asp-action="Upsert"
+               class="btn btn-sm btn-success ms-3">
+                <i class="bi bi-plus-lg me-1"></i> Neue Kategorie entwickeln
+            </a>
+        </div>
+    </div>
+
+
+    <div class="category-toolbar">
+        <a asp-action="Export"
+           asp-route-type="@currentTypeStr"
+           class="btn btn-outline-light">
+            <i class="bi bi-download me-1"></i>JSON exportieren
+        </a>
+
+        <button id="importJsonBtn" type="button" class="btn btn-outline-light">
+            <i class="bi bi-upload me-1"></i>JSON importieren
+        </button>
+        <form id="importJsonForm"
+              asp-action="Import"
+              asp-route-type="@currentTypeStr"
+              method="post"
+              enctype="multipart/form-data"
+              class="d-none">
+            @Html.AntiForgeryToken()
+            <input type="file" name="file" id="jsonFileInput" accept=".json" />
+        </form>
+
+        <button id="deleteBtn" type="button" class="btn btn-outline-danger">
+            <i class="bi bi-trash me-1"></i>Löschen
+        </button>
+        <form id="deleteTypeForm"
+              asp-action="DeleteType"
+              asp-route-type="@currentTypeStr"
+              method="post"
+              class="d-none">
+            @Html.AntiForgeryToken()
+        </form>
+        <form id="deleteAllForm"
+              asp-action="DeleteAll"
+              method="post"
+              class="d-none">
+            @Html.AntiForgeryToken()
+        </form>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const exportUrl = '@Url.Action(
+                    "Export",
+                    "FilterCategory",
+                    new { area = "User", type = currentTypeStr }
+            )';
+
+    $(function () {
+        $('#filterTable').DataTable({
+            pagingType   : "simple",
+            lengthChange : false,
+            language     : { search: "", searchPlaceholder: "Suchen …" }
+        });
+    });
+
+        $(document).on('submit', '.cat-delete-form', function (e) {
+            e.preventDefault();
+            const form = this;
+            Swal.fire({
+                title: 'Kategorie löschen?',
+                text: 'Diese Aktion kann nicht rückgängig gemacht werden.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ja, löschen!',
+                cancelButtonText: 'Abbrechen'
+            }).then(r => { if (r.isConfirmed) form.submit(); });
+        });
+
+        document.getElementById('importJsonBtn').addEventListener('click', () =>
+            document.getElementById('jsonFileInput').click()
+        );
+
+        document.getElementById('jsonFileInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            let text = await file.text();
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+            let obj;
+            try { obj = JSON.parse(text); }
+            catch { return Swal.fire('Fehler','Ungültiges JSON-Format.','error'); }
+
+            const data = obj.data ?? obj.Data,
+                  hash = obj.hash ?? obj.Hash;
+            if (!data || !hash)
+                return Swal.fire('Fehler','JSON muss „data“ und „hash“ enthalten.','error');
+
+            const secret = 'uni-wuppertal2025';
+            const digest = await crypto.subtle.digest(
+                'SHA-256',
+                new TextEncoder().encode(secret + JSON.stringify(data))
+            );
+            const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
+            if (hex !== hash)
+                return Swal.fire('Fehler','Integritätsprüfung fehlgeschlagen.','error');
+
+            Swal.fire({
+                title: 'Import bestätigen',
+                html: 'Der <b>aktuelle Inhalt</b> wird vollständig ersetzt.<br>Möchten Sie fortfahren?',
+                icon: 'warning',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Ja, importieren',
+                denyButtonText: 'Vorher sichern (Download)',
+                cancelButtonText: 'Abbrechen'
+            }).then(r => {
+                if (r.isConfirmed)      document.getElementById('importJsonForm').submit();
+                else if (r.isDenied)    window.location.href = exportUrl;
+                else                    e.target.value = '';
+            });
+        });
+
+               /* =====================================================================
+           AJAX-DELETE   (stay on page, show Swal success)
+        ===================================================================== */
+        document.addEventListener('click',async e=>{
+          const btn = e.target.closest('.cat-delete-btn');
+          if(!btn) return;
+
+          const form = btn.closest('form.cat-delete-form');
+          const row  = btn.closest('tr');
+          if(!form || !row) return;
+
+          e.preventDefault();
+
+          const ok = await Swal.fire({
+              title: 'Kategorie löschen?',
+              text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
+              icon : 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#d33',
+              cancelButtonColor : '#3085d6',
+              confirmButtonText : 'Ja, löschen!',
+              cancelButtonText  : 'Abbrechen'
+          }).then(r=>r.isConfirmed);
+
+          if(!ok) return;
+
+          try{
+              const res = await fetch(form.action,{
+                  method : 'POST',
+                  headers: {
+                      'RequestVerificationToken':
+                          form.querySelector('input[name="__RequestVerificationToken"]').value
+                  }
+              });
+              const json = await res.json();
+
+              if(json.success){
+                  row.remove();
+                  Swal.fire({
+                      toast:true, position:'top-end', timer:1800, showConfirmButton:false,
+                      icon:'success', title:'Kategorie gelöscht'
+                  });
+              }else{
+                  throw 'Server meldet Fehler';
+              }
+          }catch(err){
+              console.error(err);
+              Swal.fire('Fehler','Löschen fehlgeschlagen.','error');
+          }
+        });
+
+
+    @if (TempData["ImportError"] != null)
+        {
+            <text>Swal.fire('Fehler','@TempData["ImportError"]','error');</text>
+        }
+        @if (TempData["ImportSuccess"] != null)
+        {
+            <text>Swal.fire('Erfolg','@TempData["ImportSuccess"]','success');</text>
+        }
+        @if (TempData["DeleteSuccess"] != null)
+        {
+            <text>Swal.fire('Erfolg','@TempData["DeleteSuccess"]','success');</text>
+        }
+    </script>
+}

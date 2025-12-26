@@ -1,0 +1,190 @@
+@model ApiKeySetting
+@{
+    ViewData["Title"] = "API‑Schlüssel verwalten";
+}
+<style>
+    .active-provider-highlight {
+        border: 2px solid #89ba17;
+        background-color: rgba(137, 186, 23, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    .active-provider-highlight .form-label {
+        color: #89ba17 !important;
+    }
+    .active-provider-highlight .form-select {
+        border-color: #89ba17;
+    }
+    .active-provider-highlight .form-select:focus {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 0.25rem rgba(137, 186, 23, 0.25);
+    }
+    .active-provider-highlight .form-text {
+        color: #6d9412 !important;
+    }
+</style>
+
+<div class="mt-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <h2 class="mb-3">Globale KI‑Anbieter & API‑Schlüssel</h2>
+          <p class="text-muted mb-4">Wählen Sie den standardmäßig verwendeten Anbieter und hinterlegen Sie die globalen API‑Schlüssel. Gruppen mit eigenen Schlüsseln überschreiben diese Einstellung.</p>
+
+          <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3 active-provider-highlight">
+              <label class="form-label"><strong>Aktiver Anbieter</strong></label>
+              <select asp-for="ActiveProvider" class="form-select">
+                <option value="openai">OpenAI</option>
+                <option value="kisski">Kisski</option>
+                <option value="gemini">Gemini</option>
+              </select>
+              <div class="form-text">Wird verwendet, wenn keine Gruppen‑Schlüssel konfiguriert sind.</div>
+            </div>
+
+            <hr />
+
+            <h5 class="mt-3">OpenAI</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label asp-for="OpenAIKey" class="form-label">OpenAI API‑Key</label>
+                <input asp-for="OpenAIKey" type="password" class="form-control" autocomplete="off" />
+              </div>
+              
+              <div class="col-md-6">
+                <label asp-for="OpenAIModel" class="form-label">OpenAI Standard‑Modell</label>
+                <select asp-for="OpenAIModel" class="form-select">
+                  <option value="gpt-4o-mini">4o-mini</option>
+                  <option value="gpt-4o">4o</option>
+                  <option value="gpt-5">GPT-5 (reasoning)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label asp-for="OpenAIEmbeddingsKey" class="form-label">OpenAI Embeddings API‑Key</label>
+                <input asp-for="OpenAIEmbeddingsKey" type="password" class="form-control" autocomplete="off" />
+                <div class="form-text">Wird für alle Embedding‑Prozesse verwendet (Assistenten‑Wissen, Smart Selection, Filter).</div>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Zuletzt aktualisiert:
+              @if (Model?.OpenAIUpdatedAt.HasValue == true)
+              { <text>@Model.OpenAIUpdatedAt.Value.ToLocalTime().ToString("g")</text> }
+              else
+              { <text>–</text> }
+            </small>
+
+            <h5 class="mt-4">Kisski</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label asp-for="KisskiApiKey" class="form-label">Kisski API‑Key</label>
+                <input asp-for="KisskiApiKey" type="password" class="form-control" autocomplete="off" />
+              </div>
+              
+              <div class="col-md-6">
+                <label asp-for="KisskiModel" class="form-label">Kisski Standard‑Modell</label>
+                <select asp-for="KisskiModel" class="form-select">
+                  <option value="medgemma-27b">medgemma-27b</option>
+                  <option value="gemma-3-27b-it">gemma-3-27b-it</option>
+                  <option value="openai-gpt-oss-120b">openai-gpt-oss-120b</option>
+                </select>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Zuletzt aktualisiert:
+              @if (Model?.KisskiUpdatedAt.HasValue == true)
+              { <text>@Model.KisskiUpdatedAt.Value.ToLocalTime().ToString("g")</text> }
+              else
+              { <text>–</text> }
+            </small>
+
+            <h5 class="mt-4">Gemini</h5>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label asp-for="GeminiApiKey" class="form-label">Gemini API‑Key</label>
+                <input asp-for="GeminiApiKey" type="password" class="form-control" autocomplete="off" />
+              </div>
+              <div class="col-md-6">
+                <label asp-for="GeminiModel" class="form-label">Gemini Standard‑Modell</label>
+                <select asp-for="GeminiModel" class="form-select">
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                </select>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Zuletzt aktualisiert:
+              @if (Model?.GeminiUpdatedAt.HasValue == true)
+              { <text>@Model.GeminiUpdatedAt.Value.ToLocalTime().ToString("g")</text> }
+              else
+              { <text>–</text> }
+            </small>
+
+            <div class="d-flex justify-content-end align-items-center mt-3">
+              <button type="submit" class="btn" style="background:black;color:white">
+                <i class="bi bi-check-lg me-1"></i>Speichern
+              </button>
+            </div>
+          </form>
+
+                    
+                @*         @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        <div asp-validation-summary="All" class="text-danger"></div>
+
+                        <div class="mb-3">
+                        <label asp-for="OpenAIKey" class="form-label"><strong>API-Key für automatisierte Prompt-Erzeugung</strong></label>
+                            <div class="input-group">
+                                <input asp-for="OpenAIKey" type="password" class="form-control"  autocomplete="off" />
+                                <button class="btn btn-outline-secondary" type="button" id="toggleKey"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <span asp-validation-for="OpenAIKey" class="text-danger"></span>
+                            <div class="form-text">Wert leer lassen, um keinen Wechsel vorzunehmen.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted">
+                                 Zuletzt aktualisiert:
+                                @if (Model?.UpdatedAt.HasValue == true)
+                                {
+                                     <text>@Model.UpdatedAt.Value.ToLocalTime().ToString("g")</text> 
+                                }
+                                else
+                                {
+
+                                     <text>–</text> 
+                                }
+                            </small>
+
+                            <button type="submit" class="btn" style="background:black;color:white">
+                                <i class="bi bi-check-lg me-1"></i>Speichern
+                            </button>
+
+                        </div> *@
+                   
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    (function(){
+      const btn = document.getElementById('toggleKey');
+      const inp = document.getElementById('OpenAIKey');
+      if (btn && inp) {
+        btn.addEventListener('click', () => {
+          const isPwd = inp.type === 'password';
+          inp.type = isPwd ? 'text' : 'password';
+          btn.innerHTML = isPwd ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+        });
+      }
+    })();
+  </script>
+}

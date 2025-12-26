@@ -1,0 +1,879 @@
+@model ProjectsWebApp.Models.Assistant
+@{
+    ViewData["Title"] = "Assistent bearbeiten";
+}
+
+<style>
+    :root {
+        --accent: #3acc59;
+        --accent2: #00b36c;
+        --border: #eef1f4;
+        --muted: #6b7280;
+        --text: #111827;
+    }
+
+    .cardx {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(16,24,40,.06);
+    }
+
+    .cardx-b {
+        padding: 1rem 1.25rem;
+    }
+
+    /* Header layout like chat header (no wrapping) */
+    .cardx-h {
+        padding: 1rem 1.25rem;
+        background: linear-gradient(180deg,#ffffff,#f8fafc);
+        border-bottom: 1px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .6rem;
+        flex-wrap: nowrap;
+    }
+
+    .asst-hdr-left {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        flex: 1 1 auto;
+        min-width: 0; /* allow title to shrink/ellipsis */
+    }
+
+    .asst-hdr-right {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        flex: 0 0 auto; /* never shrink */
+    }
+
+    /* Back button + divider */
+    .btn-back {
+        margin-left: 2px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        background: #878686; /* fallback for old browsers */  
+        color: white;
+        border-radius: 50%;
+        padding: 0;
+        box-sizing: border-box;
+        box-shadow: 0 2px 6px rgba(16,24,40,.06);
+        transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background-color .12s ease;
+        flex: 0 0 auto;
+    }
+
+        .btn-back:hover {
+            background: #6E6E6E;
+            border-color: #dfe6f0;
+            box-shadow: 0 4px 12px rgba(16,24,40,.10);
+            text-decoration: none;
+        }
+
+        .btn-back:active {
+            transform: translateY(1px);
+        }
+
+        .btn-back:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(58,204,89,.25);
+        }
+
+    .hdr-sep {
+        width: 1px;
+        height: 24px;
+        align-self: center;
+        background: linear-gradient(to bottom, transparent, var(--border), transparent);
+        margin: 0 10px;
+        border-radius: 1px;
+        flex: 0 0 auto;
+    }
+
+    .avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(58,204,89,.15);
+        flex: 0 0 auto;
+    }
+
+    /* Titles: Name (single line, ellipsis) + Description (multi-line, full) + ID meta */
+    .titles {
+        display: flex;
+        flex-direction: column;
+        gap: .15rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        line-height: 1.15;
+    }
+
+        .titles .name {
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .titles .desc {
+            color: var(--muted);
+            white-space: normal;
+            overflow: visible;
+        }
+
+        .titles .meta {
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+    /* Header actions: compact icon buttons + centered dividers */
+    .action-bar .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+        .action-bar .btn i {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+    .action-bar .vr {
+        height: 24px;
+        opacity: .6;
+    }
+
+    .btn-accent {
+        background: linear-gradient(135deg,var(--accent),var(--accent2));
+        color: #fff;
+        border: 0;
+        border-radius: .65rem;
+        padding: .5rem 1rem;
+        font-weight: 700;
+    }
+
+        .btn-accent:hover {
+            filter: brightness(1.04);
+            color: #fff;
+        }
+
+    /* Force circular shape for header buttons only */
+    .action-bar .btn-accent,
+    .action-bar .btn-danger,
+    .action-bar .btn.btn-danger.btn-sm {
+        border-radius: 50% !important;
+        padding: 0 !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Share button styling aligned with AssistantChat */
+    .btn-share {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        max-width: 36px !important;
+        max-height: 36px !important;
+        border-radius: 50% !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 2px solid black;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(16,24,40,.06);
+        aspect-ratio: 1 / 1 !important;
+    }
+
+    .btn-share.inactive {
+        background: #fff;
+        border-color: var(--border);
+        color: #64748b;
+    }
+
+    .btn-share.inactive:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #475569;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16,24,40,.1);
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+    }
+
+    .btn-share.active {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-share.active:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+        filter: brightness(1.05);
+    }
+
+    .kb-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: .75rem;
+        background: #fff;
+    }
+
+        .kb-item:hover {
+            background: #fbfdfc;
+            border-color: #e6f7ee;
+        }
+
+    .kb-title {
+        font-weight: 600;
+    }
+
+    .kb-meta {
+        color: #6b7280;
+    }
+
+    .kb-preview {
+        color: #6b7280;
+        white-space: pre-wrap;
+    }
+
+    .kb-clamp {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    #editor {
+        resize: vertical;
+        min-height: 300px;
+        height: 400px;
+        max-height: 90vh;
+    }
+
+    #editor-container {
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    /* CKEditor look consistent with other editors */
+    .ck-editor__editable div {
+        margin-bottom: 0.25rem !important;
+        line-height: 1.4;
+    }
+
+    .ck-editor__editable_inline {
+        min-height: 160px;
+        resize: vertical;
+        overflow: auto;
+    }
+
+    .fullscreen-editor {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999;
+        background: #fefefe linear-gradient(to bottom right, #eafcf7, #ffffff);
+        padding: 3rem 5%;
+        overflow: auto;
+        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        border-radius: 0;
+    }
+
+
+        .fullscreen-editor .ck-editor__editable[role="textbox"] {
+            flex-grow: 1;
+            min-height: 400px;
+            resize: vertical;
+            overflow: auto;
+        }
+</style>
+
+<div class="row g-3">
+    <div class="col-12">
+        <div class="cardx">
+            <div class="cardx-h">
+                <div class="asst-hdr-left">
+                    <!-- Back on the left -->
+                    <a asp-area="Admin" asp-controller="Assistant" asp-action="Index" class="btn-back" title="Zurück" aria-label="Zurück">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+
+                    <span class="hdr-sep" aria-hidden="true"></span>
+
+                    @{
+                        var av = Model.AvatarUrl;
+                        if (!string.IsNullOrWhiteSpace(av))
+                        {
+                            if (av.StartsWith("~/")) { av = Url.Content(av); }
+                            else if (av.StartsWith("/") && !av.StartsWith("//")) { av = Url.Content("~" + av); }
+                        }
+                        var cleanName = System.Text.RegularExpressions.Regex.Replace(Model.Name ?? string.Empty, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline).Trim();
+                    }
+                    <img id="adminAvatarPreview" src="@av" alt="@cleanName" class="avatar" style="cursor:pointer" title="Avatar ändern" />
+
+                    <!-- Title block: Name (1 line), Description under it (multi-line), then ID -->
+                    <div class="titles">
+                        <div class="name">@cleanName</div>
+                        <div class="desc">@Html.Raw(Model.Description) </div>
+                        <div class="meta">ID: @Model.Id</div>
+                    </div>
+                </div>
+
+                <!-- Right actions never wrap -->
+                <div class="asst-hdr-right btn-toolbar action-bar">
+                    <button type="submit" form="asstEditForm" class="btn btn-accent btn-sm" title="Speichern" aria-label="Speichern">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                    </button>
+                    <div class="vr mx-1 align-self-center"></div>
+                    @{
+                        var shareGroups = ViewBag.ShareGroups as IEnumerable<string>;
+                        var assistantIsShared = (ViewBag.AssistantIsShared as bool?) ?? false;
+                    }
+                    @if (shareGroups != null && shareGroups.Any())
+                    {
+                        @if (assistantIsShared)
+                        {
+                            <button type="button" class="btn-share active" id="adminShareBtn" title="Assistent ist extern freigegeben" aria-label="Assistent ist extern freigegeben">
+                                <i class="bi bi-share-fill fs-6"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn-share inactive" id="adminShareBtn" title="Extern teilen" aria-label="Extern teilen">
+                                <i class="bi bi-share-fill fs-6"></i>
+                            </button>
+                        }
+                        <div class="vr mx-1 align-self-center"></div>
+                    }
+                    <form asp-area="Admin" asp-controller="Assistant" asp-action="Delete" asp-route-id="@Model.Id" method="post" title="Löschen" class="d-inline js-delete-form">
+                        @Html.AntiForgeryToken()
+                        <button type="button" class="btn btn-danger btn-sm js-delete-btn" data-name="@Model.Name">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="cardx-b">
+                <form asp-area="Admin" asp-controller="Assistant" asp-action="Edit" method="post" id="asstEditForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Name</label>
+                            <input name="name" class="form-control" value="@Model.Name" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Avatar URL</label>
+                            <input name="avatarUrl" class="form-control" value="@Model.AvatarUrl" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Ziele</label>
+                            <textarea id="adminGoals" name="goals" rows="3" class="form-control">@Model.Goals</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Beschreibung</label>
+                            <textarea id="adminDesc" name="description" rows="2" class="form-control">@Model.Description</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">System Prompt</label>
+                            @{ 
+                                var sys = Model.SystemPrompt ?? string.Empty; 
+                                sys = System.Text.RegularExpressions.Regex.Replace(sys, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                sys = System.Text.RegularExpressions.Regex.Replace(sys, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+                            }
+                            <textarea name="systemPrompt" rows="5" class="form-control">@sys</textarea>
+                            <div class="form-text">HTML wurde aus der Anzeige entfernt. Gespeichert wird der reine Text.</div>
+                        </div>
+
+                      
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Owner/Autor</label>
+                            <input name="authorName" class="form-control" value="@Model.AuthorName" />
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold">Lizenzen</label>
+                            @{ var lic = Model.Licenses ?? string.Empty; }
+                            <select name="licenses" class="form-select">
+                                @if (string.IsNullOrEmpty(lic)) { <option value="" selected>Bitte wählen …</option>; } else { <option value="">Bitte wählen …</option>; }
+                                @{ var licenseOptions = new[]{
+                                        "Attribution_CC_BY",
+                                        "Attribution_ShareAlike_CC_BY_SA",
+                                        "Public_Domain_Dedication_CC0",
+                                        "Copyright",
+                                        "MIT"
+                                    }; }
+                                @foreach (var opt in licenseOptions)
+                                {
+                                    if (string.Equals(lic, opt, StringComparison.Ordinal))
+                                    { <option value="@opt" selected>@opt</option>; }
+                                    else
+                                    { <option value="@opt">@opt</option>; }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="submit" class="btn btn-accent">Speichern</button>
+                        <a asp-area="Admin" asp-controller="Assistant" asp-action="Index" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminShareModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assistent extern teilen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="adminShareForm" asp-area="User" asp-controller="Home" asp-action="CreateAssistantShareLink" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Gruppe</label>
+                            <select id="adminShareGroup" name="groupName" class="form-select">
+                                @if (ViewBag.ShareGroups is IEnumerable<string> modalGroups)
+                                {
+                                    foreach (var g in modalGroups)
+                                    {
+                                        <option value="@g">@g</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sichtbarkeit</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="adminShareVisibility" id="adminShareVisPrivate" value="private" checked />
+                                <label class="form-check-label" for="adminShareVisPrivate">Nur ich</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="adminShareVisibility" id="adminShareVisLink" value="link" />
+                                <label class="form-check-label" for="adminShareVisLink">Jeder mit dem Link</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Freigabelink</label>
+                            <div class="input-group">
+                                <input id="adminShareResult" type="text" class="form-control" readonly />
+                                <button type="button" id="adminShareGenerate" class="btn btn-outline-secondary">Generieren</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="adminShareError" class="text-danger small d-none"></div>
+                    <div id="adminShareToast" class="alert alert-success small position-fixed bottom-0 end-0 m-3 d-none" role="alert" style="z-index:1080;">
+                        Link wurde in die Zwischenablage kopiert.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+                    <button type="button" id="adminShareSubmit" class="btn btn-accent">Speichern</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="cardx">
+            <div class="cardx-h d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="fw-bold">Wissensbasis</div>
+                    <div class="small text-muted">Gespeicherte Embeddings: @(ViewBag.EmbCount ?? 0)</div>
+                </div>
+            </div>
+            <div class="cardx-b">
+                <form asp-area="Admin" asp-controller="Assistant" asp-action="UploadEmbedding" method="post" enctype="multipart/form-data" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="input-group">
+                        <input type="file" name="txtFile" accept=".txt,text/plain" class="form-control" />
+                        <button type="submit" class="btn btn-secondary">Hochladen & Einbetten</button>
+                    </div>
+                </form>
+
+                @{
+                    var list = ViewBag.Embeddings as IEnumerable<ProjectsWebApp.Models.AssistantEmbedding>;
+                }
+                @if (list == null || !list.Any())
+                {
+                    <div class="text-muted">Keine Wissensdateien vorhanden.</div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var e in list)
+                        {
+                            var shortName = string.IsNullOrWhiteSpace(e.SourceFileName) ? $"Text #{e.Id}" : e.SourceFileName;
+                            <div class="kb-item">
+                                <div class="d-flex align-items-start justify-content-between">
+                                    <div class="me-2">
+                                        <div class="kb-title">@shortName</div>
+                                        <div class="kb-meta small">Hochgeladen: @e.UploadedAtUtc.ToLocalTime().ToString("g")</div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 ms-2">
+                                        <a asp-area="Admin" asp-controller="Assistant" asp-action="DownloadEmbedding" asp-route-id="@Model.Id" asp-route-embId="@e.Id" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        <form asp-area="Admin" asp-controller="Assistant" asp-action="DeleteEmbedding" method="post" onsubmit="return confirm('Embedding löschen?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@Model.Id" />
+                                            <input type="hidden" name="embId" value="@e.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      if (window.ClassicEditor){
+        const editorConfig = {
+          toolbar: [
+            'heading',
+            '|',
+            'bold',
+            'italic',
+            'link',
+            'bulletedList',
+            'numberedList',
+            '|',
+            'undo',
+            'redo'
+          ]
+        };
+        const d = document.getElementById('adminDesc');
+        const g = document.getElementById('adminGoals');
+        if (d) window.ClassicEditor.create(d, editorConfig).then(ed => window.__adminDescEd = ed).catch(()=>{});
+        if (g) window.ClassicEditor.create(g, editorConfig).then(ed => window.__adminGoalsEd = ed).catch(()=>{});
+      }
+    }catch{}
+    const form = document.getElementById('asstEditForm');
+    if (form){
+      form.addEventListener('submit', function(){
+        try{ if (window.__adminDescEd) document.getElementById('adminDesc').value = window.__adminDescEd.getData(); }catch{}
+        try{ if (window.__adminGoalsEd) document.getElementById('adminGoals').value = window.__adminGoalsEd.getData(); }catch{}
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      document.querySelectorAll('.js-delete-btn').forEach(function(btn){
+        btn.addEventListener('click', async function(){
+          const name = btn.getAttribute('data-name') || 'Assistent';
+          if (typeof Swal === 'undefined') {
+            if (confirm(name + ' löschen?')) btn.closest('form')?.submit();
+            return;
+          }
+          const res = await Swal.fire({
+            title: 'Assistent löschen?',
+            text: name + ' wird dauerhaft entfernt.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Ja, löschen',
+            cancelButtonText: 'Abbrechen',
+            confirmButtonColor: '#d33'
+          });
+          if (res.isConfirmed) btn.closest('form')?.submit();
+        });
+      });
+    });
+
+    // Click avatar to change Avatar URL quickly
+    const avatar = document.getElementById('adminAvatarPreview');
+    const urlInput = document.querySelector('input[name="avatarUrl"]');
+    if (avatar && urlInput){
+      avatar.addEventListener('click', async function(){
+        const current = (urlInput.value || '').trim();
+        if (typeof Swal === 'undefined'){
+          const v = prompt('Neue Avatar-URL eingeben:', current);
+          if (v !== null){ urlInput.value = v; try{ avatar.src = v.startsWith('~/') ? v.replace('~/', '/') : v; }catch{} }
+          return;
+        }
+        const { value: v } = await Swal.fire({
+          title: 'Avatar ändern',
+          input: 'url',
+          inputValue: current,
+          inputLabel: 'Avatar URL',
+          showCancelButton: true,
+          confirmButtonText: 'Übernehmen',
+          cancelButtonText: 'Abbrechen'
+        });
+        if (v !== undefined){ urlInput.value = v || ''; try{ avatar.src = v.startsWith('~/') ? v.replace('~/', '/') : v; }catch{} }
+      });
+    }
+    const shareBtn = document.getElementById('adminShareBtn');
+    const shareModalEl = document.getElementById('adminShareModal');
+    const shareForm = document.getElementById('adminShareForm');
+    const shareGroup = document.getElementById('adminShareGroup');
+    const shareResult = document.getElementById('adminShareResult');
+    const shareError = document.getElementById('adminShareError');
+    const shareToast = document.getElementById('adminShareToast');
+    const shareGenerate = document.getElementById('adminShareGenerate');
+    const shareSubmit = document.getElementById('adminShareSubmit');
+    const shareVisPrivate = document.getElementById('adminShareVisPrivate');
+    const shareVisLink = document.getElementById('adminShareVisLink');
+    const shareStateUrl = '@Url.Action("GetAssistantShareState", "Home", new { area = "User", id = Model.Id })';
+    const shareDeactivateUrl = '@Url.Action("DeactivateAssistantShareLink", "Home", new { area = "User", id = Model.Id })';
+    const shareTokenInput = shareForm ? shareForm.querySelector('input[name="__RequestVerificationToken"]') : null;
+    let adminShareModal = null;
+
+    if (shareBtn && shareModalEl) {
+      shareBtn.addEventListener('click', function(){
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          if (!adminShareModal) adminShareModal = new bootstrap.Modal(shareModalEl);
+          if (shareError) {
+            shareError.textContent = '';
+            shareError.classList.add('d-none');
+          }
+          if (shareResult) shareResult.value = '';
+          if (shareVisPrivate) shareVisPrivate.checked = true;
+          if (shareVisLink) shareVisLink.checked = false;
+          adminShareModal.show();
+          if (shareGroup) {
+            refreshAdminShareState();
+          }
+        }
+      });
+    }
+
+    async function refreshAdminShareState(){
+      if (!shareGroup || !shareStateUrl) return;
+      const group = (shareGroup.value || '').trim();
+      if (!group) return;
+      if (shareError) {
+        shareError.textContent = '';
+        shareError.classList.add('d-none');
+      }
+      if (shareResult) shareResult.value = '';
+      try {
+        const url = shareStateUrl + '?groupName=' + encodeURIComponent(group);
+        const resp = await fetch(url, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await resp.json();
+        if (!data.ok) {
+          if (shareError) {
+            shareError.textContent = data.error || 'Freigabestatus konnte nicht geladen werden.';
+            shareError.classList.remove('d-none');
+          }
+          return;
+        }
+        if (shareVisPrivate) shareVisPrivate.checked = !data.isActive;
+        if (shareVisLink) shareVisLink.checked = !!data.isActive;
+        if (shareResult && data.isActive && data.url) {
+          shareResult.value = data.url;
+        }
+      } catch (e) {
+        if (shareError) {
+          shareError.textContent = 'Freigabestatus konnte nicht geladen werden.';
+          shareError.classList.remove('d-none');
+        }
+      }
+    }
+
+    if (shareGroup) {
+      shareGroup.addEventListener('change', function(){
+        if (shareResult) shareResult.value = '';
+        if (shareVisPrivate) shareVisPrivate.checked = true;
+        if (shareVisLink) shareVisLink.checked = false;
+        refreshAdminShareState();
+      });
+    }
+
+    if (shareGenerate && shareForm && shareGroup && shareResult) {
+      shareGenerate.addEventListener('click', async function(){
+        const group = (shareGroup.value || '').trim();
+        if (!group) return;
+        const wantLink = shareVisLink && shareVisLink.checked;
+        if (!wantLink) return; // nur im Modus "Jeder mit dem Link" generieren
+
+        const fd = new FormData(shareForm);
+        try {
+          const resp = await fetch(shareForm.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd
+          });
+          const data = await resp.json();
+          if (!data.ok) {
+            if (shareError) {
+              shareError.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+              shareError.classList.remove('d-none');
+            }
+            shareResult.value = '';
+            return;
+          }
+          if (shareError) {
+            shareError.textContent = '';
+            shareError.classList.add('d-none');
+          }
+          const url = data.url || '';
+          shareResult.value = url;
+
+          if (url) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(url).catch(function(){});
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = url;
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); } catch {}
+              document.body.removeChild(ta);
+            }
+            if (shareToast) {
+              shareToast.classList.remove('d-none');
+              setTimeout(function(){ shareToast.classList.add('d-none'); }, 2200);
+            }
+            if (shareBtn) {
+              shareBtn.classList.remove('btn-outline-secondary');
+              shareBtn.classList.add('btn-success');
+              shareBtn.title = 'Assistent ist extern freigegeben';
+              shareBtn.setAttribute('aria-label', 'Assistent ist extern freigegeben');
+              shareBtn.innerHTML = '<i class="bi bi-check-circle"></i>';
+            }
+          }
+        } catch (e) {
+          if (shareError) {
+            shareError.textContent = 'Fehler beim Erzeugen des Links.';
+            shareError.classList.remove('d-none');
+          }
+        }
+      });
+    }
+
+    if (shareSubmit && shareForm && shareGroup && shareResult) {
+      shareSubmit.addEventListener('click', async function(){
+        const group = (shareGroup.value || '').trim();
+        if (!group) return;
+        const wantLink = shareVisLink && shareVisLink.checked;
+        if (wantLink) {
+          const fd = new FormData(shareForm);
+          try {
+            const resp = await fetch(shareForm.action, {
+              method: 'POST',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              body: fd
+            });
+            const data = await resp.json();
+            if (!data.ok) {
+              if (shareError) {
+                shareError.textContent = data.error || 'Freigabelink konnte nicht erstellt werden.';
+                shareError.classList.remove('d-none');
+              }
+              shareResult.value = '';
+              return;
+            }
+            if (shareError) {
+              shareError.textContent = '';
+              shareError.classList.add('d-none');
+            }
+            shareResult.value = data.url || '';
+            if (shareBtn && shareResult.value) {
+              shareBtn.classList.remove('btn-outline-secondary');
+              shareBtn.classList.add('btn-success');
+              shareBtn.title = 'Assistent ist extern freigegeben';
+              shareBtn.setAttribute('aria-label', 'Assistent ist extern freigegeben');
+              shareBtn.innerHTML = '<i class="bi bi-check-circle"></i>';
+            }
+            if (adminShareModal) adminShareModal.hide();
+          } catch (e) {
+            if (shareError) {
+              shareError.textContent = 'Fehler beim Erzeugen des Links.';
+              shareError.classList.remove('d-none');
+            }
+          }
+        } else {
+          if (!shareDeactivateUrl) return;
+          const fd = new FormData();
+          if (shareTokenInput && shareTokenInput.value) {
+            fd.append('__RequestVerificationToken', shareTokenInput.value);
+          }
+          fd.append('groupName', group);
+          try {
+            const resp = await fetch(shareDeactivateUrl, {
+              method: 'POST',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              body: fd
+            });
+            const data = await resp.json();
+            if (!data.ok) {
+              if (shareError) {
+                shareError.textContent = data.error || 'Freigabelink konnte nicht deaktiviert werden.';
+                shareError.classList.remove('d-none');
+              }
+              return;
+            }
+            if (shareError) {
+              shareError.textContent = '';
+              shareError.classList.add('d-none');
+            }
+            shareResult.value = '';
+            if (shareBtn) {
+              shareBtn.classList.remove('btn-success');
+              shareBtn.classList.add('btn-outline-secondary');
+              shareBtn.title = 'Extern teilen';
+              shareBtn.setAttribute('aria-label', 'Extern teilen');
+              shareBtn.innerHTML = '<i class="bi bi-link-45deg"></i>';
+            }
+            if (adminShareModal) adminShareModal.hide();
+          } catch (e) {
+            if (shareError) {
+              shareError.textContent = 'Freigabelink konnte nicht deaktiviert werden.';
+              shareError.classList.remove('d-none');
+            }
+          }
+        }
+      });
+    }
+  });
+</script>

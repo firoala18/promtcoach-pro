@@ -1,0 +1,198 @@
+@page
+@model GenerateRecoveryCodesModel
+@{
+    ViewData["Title"] = "Wiederherstellungscodes generieren";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<style>
+    .page-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.25rem;
+    }
+
+    .page-title h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .page-title p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .generate-container {
+        max-width: 600px;
+    }
+
+    .warning-card {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .warning-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .warning-card-header i {
+        color: #d97706;
+        font-size: 1.25rem;
+    }
+
+    .warning-card-header strong {
+        color: #92400e;
+        font-size: 1rem;
+    }
+
+    .warning-card-content {
+        font-size: 0.875rem;
+        color: #a16207;
+        line-height: 1.6;
+    }
+
+    .warning-card-content p {
+        margin: 0 0 0.75rem 0;
+    }
+
+    .warning-card-content p:last-child {
+        margin-bottom: 0;
+    }
+
+    .warning-card-content a {
+        color: #89ba17;
+        font-weight: 600;
+    }
+
+    .info-list {
+        margin: 1rem 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .info-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: #92400e;
+    }
+
+    .info-list li i {
+        color: #d97706;
+        margin-top: 0.125rem;
+    }
+
+    .btn-generate {
+        background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+        border: none;
+        color: #fff;
+        padding: 0.875rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-generate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(137, 186, 23, 0.35);
+        color: #fff;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        transition: color 0.2s ease;
+    }
+
+    .btn-back:hover {
+        color: #89ba17;
+    }
+</style>
+
+<a asp-page="./TwoFactorAuthentication" class="btn-back">
+    <i class="bi bi-arrow-left"></i>
+    Zurück zur 2FA-Übersicht
+</a>
+
+<div class="page-title">
+    <div class="page-title-icon">
+        <i class="bi bi-key"></i>
+    </div>
+    <div>
+        <h2>@ViewData["Title"]</h2>
+        <p>Erstellen Sie neue Wiederherstellungscodes für Ihr Konto</p>
+    </div>
+</div>
+
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="generate-container">
+    <div class="warning-card">
+        <div class="warning-card-header">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Wichtige Informationen</strong>
+        </div>
+        <div class="warning-card-content">
+            <ul class="info-list">
+                <li>
+                    <i class="bi bi-shield-check"></i>
+                    <span>Bewahren Sie diese Codes an einem sicheren Ort auf</span>
+                </li>
+                <li>
+                    <i class="bi bi-phone"></i>
+                    <span>Wenn Sie Ihr Gerät verlieren und keine Wiederherstellungscodes haben, verlieren Sie den Zugang zu Ihrem Konto</span>
+                </li>
+                <li>
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Das Generieren neuer Codes ändert nicht den Schlüssel in Ihrer Authenticator-App</span>
+                </li>
+            </ul>
+            <p>
+                Wenn Sie den Schlüssel in Ihrer Authenticator-App ändern möchten,
+                <a asp-page="./ResetAuthenticator">setzen Sie Ihren Authenticator-Schlüssel zurück</a>.
+            </p>
+        </div>
+    </div>
+
+    <form method="post">
+        <button type="submit" class="btn-generate">
+            <i class="bi bi-key-fill"></i>
+            Wiederherstellungscodes generieren
+        </button>
+    </form>
+</div>

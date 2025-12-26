@@ -1,0 +1,25 @@
+@if (TempData["success"] != null)
+{
+    <script type="text/javascript">
+        (function waitToastr(){
+            if (window.toastr) {
+                var msg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["success"]));
+                toastr.options = Object.assign({ positionClass: 'toast-bottom-right' }, toastr.options || {});
+                toastr.success(msg);
+            } else { setTimeout(waitToastr, 50); }
+        })();
+    </script>
+}
+
+@if (TempData["error"] != null)
+{
+    <script type="text/javascript">
+        (function waitToastr(){
+            if (window.toastr) {
+                var msg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["error"]));
+                toastr.options = Object.assign({ positionClass: 'toast-bottom-right' }, toastr.options || {});
+                toastr.error(msg);
+            } else { setTimeout(waitToastr, 50); }
+        })();
+    </script>
+}
