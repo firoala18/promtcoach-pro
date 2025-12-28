@@ -42,8 +42,9 @@
         grid-template-columns: repeat(4, minmax(200px, 1fr));
         gap: 0;
         padding: 1.5rem 2rem 2rem;
-        max-width: 1000px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: none;
+        margin: 0;
     }
 
     .mega-menu-column {
@@ -87,6 +88,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        width: 100%;
         padding: 0.4rem 0.5rem;
         border-radius: 6px;
         color: #374151;
@@ -150,7 +152,7 @@
     @@media (max-width: 992px) {
         .mega-menu-inner {
             grid-template-columns: repeat(2, 1fr);
-            max-width: 600px;
+            max-width: none;
             padding: 1.25rem 1.5rem;
         }
 
@@ -176,7 +178,7 @@
     @@media (max-width: 576px) {
         .mega-menu-inner {
             grid-template-columns: 1fr;
-            max-width: 100%;
+            max-width: none;
             padding: 1rem;
         }
 
@@ -428,6 +430,16 @@
     .navbar-nav .admin-menu-trigger.active i {
         transform: rotate(90deg);
     }
+
+    .navbar-nav .workspace-menu-trigger.active,
+    .navbar-nav .btn.workspace-menu-trigger.active {
+        color: #fff !important;
+        background: transparent !important;
+    }
+
+    .navbar-nav .workspace-menu-trigger.active::before {
+        width: 18px;
+    }
 </style>
 
 <ul class="navbar-nav d-flex flex-row align-items-center gap-2">
@@ -436,107 +448,129 @@
         var user = await UserManager.GetUserAsync(User) as AplicationUser;
 
         <!-- WORKSPACE DROPDOWN -->
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle nav-icon-link d-flex align-items-center justify-content-center"
-               href="#" data-bs-toggle="dropdown" aria-expanded="false" title="Arbeitsbereich">
+        <li class="nav-item mega-menu-wrapper">
+            <button type="button" class="btn nav-icon-link workspace-menu-trigger d-flex align-items-center justify-content-center"
+                    id="workspaceMegaMenuTrigger" title="Arbeitsbereich" aria-expanded="false">
                 <i class="bi bi-briefcase fs-5"></i>
-            </a>
-            
-            <ul class="dropdown-menu dropdown-menu-end custom-dropdown-menu" aria-label="Arbeitsbereich-Menü">
-                
-                <!-- Gruppe 1: Arbeitsbereich -->
-                <li><h6 class="custom-dropdown-header">Arbeitsbereich</h6></li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Eigenfilter">
-                        <span class="menu-icon-wrapper"><i class="bi bi-funnel"></i></span>
-                        <span>Szenarien entwickeln</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Eigenfilter">
-                        <span class="menu-icon-wrapper"><i class="bi bi-magic"></i></span>
-                        <span>Szenarien anwenden</span>
-                    </a>
-                </li>
+            </button>
 
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Framework">
-                        <span class="menu-icon-wrapper"><i class="bi bi-grid-3x3"></i></span>
-                        <span>Framework entwickeln</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Framework">
-                        <span class="menu-icon-wrapper"><i class="bi bi-cpu"></i></span>
-                        <span>Framework anwenden</span>
-                    </a>
-                </li>
+            <div class="mega-menu" id="workspaceMegaMenu" role="menu" aria-labelledby="workspaceMegaMenuTrigger">
+                <div class="mega-menu-inner">
 
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Meta">
-                        <span class="menu-icon-wrapper"><i class="bi bi-layers"></i></span>
-                        <span>Meta-Filter entwickeln</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Meta">
-                        <span class="menu-icon-wrapper"><i class="bi bi-gear-wide-connected"></i></span>
-                        <span>Meta anwenden</span>
-                    </a>
-                </li>
+                    <!-- Gruppe 1: Arbeitsbereich -->
+                    <div class="mega-menu-column">
+                        <h6 class="mega-menu-header">Arbeitsbereich</h6>
+                        <ul class="mega-menu-items">
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Eigenfilter">
+                                    <span class="mega-menu-icon"><i class="bi bi-funnel"></i></span>
+                                    <span class="mega-menu-text">Szenarien entwickeln</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Eigenfilter">
+                                    <span class="mega-menu-icon"><i class="bi bi-magic"></i></span>
+                                    <span class="mega-menu-text">Szenarien anwenden</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                <li><hr class="dropdown-divider" /></li>
+                    <!-- Gruppe 1: Arbeitsbereich -->
+                    <div class="mega-menu-column">
+                        <h6 class="mega-menu-header">Arbeitsbereich</h6>
+                        <ul class="mega-menu-items">
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Framework">
+                                    <span class="mega-menu-icon"><i class="bi bi-grid-3x3"></i></span>
+                                    <span class="mega-menu-text">Framework entwickeln</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Framework">
+                                    <span class="mega-menu-icon"><i class="bi bi-cpu"></i></span>
+                                    <span class="mega-menu-text">Framework anwenden</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Meta">
+                                    <span class="mega-menu-icon"><i class="bi bi-layers"></i></span>
+                                    <span class="mega-menu-text">Meta-Filter entwickeln</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Meta">
+                                    <span class="mega-menu-icon"><i class="bi bi-gear-wide-connected"></i></span>
+                                    <span class="mega-menu-text">Meta anwenden</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                <!-- Gruppe 2: Prompt-Arten -->
-                <li><h6 class="custom-dropdown-header">Prompt-Arten</h6></li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Text">
-                        <span class="menu-icon-wrapper"><i class="bi bi-fonts"></i></span><span>Text</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Bild">
-                        <span class="menu-icon-wrapper"><i class="bi bi-image"></i></span><span>Bild</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Video">
-                        <span class="menu-icon-wrapper"><i class="bi bi-play-btn"></i></span><span>Video</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Sound">
-                        <span class="menu-icon-wrapper"><i class="bi bi-volume-up"></i></span><span>Sound</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Akademisch">
-                        <span class="menu-icon-wrapper"><i class="bi bi-mortarboard"></i></span><span>Akademisch</span>
-                    </a>
-                </li>
+                    <!-- Gruppe 2: Prompt-Arten -->
+                    <div class="mega-menu-column">
+                        <h6 class="mega-menu-header">Prompt-Arten</h6>
+                        <ul class="mega-menu-items">
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Text">
+                                    <span class="mega-menu-icon"><i class="bi bi-fonts"></i></span>
+                                    <span class="mega-menu-text">Text</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Bild">
+                                    <span class="mega-menu-icon"><i class="bi bi-image"></i></span>
+                                    <span class="mega-menu-text">Bild</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Video">
+                                    <span class="mega-menu-icon"><i class="bi bi-play-btn"></i></span>
+                                    <span class="mega-menu-text">Video</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Sound">
+                                    <span class="mega-menu-icon"><i class="bi bi-volume-up"></i></span>
+                                    <span class="mega-menu-text">Sound</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Akademisch">
+                                    <span class="mega-menu-icon"><i class="bi bi-mortarboard"></i></span>
+                                    <span class="mega-menu-text">Akademisch</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                <li><hr class="dropdown-divider" /></li>
+                    <!-- Gruppe 3: Ressourcen & Studio -->
+                    <div class="mega-menu-column">
+                        <h6 class="mega-menu-header">Ressourcen & Studio</h6>
+                        <ul class="mega-menu-items">
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="MyPrompts" asp-action="Index">
+                                    <span class="mega-menu-icon"><i class="bi bi-archive"></i></span>
+                                    <span class="mega-menu-text">Sammlungen</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="Bibliothek">
+                                    <span class="mega-menu-icon"><i class="bi bi-collection"></i></span>
+                                    <span class="mega-menu-text">Bibliothek</span>
+                                </a>
+                            </li>
+                            <li class="mega-menu-item">
+                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="Assistenten">
+                                    <span class="mega-menu-icon"><i class="bi bi-robot"></i></span>
+                                    <span class="mega-menu-text">KI-Assistent-Studio</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
 
-                <!-- Gruppe 3: Ressourcen & Studio -->
-                <li><h6 class="custom-dropdown-header">Ressourcen & Studio</h6></li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="MyPrompts" asp-action="Index">
-                        <span class="menu-icon-wrapper"><i class="bi bi-archive"></i></span><span>Sammlungen</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="Bibliothek">
-                        <span class="menu-icon-wrapper"><i class="bi bi-collection"></i></span><span>Bibliothek</span>
-                    </a>
-                </li>
-                <li>
-                    <a class="dropdown-item custom-dropdown-item" asp-area="User" asp-controller="Home" asp-action="Assistenten">
-                        <span class="menu-icon-wrapper"><i class="bi bi-robot"></i></span><span>KI-Assistent-Studio</span>
-                    </a>
-                </li>
-               
-             
-            </ul>
+                </div>
+            </div>
         </li>
 
         <!-- ADMIN MEGA MENU (Admins only, not for Dozent) -->
@@ -783,6 +817,129 @@
     }
 </ul>
 
+<script>
+    (function() {
+        const trigger = document.getElementById('workspaceMegaMenuTrigger');
+        const menu = document.getElementById('workspaceMegaMenu');
+
+        if (!trigger || !menu) return;
+
+        let rafId = 0;
+
+        function positionMenu() {
+            const darkBar = trigger.closest('.border-top.bg-dark');
+            const navbar = document.querySelector('nav.navbar');
+
+            if (darkBar) {
+                const barRect = darkBar.getBoundingClientRect();
+                menu.style.top = (barRect.bottom) + 'px';
+
+                if (navbar) {
+                    const navRect = navbar.getBoundingClientRect();
+                    menu.style.left = navRect.left + 'px';
+                    menu.style.width = navRect.width + 'px';
+                } else {
+                    menu.style.left = barRect.left + 'px';
+                    menu.style.width = barRect.width + 'px';
+                }
+            }
+        }
+
+        function closeAllBootstrapDropdowns() {
+            try {
+                if (!(window.bootstrap && typeof bootstrap.Dropdown === 'function')) return;
+                document.querySelectorAll('[data-bs-toggle="dropdown"].show').forEach(function (el) {
+                    var inst = bootstrap.Dropdown.getInstance(el);
+                    if (inst) inst.hide();
+                });
+            } catch { }
+        }
+
+        function closeAdminMegaMenu() {
+            const adminTrigger = document.getElementById('adminMegaMenuTrigger');
+            const adminMenu = document.getElementById('adminMegaMenu');
+            if (adminMenu && adminMenu.classList.contains('show')) {
+                adminMenu.classList.remove('show');
+            }
+            if (adminTrigger && adminTrigger.classList.contains('active')) {
+                adminTrigger.classList.remove('active');
+                adminTrigger.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function openMenu() {
+            positionMenu();
+            closeAllBootstrapDropdowns();
+            closeAdminMegaMenu();
+            menu.classList.add('show');
+            trigger.classList.add('active');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+
+        function schedulePosition() {
+            if (!menu.classList.contains('show')) return;
+            if (rafId) return;
+            rafId = window.requestAnimationFrame(function () {
+                rafId = 0;
+                positionMenu();
+            });
+        }
+
+        function closeMenu() {
+            menu.classList.remove('show');
+            trigger.classList.remove('active');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleMenu() {
+            if (menu.classList.contains('show')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        }
+
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMenu();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && menu.classList.contains('show')) {
+                closeMenu();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (menu.classList.contains('show') && !menu.contains(e.target) && !trigger.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        menu.querySelectorAll('.mega-menu-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                closeMenu();
+            });
+        });
+
+        window.addEventListener('scroll', schedulePosition, { passive: true });
+        window.addEventListener('resize', schedulePosition);
+
+        try {
+            if (window.bootstrap && typeof bootstrap.Dropdown === 'function') {
+                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function (ddToggle) {
+                    ddToggle.addEventListener('show.bs.dropdown', function () {
+                        if (menu.classList.contains('show')) {
+                            closeMenu();
+                        }
+                    });
+                });
+            }
+        } catch { }
+    })();
+</script>
+
 <!-- Admin Mega Menu Script -->
 <script>
     (function() {
@@ -826,9 +983,22 @@
             } catch { }
         }
 
+        function closeWorkspaceMegaMenu() {
+            const wsTrigger = document.getElementById('workspaceMegaMenuTrigger');
+            const wsMenu = document.getElementById('workspaceMegaMenu');
+            if (wsMenu && wsMenu.classList.contains('show')) {
+                wsMenu.classList.remove('show');
+            }
+            if (wsTrigger && wsTrigger.classList.contains('active')) {
+                wsTrigger.classList.remove('active');
+                wsTrigger.setAttribute('aria-expanded', 'false');
+            }
+        }
+
         function openMenu() {
             positionMenu();
             closeAllBootstrapDropdowns();
+            closeWorkspaceMegaMenu();
             menu.classList.add('show');
             trigger.classList.add('active');
             trigger.setAttribute('aria-expanded', 'true');
