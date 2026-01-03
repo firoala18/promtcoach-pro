@@ -5,11 +5,41 @@
 }
 
 <style>
-    /* Einheitlicher Look für alle Formularfelder in der Registrierungskarte */
-    .register-card .form-floating > .form-control {
-        border-radius: 10px;
+    /* Register-Card: Inputs im gleichen Look wie Login-View */
+    .register-card .form-group {
+        margin-bottom: 18px;
+    }
+
+    .register-card .input-wrap {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        border: 1.5px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 0 14px;
+        transition: .18s;
+        background-color: #ffffff;
+    }
+
+    .register-card .input-wrap:focus-within {
+        border-color: #3388ff;
+        box-shadow: 0 0 0 2px rgba(51,136,255,.25);
+    }
+
+    .register-card .input-wrap .form-control {
         border: 0;
-        box-shadow: 0 .25rem .75rem rgba(15,23,42,.12);
+        outline: none;
+        flex: 1;
+        height: 100%;
+        padding-left: 8px;
+        background: transparent;
+        box-shadow: none !important;
+    }
+
+    .register-card label.form-label {
+        font-size: .9rem;
+        font-weight: 600;
+        color: #4b5563;
     }
 
     /* Password Strength Meter */
@@ -63,52 +93,52 @@
                          role="alert"></div>
 
                     <!-- Einladungscode -->
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.InviteCode"
-                               class="form-control border-0 shadow-sm"
-                               placeholder="Einladungscode"
-                               style="border-radius: 10px;" />
-                        <label asp-for="Input.InviteCode">Einladungscode</label>
-                        <span asp-validation-for="Input.InviteCode"
-                              class="text-danger"></span>
+                    <div class="form-group">
+                        <label asp-for="Input.InviteCode" class="form-label">Einladungscode</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.InviteCode"
+                                   class="form-control"
+                                   placeholder="Einladungscode" />
+                        </div>
+                        <span asp-validation-for="Input.InviteCode" class="text-danger small"></span>
                     </div>
 
                     <!-- Name -->
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Name"
-                               class="form-control border-0 shadow-sm"
-                               autocomplete="given-name"
-                               placeholder="Max Mustermann"
-                               style="border-radius: 10px;" />
-                        <label asp-for="Input.Name">Name</label>
-                        <span asp-validation-for="Input.Name"
-                              class="text-danger"></span>
+                    <div class="form-group">
+                        <label asp-for="Input.Name" class="form-label">Name</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.Name"
+                                   class="form-control"
+                                   autocomplete="given-name"
+                                   placeholder="Max Mustermann" />
+                        </div>
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
                     </div>
 
                     <!-- E-Mail -->
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Email"
-                               class="form-control border-0 shadow-sm"
-                               autocomplete="username"
-                               placeholder="mail@beispiel.de"
-                               style="border-radius: 10px;" />
-                        <label asp-for="Input.Email">E-Mail</label>
-                        <span asp-validation-for="Input.Email"
-                              class="text-danger"></span>
+                    <div class="form-group">
+                        <label asp-for="Input.Email" class="form-label">E-Mail</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.Email"
+                                   class="form-control"
+                                   autocomplete="username"
+                                   placeholder="mail@beispiel.de" />
+                        </div>
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
                     </div>
 
                     <!-- Passwort -->
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Password"
-                               type="password"
-                               class="form-control border-0 shadow-sm"
-                               autocomplete="new-password"
-                               placeholder="Passwort"
-                               style="border-radius: 10px;" />
-                        <label asp-for="Input.Password">Passwort</label>
-                        <span asp-validation-for="Input.Password"
-                              class="text-danger"></span>
-                        
+                    <div class="form-group mb-3">
+                        <label asp-for="Input.Password" class="form-label">Passwort</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.Password"
+                                   type="password"
+                                   class="form-control"
+                                   autocomplete="new-password"
+                                   placeholder="Passwort" />
+                        </div>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+
                         <!-- Password Strength Meter -->
                         <div class="mt-2 px-1" id="passwordStrengthContainer" style="display:none;">
                             <div class="password-strength-meter">
@@ -125,16 +155,16 @@
                     </div>
 
                     <!-- Passwort bestätigen -->
-                    <div class="form-floating mb-4">
-                        <input asp-for="Input.ConfirmPassword"
-                               type="password"
-                               class="form-control border-0 shadow-sm"
-                               autocomplete="new-password"
-                               placeholder="Passwort wiederholen"
-                               style="border-radius: 10px;" />
-                        <label asp-for="Input.ConfirmPassword">Passwort bestätigen</label>
-                        <span asp-validation-for="Input.ConfirmPassword"
-                              class="text-danger"></span>
+                    <div class="form-group mb-4">
+                        <label asp-for="Input.ConfirmPassword" class="form-label">Passwort bestätigen</label>
+                        <div class="input-wrap">
+                            <input asp-for="Input.ConfirmPassword"
+                                   type="password"
+                                   class="form-control"
+                                   autocomplete="new-password"
+                                   placeholder="Passwort wiederholen" />
+                        </div>
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                     </div>
 
                     <!-- Abschicken -->

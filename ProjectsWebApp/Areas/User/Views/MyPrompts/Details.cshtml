@@ -294,7 +294,6 @@
         }
 
         #variationsAccordion .accordion-button {
-            padding-right: 11rem;
             position: relative;
         }
 
@@ -302,15 +301,57 @@
             position: relative;
         }
 
-        #variationsAccordion .variation-actions {
-            position: absolute;
-            right: 2.75rem;
-            top: 50%;
-            transform: translateY(-50%);
+        /* Variation actions inside accordion body */
+        .variation-actions-inside {
+            margin-bottom: .5rem;
+        }
+
+        /* Variation circular icon buttons */
+        .variation-actions-inside .edit-variation,
+        .variation-actions-inside .delete-variation,
+        .variation-actions-inside .btn-share {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            min-height: 38px;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            border: none;
+            padding: 0;
             display: inline-flex;
+            justify-content: center;
             align-items: center;
-            gap: .5rem;
-            z-index: 2;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #fff;
+            transition: transform 0.18s, box-shadow 0.18s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        }
+
+        .variation-actions-inside .edit-variation {
+            background: #89ba17;
+        }
+
+        .variation-actions-inside .delete-variation {
+            background: #dc3545;
+        }
+
+        .variation-actions-inside .btn-share {
+            background: #004f72;
+        }
+
+        .variation-actions-inside .edit-variation:hover,
+        .variation-actions-inside .delete-variation:hover,
+        .variation-actions-inside .btn-share:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+        }
+
+        .variation-actions-inside .edit-variation:active,
+        .variation-actions-inside .delete-variation:active,
+        .variation-actions-inside .btn-share:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18) inset;
         }
             /* ----------------- Pfeil weiss (zu) ----------------- */
             .accordion-button.collapsed::after {
@@ -374,67 +415,8 @@
             .btn-export.dropdown-toggle::after {
                 border-top-color: currentColor;
             }
-        /* ---------- edit / delete (main)  +  edit‑variation ---------- */
+        /* Variation buttons responsive - now handled in .variation-actions-inside */
 
-        /* ===== variation action buttons (same look as main ones) ===== */
-        .edit-variation,
-        .delete-variation,
-        .btn-share {
-            /* reset */
-            background: none;
-            border: none;
-            color: inherit;
-        }
-
-     
-
-        /* shared base */
-        .edit-variation,
-        .delete-variation,
-        .btn-share {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: inline-flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            font-size: 1.05rem;
-            line-height: 1;
-            transition: background .18s, box-shadow .18s, transform .18s;
-            box-shadow: 0 2px 6px rgba(0,0,0,.18);
-            border: 1px solid transparent;
-            color: #fff;
-        }
-
-       
-        /* individual colors */
-        .edit-variation, .btn-share {
-            background: #004f72;
-            
-        }
-        /* blue */
-        .delete-variation {
-            background: red;
-        }
-    
-
-            /* pressed */
-            .edit-variation:active,
-            .delete-variation:active,
-            .btn:active{
-                transform: translateY(0);
-                box-shadow: 0 2px 6px rgba(0,0,0,.18) inset;
-            }
-
-        .edit-variation:hover,
-        .delete-variation:hover,
-            .btn-share :hover{
-            transform: translateY(-2px);
-            
-        }
-
-              
 
         /* ========== RESPONSIVE DESIGN ========== */
 
@@ -572,23 +554,20 @@
                 margin: 0.2rem 0.2rem 0 0;
             }
             .edit-btn, .delete-btn, .publish-btn {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                min-height: 38px;
+                font-size: 0.95rem;
             }
-            .edit-variation, .delete-variation, .btn-share {
+            .variation-actions-inside .edit-variation,
+            .variation-actions-inside .delete-variation,
+            .variation-actions-inside .btn-share {
                 width: 34px;
                 height: 34px;
+                min-width: 34px;
+                min-height: 34px;
                 font-size: 0.9rem;
-            }
-
-            #variationsAccordion .accordion-button {
-                padding-right: 9rem;
-            }
-
-            #variationsAccordion .variation-actions {
-                right: .5rem;
-                gap: .35rem;
             }
             .generated-thumb {
                 max-width: 120px;
@@ -611,11 +590,6 @@
             }
             .accordion-button {
                 flex: 1 1 100%;
-            }
-            .edit-variation,
-            .delete-variation,
-            .btn-share {
-                margin: 0.25rem !important;
             }
             /* Rail actions */
             .rail-actions .dots-dropdown-menu {
@@ -676,11 +650,17 @@
             .edit-btn, .delete-btn, .publish-btn {
                 width: 36px;
                 height: 36px;
-                font-size: 0.95rem;
+                min-width: 36px;
+                min-height: 36px;
+                font-size: 0.9rem;
             }
-            .edit-variation, .delete-variation, .btn-share {
+            .variation-actions-inside .edit-variation,
+            .variation-actions-inside .delete-variation,
+            .variation-actions-inside .btn-share {
                 width: 34px;
                 height: 34px;
+                min-width: 34px;
+                min-height: 34px;
                 font-size: 0.9rem;
             }
             .generated-thumb {
@@ -745,11 +725,17 @@
             .edit-btn, .delete-btn, .publish-btn {
                 width: 32px;
                 height: 32px;
+                min-width: 32px;
+                min-height: 32px;
                 font-size: 0.85rem;
             }
-            .edit-variation, .delete-variation, .btn-share {
+            .variation-actions-inside .edit-variation,
+            .variation-actions-inside .delete-variation,
+            .variation-actions-inside .btn-share {
                 width: 30px;
                 height: 30px;
+                min-width: 30px;
+                min-height: 30px;
                 font-size: 0.8rem;
             }
             .accordion-button {
@@ -873,77 +859,55 @@
         }
 
           
-        /* dark (danger)        */
+        /* Upper prompt circular icon buttons - white bg, black icons, color on hover */
         .edit-btn,
         .delete-btn,
         .publish-btn {
-            /* reset old look */
-            background: none;
-            border: none;
-            color: inherit;
-        }
-
-        .edit-btn,
-        .delete-btn,
-        .publish-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            border: 1px solid transparent;
+            padding: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 1.1rem; /* icon size */
-            line-height: 1;
-            transition: background .18s, box-shadow .18s, transform .18s;
-            box-shadow: 0 2px 6px rgba(0,0,0,.18);
-            border: 1px solid transparent;
-            color: #fff; /* icon color */
+            font-size: 1rem;
+            background: #fff;
+            color: #333;
+            transition: transform 0.18s, box-shadow 0.18s, background 0.18s, color 0.18s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
         }
 
-            .edit-btn:hover,
-            .delete-btn:hover,
-            .publish-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0,0,0,.22);
-                filter: brightness(1.05);
-            }
+        .edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+            background: #89ba17;
+            color: #fff;
+        }
 
-            
-            .delete-btn:hover
-             {
-               background:red;
-            }
+        .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+            background: #dc3545;
+            color: #fff;
+        }
 
-            .edit-btn:hover,
-            
-            .publish-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0,0,0,.22);
-                filter: brightness(1.05);
-                background: #004f72;
-            }
+        .publish-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+            background: #004f72;
+            color: #fff;
+        }
 
-            .edit-btn:focus-visible,
-            .delete-btn:focus-visible,
-            .publish-btn:focus-visible {
-                outline: none;
-                box-shadow: 0 0 0 3px rgba(255,255,255,.4), 0 0 0 6px rgba(0,0,0,.25);
-            }
-
-            /* pressed */
-            .edit-btn:active,
-            .delete-btn:active,
-            .publish-btn:active {
-                transform: translateY(0);
-                box-shadow: 0 2px 6px rgba(0,0,0,.18) inset;
-            }
-
-        /* dark header contrast tweak (optional) */
-        header .edit-btn,
-        header .delete-btn,
-        header .publish-btn {
-            border-color: rgba(255,255,255,.15);
+        .edit-btn:active,
+        .delete-btn:active,
+        .publish-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18) inset;
         }
 
 
@@ -1202,10 +1166,11 @@
       </div>
 
       <div class="prompt-actions">
-        <button id="copy-prompt"     class="btn btn-copy"><i class="bi bi-clipboard-check me-1"></i> Kopieren</button>
+            <button id="copy-prompt" class="btn btn-copy"> <i class="fa fa-clone me-1 "></i> Kopieren</button>
         <button id="calculate-tokens" class="btn btn-tokens"><i class="bi bi-calculator me-1"></i> Tokens</button>
         <button id="show-inline-models" class="btn btn-models">
-          <i id="models-icon" class="bi bi-lightbulb me-1"></i>
+          
+                <i id="models-icon" class="fa fa-cubes me-1"></i>
           <span id="models-button-text">Modelle</span>
         </button>
         <div class="btn-group">
@@ -1269,42 +1234,37 @@
           var promptId   = $"prompt-var-{v.Id}";
 
           <div class="accordion-item mb-3" data-var-id="@v.Id" data-payload='@Html.Raw(data.GetRawText())'>
-            <h2 class="accordion-header d-flex align-items-center" id="@headingId">
-              <button class="accordion-button collapsed flex-grow-1"
+            <h2 class="accordion-header" id="@headingId">
+              <button class="accordion-button collapsed"
                       data-bs-toggle="collapse"
                       data-bs-target="#@collapseId"
                       aria-controls="@collapseId">
                 Variation @(idx + 1)
-                <span class="variation-actions">
-                    <span role="button"
-                          tabindex="0"
-                          class="edit-variation"
-                          data-target="@promptId"
-                          data-prompt-type="@Model.PromptType.ToLower()"
-                          title="Bearbeiten"
-                          onclick="event.preventDefault(); event.stopPropagation();">
-                        <i class="bi bi-pencil-fill"></i>
-                    </span>
-                    <span role="button"
-                          tabindex="0"
-                          class="delete-variation"
-                          title="Variation löschen"
-                          onclick="event.preventDefault(); event.stopPropagation();">
-                        <i class="bi bi-trash-fill"></i>
-                    </span>
-                    <span role="button"
-                          tabindex="0"
-                          class="btn btn-share act-share"
-                          data-var-id="@v.Id"
-                          title="In Bibliothek veröffentlichen"
-                          onclick="event.preventDefault(); event.stopPropagation();">
-                        <i class="bi bi-upload"></i>
-                    </span>
-                </span>
               </button>
             </h2>
             <div id="@collapseId" class="accordion-collapse collapse" aria-labelledby="@headingId">
               <div class="accordion-body">
+                <!-- Variation Actions (Edit/Delete/Share) -->
+                <div class="variation-actions-inside d-flex justify-content-end gap-2 mb-3">
+                    <button type="button"
+                            class="edit-variation"
+                            data-target="@promptId"
+                            data-prompt-type="@Model.PromptType.ToLower()"
+                            title="Bearbeiten">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button type="button"
+                            class="delete-variation"
+                            title="Variation löschen">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                    <button type="button"
+                            class="btn-share act-share"
+                            data-var-id="@v.Id"
+                            title="In Bibliothek veröffentlichen">
+                        <i class="bi bi-upload"></i>
+                    </button>
+                </div>
                 <h6>Filter-Kriterien</h6>
                 <div id="filters-var-@v.Id">
                   @{
@@ -1354,7 +1314,7 @@
                                 <!-- Prompt‑Actions für diese Variation -->
                                 <div class="prompt-actions mt-3" data-owner="var-@v.Id">
                                     <button class="btn btn-copy shadow-sm act-copy" data-target="@promptId">
-                                        <i class="bi bi-clipboard-check me-1"></i> Kopieren
+                                    <i class="fa fa-clone me-1"></i> Kopieren
                                     </button>
                                     <button class="btn btn-tokens shadow-sm act-tokens" data-target="@promptId">
                                         <i class="bi bi-calculator me-1"></i> Tokens
@@ -1362,7 +1322,7 @@
 
                                     <button class="btn btn-models shadow-sm act-models"
                                             data-var-id="@v.Id">
-                                        <i class="bi bi-lightbulb me-1"></i>Modelle
+                                    <i  class="fa fa-cubes me-1"></i>Modelle
                                     </button>
 
                                     <button class="btn btn-export shadow-sm dropdown-toggle act-export"

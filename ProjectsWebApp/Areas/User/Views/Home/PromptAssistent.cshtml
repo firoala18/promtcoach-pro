@@ -3560,13 +3560,59 @@
 
 
 <style>
-  .swal2-popup.group-select-popup { padding-top: 1.1rem; }
-  .group-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem .75rem; align-items: stretch; }
-  .group-item { display: flex; align-items: center; gap: .55rem; border: 2px solid #b7ec83; border-radius: 8px; padding: .55rem .75rem; background: #fff; }
-  .group-item:hover { border-color: #95da58; box-shadow: 0 2px 8px rgba(16,24,40,.08); }
-  .group-check { width: 18px; height: 18px; accent-color: #a855f7; }
-  .group-name { font-weight: 700; color: #111827; }
-  @@media (max-width: 575.98px){ .group-grid { grid-template-columns: 1fr; } }
+  /* Premium searchable multi-select dropdown for rooms */
+  .swal2-popup.group-select-popup { padding-top: 1.1rem; max-width: 500px; width: 95vw; }
+  .group-select-popup .swal2-html-container { padding: 0 0.5rem; }
+
+  .room-select-container { position: relative; width: 100%; }
+  .room-select-box {
+    min-height: 46px; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 10px;
+    background: #fff; cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .room-select-box:hover { border-color: #d1d5db; }
+  .room-select-box.focused { border-color: #89ba17; box-shadow: 0 0 0 3px rgba(137,186,23,0.15); }
+
+  .room-tag {
+    display: inline-flex; align-items: center; gap: 4px; background: #89ba17; color: #fff;
+    padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; max-width: 150px;
+  }
+  .room-tag span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .room-tag-remove {
+    cursor: pointer; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: rgba(255,255,255,0.3); font-size: 12px; line-height: 1; flex-shrink: 0;
+  }
+  .room-tag-remove:hover { background: rgba(255,255,255,0.5); }
+
+  .room-select-placeholder { color: #9ca3af; font-size: 0.95rem; }
+  .room-select-arrow { margin-left: auto; color: #6b7280; transition: transform 0.2s; flex-shrink: 0; }
+  .room-select-arrow.open { transform: rotate(180deg); }
+
+  /* Dropdown that renders in body (outside popup) */
+  .room-dropdown-portal {
+    position: fixed; background: #fff; border: 2px solid #89ba17; border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.25); z-index: 100000; display: none; min-width: 300px;
+  }
+  .room-dropdown-portal.open { display: block; }
+
+  .room-search-input {
+    width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
+    font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 8px 8px 0 0;
+  }
+  .room-search-input::placeholder { color: #9ca3af; }
+
+  .room-list { max-height: 250px; overflow-y: auto; }
+  .room-list-item {
+    padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+    transition: background 0.15s; font-size: 0.95rem; color: #374151;
+  }
+  .room-list-item:hover { background: #f3f4f6; }
+  .room-list-item.selected { background: #f0fdf4; color: #166534; font-weight: 600; }
+  .room-list-item.selected::before { content: '✓'; color: #89ba17; font-weight: 700; }
+  .room-list-item.hidden { display: none; }
+
+  .room-list-empty { padding: 20px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+  .room-select-info { margin-top: 8px; font-size: 0.85rem; color: #6b7280; text-align: center; }
 </style>
 
 @section Scripts {
@@ -3758,30 +3804,143 @@
                         const grJson = await grRes.json();
                         const groups = Array.isArray(grJson.groups) ? grJson.groups : [];
                         const html = groups.length === 0
-                          ? '<div>Keine Gruppen verfügbar. Der Assistent wird ohne Gruppe gespeichert.</div>'
-                          : `<div class="group-grid">${groups.map(g => { const esc = g.replace(/\"/g,'&quot;'); return `<label class="group-item"><input class="group-check" type="checkbox" name="asstGrp" value="${esc}"><span class="group-name">${esc}</span></label>`; }).join('')}</div>`;
+                          ? '<div>Keine Räume verfügbar. Der Assistent wird ohne Raum gespeichert.</div>'
+                          : `<div class="room-select-container" id="asstRoomContainer">
+                               <div class="room-select-box" id="asstRoomSelectBox">
+                                 <span class="room-select-placeholder">Räume auswählen…</span>
+                                 <span class="room-select-arrow"><i class="bi bi-chevron-down"></i></span>
+                               </div>
+                             </div>
+                             <div class="room-select-info">${groups.length} Räume verfügbar</div>`;
+
+                        // Create portal dropdown in body
+                        const asstPortalId = 'asstRoomDropdownPortal';
+                        let asstPortal = document.getElementById(asstPortalId);
+                        if (asstPortal) asstPortal.remove();
+                        asstPortal = document.createElement('div');
+                        asstPortal.id = asstPortalId;
+                        asstPortal.className = 'room-dropdown-portal';
+                        asstPortal.innerHTML = `
+                          <input type="text" class="room-search-input" id="asstRoomSearch" placeholder="Räume durchsuchen…">
+                          <div class="room-list" id="asstRoomList">
+                            ${groups.map(g => { const esc = g.replace(/\"/g,'&quot;'); return `<div class="room-list-item" data-value="${esc}" data-search="${esc.toLowerCase()}">${esc}</div>`; }).join('')}
+                          </div>`;
+                        document.body.appendChild(asstPortal);
+
                         const go = await Swal.fire({
-                            title: 'In welchen Gruppen speichern?',
+                            title: 'In welchen Räume speichern?',
                             html,
                             focusConfirm: false,
                             showCancelButton: true,
                             confirmButtonText: 'Weiter',
                             cancelButtonText: 'Abbrechen',
                             customClass: { popup: 'group-select-popup' },
-                            preConfirm: () => {
-                                // Wenn es keine Gruppen gibt, darf ohne Auswahl gespeichert werden
-                                if (groups.length === 0) {
-                                    return [];
+                            didOpen: () => {
+                                const container = document.getElementById('asstRoomContainer');
+                                const selectBox = document.getElementById('asstRoomSelectBox');
+                                const arrow = selectBox.querySelector('.room-select-arrow');
+                                const portal = document.getElementById(asstPortalId);
+                                const searchInput = document.getElementById('asstRoomSearch');
+                                const list = document.getElementById('asstRoomList');
+                                if (!container || !selectBox || !portal) return;
+
+                                let selected = new Set();
+                                let isOpen = false;
+
+                                function positionPortal() {
+                                    const rect = selectBox.getBoundingClientRect();
+                                    portal.style.top = (rect.bottom + 4) + 'px';
+                                    portal.style.left = rect.left + 'px';
+                                    portal.style.width = rect.width + 'px';
                                 }
 
-                                const boxes = Array.from(document.querySelectorAll('input[name="asstGrp"]:checked'));
-                                if (boxes.length === 0) {
-                                    if (typeof Swal !== 'undefined' && Swal.showValidationMessage) {
-                                        Swal.showValidationMessage('Bitte mindestens eine Gruppe auswählen.');
+                                function openDropdown() {
+                                    if (isOpen) return;
+                                    isOpen = true;
+                                    positionPortal();
+                                    portal.classList.add('open');
+                                    selectBox.classList.add('focused');
+                                    arrow.classList.add('open');
+                                    searchInput.focus();
+                                }
+
+                                function closeDropdown() {
+                                    if (!isOpen) return;
+                                    isOpen = false;
+                                    portal.classList.remove('open');
+                                    selectBox.classList.remove('focused');
+                                    arrow.classList.remove('open');
+                                }
+
+                                function renderTags() {
+                                    const placeholder = selectBox.querySelector('.room-select-placeholder');
+                                    selectBox.querySelectorAll('.room-tag').forEach(t => t.remove());
+                                    if (selected.size === 0) {
+                                        if (placeholder) placeholder.style.display = '';
+                                    } else {
+                                        if (placeholder) placeholder.style.display = 'none';
+                                        selected.forEach(val => {
+                                            const tag = document.createElement('span');
+                                            tag.className = 'room-tag';
+                                            tag.innerHTML = `<span>${val}</span><span class="room-tag-remove" data-val="${val}">&times;</span>`;
+                                            selectBox.insertBefore(tag, arrow);
+                                        });
                                     }
+                                    list.querySelectorAll('.room-list-item').forEach(item => {
+                                        item.classList.toggle('selected', selected.has(item.dataset.value));
+                                    });
+                                }
+
+                                selectBox.addEventListener('click', (e) => {
+                                    if (e.target.closest('.room-tag-remove')) {
+                                        const val = e.target.closest('.room-tag-remove').dataset.val;
+                                        selected.delete(val);
+                                        renderTags();
+                                        e.stopPropagation();
+                                        return;
+                                    }
+                                    isOpen ? closeDropdown() : openDropdown();
+                                });
+
+                                searchInput.addEventListener('input', () => {
+                                    const term = searchInput.value.toLowerCase().trim();
+                                    list.querySelectorAll('.room-list-item').forEach(item => {
+                                        const matches = !term || item.dataset.search.includes(term);
+                                        item.classList.toggle('hidden', !matches);
+                                    });
+                                });
+
+                                list.addEventListener('click', (e) => {
+                                    const item = e.target.closest('.room-list-item');
+                                    if (!item) return;
+                                    const val = item.dataset.value;
+                                    if (selected.has(val)) selected.delete(val);
+                                    else selected.add(val);
+                                    renderTags();
+                                });
+
+                                // Close on outside click
+                                document.addEventListener('click', function handler(e) {
+                                    if (!selectBox.contains(e.target) && !portal.contains(e.target)) {
+                                        closeDropdown();
+                                    }
+                                });
+
+                                container._getSelected = () => Array.from(selected);
+                            },
+                            willClose: () => {
+                                const portal = document.getElementById(asstPortalId);
+                                if (portal) portal.remove();
+                            },
+                            preConfirm: () => {
+                                if (groups.length === 0) return [];
+                                const container = document.getElementById('asstRoomContainer');
+                                const selected = container?._getSelected?.() || [];
+                                if (selected.length === 0) {
+                                    Swal.showValidationMessage('Bitte mindestens einen Raum auswählen.');
                                     return false;
                                 }
-                                return boxes.map(b => b.value);
+                                return selected;
                             }
                         });
                         if (!go.isConfirmed) return;
@@ -7595,7 +7754,7 @@
             isVisible = !isVisible;
             wrapper.style.display = isVisible ? 'block' : 'none';
             document.getElementById('models-button-text').textContent = isVisible ? 'Modelle ausblenden' : 'Modelle anzeigen';
-            document.getElementById('models-icon').className = isVisible ? 'bi bi-eye-slash' : 'bi bi-lightbulb';
+            document.getElementById('models-icon').className = isVisible ? 'bi bi-eye-slash' : 'fa fa-cubes';
 
             if (isVisible && !allModels.length) {
               try {
@@ -7699,34 +7858,145 @@
               const grJson = await grRes.json();
               const groups = Array.isArray(grJson.groups) ? grJson.groups : [];
 
-              // Build simple checkbox list
+              // Build premium searchable multi-select dropdown for rooms (portal-based)
               const html = groups.length === 0
-                ? '<div>Keine Gruppen verfügbar. Der Prompt wird ohne Gruppe veröffentlicht.</div>'
-                : `<div class="group-grid">${groups.map(g => { const esc = g.replace(/"/g,'&quot;'); return `<label class=\"group-item\"><input class=\"group-check\" type=\"checkbox\" name=\"pubGrp\" value=\"${esc}\"><span class=\"group-name\">${esc}</span></label>`; }).join('')}</div>`;
+                ? '<div>Keine Räume verfügbar. Der Prompt wird ohne Raum veröffentlicht.</div>'
+                : `<div class="room-select-container" id="pubRoomContainer">
+                     <div class="room-select-box" id="pubRoomSelectBox">
+                       <span class="room-select-placeholder">Räume auswählen…</span>
+                       <span class="room-select-arrow"><i class="bi bi-chevron-down"></i></span>
+                     </div>
+                   </div>
+                   <div class="room-select-info">${groups.length} Räume verfügbar</div>`;
+
+              // Create portal dropdown in body
+              const portalId = 'pubRoomDropdownPortal';
+              let portal = document.getElementById(portalId);
+              if (portal) portal.remove();
+              portal = document.createElement('div');
+              portal.id = portalId;
+              portal.className = 'room-dropdown-portal';
+              portal.innerHTML = `
+                <input type="text" class="room-search-input" id="pubRoomSearch" placeholder="Räume durchsuchen…">
+                <div class="room-list" id="pubRoomList">
+                  ${groups.map(g => { const esc = g.replace(/"/g,'&quot;'); return `<div class="room-list-item" data-value="${esc}" data-search="${esc.toLowerCase()}">${esc}</div>`; }).join('')}
+                </div>`;
+              document.body.appendChild(portal);
 
               const go = await Swal.fire({
-                title: 'In welchen Gruppen veröffentlichen?',
+                title: 'In welchen Räume veröffentlichen?',
                 html,
                 focusConfirm: false,
                 showCancelButton: true,
                 confirmButtonText: 'Weiter',
                 cancelButtonText: 'Abbrechen',
                 customClass: { popup: 'group-select-popup' },
-                preConfirm: () => {
-                  // Wenn es keine Gruppen gibt, darf ohne Auswahl veröffentlicht werden
-                  if (groups.length === 0) {
-                    return [];
+                didOpen: () => {
+                  const container = document.getElementById('pubRoomContainer');
+                  const selectBox = document.getElementById('pubRoomSelectBox');
+                  const arrow = selectBox.querySelector('.room-select-arrow');
+                  const portal = document.getElementById(portalId);
+                  const searchInput = document.getElementById('pubRoomSearch');
+                  const list = document.getElementById('pubRoomList');
+                  if (!container || !selectBox || !portal) return;
+
+                  let selected = new Set();
+                  let isOpen = false;
+
+                  function positionPortal() {
+                    const rect = selectBox.getBoundingClientRect();
+                    portal.style.top = (rect.bottom + 4) + 'px';
+                    portal.style.left = rect.left + 'px';
+                    portal.style.width = rect.width + 'px';
                   }
 
-                  const boxes = Array.from(document.querySelectorAll('input[name="pubGrp"]:checked'));
-                  if (boxes.length === 0) {
-                    if (typeof Swal !== 'undefined' && Swal.showValidationMessage) {
-                      Swal.showValidationMessage('Bitte mindestens eine Gruppe auswählen.');
+                  function openDropdown() {
+                    if (isOpen) return;
+                    isOpen = true;
+                    positionPortal();
+                    portal.classList.add('open');
+                    selectBox.classList.add('focused');
+                    arrow.classList.add('open');
+                    searchInput.focus();
+                  }
+
+                  function closeDropdown() {
+                    if (!isOpen) return;
+                    isOpen = false;
+                    portal.classList.remove('open');
+                    selectBox.classList.remove('focused');
+                    arrow.classList.remove('open');
+                  }
+
+                  function renderTags() {
+                    const placeholder = selectBox.querySelector('.room-select-placeholder');
+                    selectBox.querySelectorAll('.room-tag').forEach(t => t.remove());
+                    if (selected.size === 0) {
+                      if (placeholder) placeholder.style.display = '';
+                    } else {
+                      if (placeholder) placeholder.style.display = 'none';
+                      selected.forEach(val => {
+                        const tag = document.createElement('span');
+                        tag.className = 'room-tag';
+                        tag.innerHTML = `<span>${val}</span><span class="room-tag-remove" data-val="${val}">&times;</span>`;
+                        selectBox.insertBefore(tag, arrow);
+                      });
                     }
+                    list.querySelectorAll('.room-list-item').forEach(item => {
+                      item.classList.toggle('selected', selected.has(item.dataset.value));
+                    });
+                  }
+
+                  selectBox.addEventListener('click', (e) => {
+                    if (e.target.closest('.room-tag-remove')) {
+                      const val = e.target.closest('.room-tag-remove').dataset.val;
+                      selected.delete(val);
+                      renderTags();
+                      e.stopPropagation();
+                      return;
+                    }
+                    isOpen ? closeDropdown() : openDropdown();
+                  });
+
+                  searchInput.addEventListener('input', () => {
+                    const term = searchInput.value.toLowerCase().trim();
+                    list.querySelectorAll('.room-list-item').forEach(item => {
+                      const matches = !term || item.dataset.search.includes(term);
+                      item.classList.toggle('hidden', !matches);
+                    });
+                  });
+
+                  list.addEventListener('click', (e) => {
+                    const item = e.target.closest('.room-list-item');
+                    if (!item) return;
+                    const val = item.dataset.value;
+                    if (selected.has(val)) selected.delete(val);
+                    else selected.add(val);
+                    renderTags();
+                  });
+
+                  // Close on outside click
+                  document.addEventListener('click', function handler(e) {
+                    if (!selectBox.contains(e.target) && !portal.contains(e.target)) {
+                      closeDropdown();
+                    }
+                  });
+
+                  container._getSelected = () => Array.from(selected);
+                },
+                willClose: () => {
+                  const portal = document.getElementById(portalId);
+                  if (portal) portal.remove();
+                },
+                preConfirm: () => {
+                  if (groups.length === 0) return [];
+                  const container = document.getElementById('pubRoomContainer');
+                  const selected = container?._getSelected?.() || [];
+                  if (selected.length === 0) {
+                    Swal.showValidationMessage('Bitte mindestens einen Raum auswählen.');
                     return false;
                   }
-
-                  return boxes.map(b => b.value);
+                  return selected;
                 }
               });
               if (!go.isConfirmed) return; // aborted

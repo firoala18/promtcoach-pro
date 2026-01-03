@@ -22,5 +22,7 @@ namespace ProjectsWebApp.Models.Landing
         public string Description { get; set; }
 
         public int SortOrder { get; set; }
+
+        public bool IsHidden { get; set; } = false;
     }
 }

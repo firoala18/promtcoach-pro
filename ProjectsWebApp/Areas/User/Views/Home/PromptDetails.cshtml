@@ -296,7 +296,6 @@
             background-color: #f1f5f9;
             color: #111827;
             font-weight: 500;
-            padding-right: 9rem;
             position: relative;
         }
 
@@ -304,15 +303,9 @@
             position: relative;
         }
 
-        #variationsAccordion .variation-actions {
-            position: absolute;
-            right: 2.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            z-index: 2;
+        /* Variation actions inside accordion body */
+        .variation-actions-inside {
+            margin-bottom: .5rem;
         }
 
             #variationsAccordion .accordion-button:not(.collapsed) {
@@ -433,62 +426,45 @@
         cursor: pointer; /* Hand-Cursor fÃ¼r â€œklickbarâ€ */
     }
 
-    .edit-variation {
-        background: transparent;
-        border: none;
-        font-size: 1.25rem; /* gleiche GrÃ¶ÃŸe wie editâ€‘/deleteâ€‘btn */
-        color: #828282; /* dezent grau */
-        transition: color .2s;
-        padding: 0; /* circle size controlled by width/height below */
-        line-height: 1;
-        cursor: pointer;
-        margin: 0;
-    }
-
-    /*   .edit-variation:hover {
-                    color: #33cc66; /* leichtes Blau beim Hover */
-    }
-
-    */
-
-    .edit-variation,
-    .delete-variation {
-        /* reset */
-        background: none;
-        border: none;
-        color: inherit;
-    }
-
-
-
-    /* shared base */
-    .edit-variation,
-    .delete-variation {
-        width: 34px;
-        height: 34px;
+    /* Variation circular icon buttons */
+    .variation-actions-inside .edit-variation,
+    .variation-actions-inside .delete-variation {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        min-height: 38px;
         aspect-ratio: 1 / 1;
         border-radius: 50%;
-        box-sizing: border-box;
+        border: none;
+        padding: 0;
         display: inline-flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        font-size: 1.05rem;
-        line-height: 1;
-        transition: background .18s, box-shadow .18s, transform .18s;
-        box-shadow: 0 2px 6px rgba(0,0,0,.18);
-        border: 1px solid transparent;
+        font-size: 1rem;
         color: #fff;
+        transition: transform 0.18s, box-shadow 0.18s;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
     }
 
-
-    /* individual colors */
-    .edit-variation {
-        background: #336633;
+    .variation-actions-inside .edit-variation {
+        background: #89ba17;
     }
-    /* blue */
-    .delete-variation {
-        background: red;
+
+    .variation-actions-inside .delete-variation {
+        background: #dc3545;
+    }
+
+    .variation-actions-inside .edit-variation:hover,
+    .variation-actions-inside .delete-variation:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+    }
+
+    .variation-actions-inside .edit-variation:active,
+    .variation-actions-inside .delete-variation:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18) inset;
     }
 
     .accordion-button.collapsed::after {
@@ -503,33 +479,15 @@
     .ref-field {
         background: white;
     }
-    /* pressed */
-    .edit-variation:active,
-    .delete-variation:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 6px rgba(0,0,0,.18) inset;
-    }
-
-    .edit-variation:hover,
-    .delete-variation:hover {
-        transform: translateY(-2px);
-    }
-
-    /* smaller on phones */
+    /* Variation buttons responsive */
     @@media (max-width:576px) {
-        .edit-variation, .delete-variation {
-            width: 30px;
-            height: 30px;
-            font-size: .9rem;
-        }
-
-        #variationsAccordion .accordion-button {
-            padding-right: 7.5rem;
-        }
-
-        #variationsAccordion .variation-actions {
-            right: .5rem;
-            gap: .35rem;
+        .variation-actions-inside .edit-variation,
+        .variation-actions-inside .delete-variation {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            min-height: 34px;
+            font-size: 0.9rem;
         }
     }
 
@@ -1130,14 +1088,6 @@
             padding: .9rem;
         }
 
-        /* Variation buttons */
-        .edit-variation,
-        .delete-variation {
-            width: 32px;
-            height: 32px;
-            font-size: 1rem;
-        }
-
         /* Three-dots menu */
         .rail-actions {
             padding-left: 1rem;
@@ -1294,14 +1244,6 @@
         .accordion-body {
             padding: .75rem;
             font-size: .88rem;
-        }
-
-        /* Variation buttons */
-        .edit-variation,
-        .delete-variation {
-            width: 30px;
-            height: 30px;
-            font-size: .9rem;
         }
 
         /* Three-dots menu */
@@ -2161,14 +2103,15 @@
 
             <div class="prompt-actions">
                 <button id="copy-prompt" class="btn btn-copy shadow-sm">
-                <i class="fa fa-files-o me-1"></i> Kopieren
+                <i class="fa fa-clone me-1 "></i> Kopieren
                 </button>
             
                 <button id="calculate-tokens" class="btn btn-tokens shadow-sm">
                     <i class="bi bi-calculator me-1"></i> Tokens
                 </button>
                 <button id="show-inline-models" class="btn btn-models shadow-sm">
-                    <i id="models-icon" class="bi bi-lightbulb me-1"></i>
+                   
+                     <i id="models-icon" class="fa fa-cubes me-1"></i>
                     <span id="models-button-text">Modelle</span>
                 </button>
 
@@ -2250,37 +2193,14 @@
                     <div class="accordion-item mb-3"
                          data-var-id="@v.Id"
                          data-payload='@Html.Raw(data.GetRawText())'>
-                        <h2 class="accordion-header d-flex align-items-center" id="@headingId">
-                            <button class="accordion-button collapsed flex-grow-1"
+                        <h2 class="accordion-header" id="@headingId">
+                            <button class="accordion-button collapsed"
                                     type="button"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#@collapseId"
                                     aria-expanded="false"
                                     aria-controls="@collapseId">
                                 Variation @(idx + 1)
-                                <span class="variation-actions">
-                                    @if (mayEdit)
-                                    {
-                                        <span role="button"
-                                              tabindex="0"
-                                              class="edit-variation"
-                                              title="Bearbeiten"
-                                              onclick="event.preventDefault(); event.stopPropagation();">
-                                            <i class="bi bi-pencil-fill"></i>
-                                        </span>
-                                    }
-                                    @if (User.IsInRole("Admin"))
-                                    {
-                                        <span role="button"
-                                              tabindex="0"
-                                              class="delete-variation"
-                                              title="Variation lÃ¶schen"
-                                              onclick="event.preventDefault(); event.stopPropagation();">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </span>
-
-                                    }
-                                </span>
                             </button>
                         </h2>
                         <div id="@collapseId"
@@ -2288,6 +2208,24 @@
                              aria-labelledby="@headingId">
                             <!-- â† no data-bs-parent -->
                             <div class="accordion-body">
+                                <!-- Variation Actions (Edit/Delete) -->
+                                @if (mayEdit || User.IsInRole("Admin"))
+                                {
+                                    <div class="variation-actions-inside d-flex justify-content-end gap-2 mb-3">
+                                        @if (mayEdit)
+                                        {
+                                            <button type="button" class="edit-variation" title="Bearbeiten">
+                                                <i class="bi bi-pencil-fill"></i>
+                                            </button>
+                                        }
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <button type="button" class="delete-variation" title="Variation löschen">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
 
                                 <h6>Filter-Kriterien</h6>
                                 <div id="filters-var-@v.Id">
@@ -2337,7 +2275,7 @@
                                 <pre id="@promptId" class="prompt-box">@Html.Raw(html)</pre>
                                 <div class="prompt-actions mt-3" data-owner="var-@v.Id">
                                     <button class="btn btn-copy  shadow-sm act-copy" data-target="@promptId">
-                                        <i class="bi bi-clipboard-check me-1"></i>Kopieren
+                                    <i class="fa fa-clone me-1 "></i>Kopieren
                                     </button>
                                     <button class="btn btn-tokens shadow-sm act-tokens" data-target="@promptId">
                                         <i class="bi bi-calculator me-1"></i>Tokens
@@ -2345,7 +2283,7 @@
                                     <!-- Add this new "Modelle" button -->
                                     <button class="btn btn-models shadow-sm act-models"
                                             data-var-id="@v.Id">
-                                        <i class="bi bi-lightbulb me-1"></i>Modelle
+                                    <i class="fa fa-cubes me-1"></i>Modelle
                                     </button>
                                     <div class="btn-group" role="group" aria-label="Export actions">
                                         <button id="exportDropdown-@v.Id"
@@ -2381,7 +2319,7 @@
                         <div class="input-group mb-3">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
                             <input type="text" class="form-control inlineModelSearch" 
-                                   placeholder="Modelle durchsuchen â€¦" />
+                                   placeholder="Modelle durchsuchen" />
                         </div>
                     </div>
                     <div class="inlineModelCards row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4"></div>
@@ -2477,7 +2415,7 @@
              role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">
-                    Prompt wurde kopiert&nbsp;âœ”
+                    Prompt wurde kopiert
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto"
                         data-bs-dismiss="toast" aria-label="Close"></button>
@@ -3004,7 +2942,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h5 class="card-title">${m.titel}</h5>
                             <a href="${m.redirectUrl}" target="_blank"
                                class="btn mt-auto w-100" style="background:#89ba17;color:#fff">
-                                Ã–ffnen <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                öffnen <i class="bi bi-box-arrow-up-right ms-1"></i>
                             </a>
                         </div>
                     </div>

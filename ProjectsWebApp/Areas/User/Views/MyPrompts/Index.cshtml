@@ -2,9 +2,17 @@
 @using System.Text.Json
 @using System.Linq
 @using System.Text.RegularExpressions
+@using ProjectsWebApp.DataAccsess.Data
+
+@inject ApplicationDbContext _modesDb
 
 @{
     ViewData["Title"] = "Meine Prompt-Sammlung";
+
+    // Load Modes from database for dynamic icons
+    var allModes = _modesDb.Modes.Where(m => !m.IsHidden).OrderBy(m => m.SortOrder).ToList();
+    var modeIconMap = allModes.ToDictionary(m => m.RouteType.ToLower(), m => m.IconClass, StringComparer.OrdinalIgnoreCase);
+    var modeTitleMap = allModes.ToDictionary(m => m.RouteType.ToLower(), m => m.Title, StringComparer.OrdinalIgnoreCase);
 
     // counts per PromptType
     var total = Model.Count();
@@ -71,24 +79,21 @@
         };
     }
 
-    string IconClass(string type)
+    string IconClass(string type, Dictionary<string, string> iconMap)
     {
         var t = (type ?? string.Empty).ToLower();
 
         if (t == "akademisch" || t == "lehr") t = "bildung";
         if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
 
-        return t switch
+        // Try to get icon from database Mode, fallback to default
+        if (iconMap.TryGetValue(t, out var icon))
         {
-            "bild" => "bi-image",
-            "video" => "bi-play-btn",
-            "sound" => "bi-volume-up",
-            "bildung" => "bi-journal-bookmark",
-            "eigenfilter" => "bi-funnel-fill",
-            "framework" => "bi-diagram-3",
-            "meta" => "bi-gear",
-            _ => "bi-text-paragraph"
-        };
+            return icon;
+        }
+
+        // Fallback for unmapped types
+        return "bi-text-paragraph";
     }
 }
 
@@ -909,14 +914,10 @@
     <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-5">
         <div class="d-flex flex-wrap justify-content-center gap-2 w-100">
             <div class="TypeTab active" data-type="all">Alle</div>
-            <div class="TypeTab" data-type="text" title="Text-prompts"><i class="fa fa-pencil-square" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="bild" title="Bild-prompts"><i class="bi bi-image" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="video" title="Video-prompts"><i class="fa fa-video-camera" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="sound" title="Sound-prompts"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="bildung" title="Bildung & Forschung-prompts"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="eigenfilter" title="Domäne-prompts"><i class="bi bi-funnel-fill" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="framework" title="Framework-prompts"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="meta" title="Meta-prompts"><i class="fa fa-cogs" aria-hidden="true"></i></div>
+            @foreach (var mode in allModes)
+            {
+                <div class="TypeTab" data-type="@mode.RouteType.ToLower()" title="@mode.Title-prompts"><i class="@mode.IconClass" aria-hidden="true"></i></div>
+            }
         </div>
 
     </div>
@@ -969,7 +970,7 @@
                     <div class="card-content">
                         <div class="card-top d-flex justify-content-between align-items-start">
                             <div class="icon-wrapper">
-                                <i class="bi @(IconClass(t.PromptType))" style="font-size:1.25rem;"></i>
+                                <i class="bi @(IconClass(t.PromptType, modeIconMap))" style="font-size:1.25rem;"></i>
                             </div>
                             <div class="action-buttons">
                                 <button type="button" class="edit-btn" title="Bearbeiten">

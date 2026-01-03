@@ -1,8 +1,29 @@
 @model ProjectsWebApp.Models.FilterCategory
 @using ProjectsWebApp.Models
+@using ProjectsWebApp.DataAccsess.Data
+@inject ApplicationDbContext _modesDb
 
 @{
     ViewData["Title"] = Model.Id == 0 ? "Neue Kategorie" : "Kategorie bearbeiten";
+
+    // Get the Mode title for the current type (same logic as Index.cshtml)
+    var currentTypeStr = Model.Type.ToString();
+    var allModes = _modesDb.Modes.Where(m => !m.IsHidden).ToList();
+    var currentMode = allModes.FirstOrDefault(m =>
+        !string.IsNullOrEmpty(m.RouteType) &&
+        m.RouteType.Equals(currentTypeStr, StringComparison.OrdinalIgnoreCase));
+
+    // Default titles for Arbeitsbereiche types
+    var defaultTitles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Eigenfilter", "Szenarien" },
+        { "Framework", "Framework" },
+        { "Meta", "Meta-Filter" }
+    };
+
+    var currentTypeTitle = !string.IsNullOrEmpty(currentMode?.Title)
+        ? currentMode.Title
+        : (defaultTitles.TryGetValue(currentTypeStr, out var defaultTitle) ? defaultTitle : "Filter");
 }
 
 <style>
@@ -47,19 +68,7 @@
 </style>
 
 <h2 class="mb-4">
-    @(
-        Model.Id == 0
-            ? (Model.Type == PromptType.Framework
-                ? "Framework-Kategorien entwickeln"
-                : Model.Type == PromptType.Meta
-                    ? "Meta-Filter-Kategorien entwickeln"
-                    : "Domänen-Kategorien entwickeln")
-            : (Model.Type == PromptType.Framework
-                ? "Framework-Kategorien bearbeiten"
-                : Model.Type == PromptType.Meta
-                    ? "Meta-Filter-Kategorien bearbeiten"
-                    : "Domänen-Kategorien bearbeiten")
-      )
+    @currentTypeTitle-Kategorien @(Model.Id == 0 ? "entwickeln" : "bearbeiten")
 </h2>
 
 <div class="card upsert shadow-lg">

@@ -21,3 +21,4 @@ ProjectsWebApp/wwwroot/Video/
 # Rider/JetBrains
 .idea/
 *.sln.iml
+nul

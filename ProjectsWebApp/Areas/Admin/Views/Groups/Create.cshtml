@@ -3,47 +3,312 @@
     ViewData["Title"] = "Neuer Raum";
 }
 
-<h2 class="mb-3">Neuen Raum erstellen</h2>
+<style>
+    :root {
+        --app-green: #89ba17;
+        --app-green-hover: #6d9412;
+    }
+    .text-app-green {
+        color: var(--app-green) !important;
+    }
+    .btn-app-black {
+        background-color: #000;
+        color: #fff;
+        border: none;
+    }
+    .btn-app-black:hover {
+        background-color: #333;
+        color: #fff;
+    }
+    .form-control:focus {
+        border-color: var(--app-green);
+        box-shadow: 0 0 0 0.25rem rgba(137, 186, 23, 0.25);
+    }
 
-<form asp-area="Admin" asp-controller="Groups" asp-action="Create" method="post" class="mt-3">
-    @Html.AntiForgeryToken()
+    /* Premium Owner Select Dropdown */
+    .owner-select-container { position: relative; width: 100%; }
+    .owner-select-box {
+        min-height: 50px; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 10px;
+        background: #fff; cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .owner-select-box:hover { border-color: #d1d5db; }
+    .owner-select-box.focused { border-color: var(--app-green); box-shadow: 0 0 0 3px rgba(137,186,23,0.15); }
 
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    .owner-tag {
+        display: inline-flex; align-items: center; gap: 4px; background: var(--app-green); color: #fff;
+        padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; max-width: 250px;
+    }
+    .owner-tag span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .owner-tag-remove {
+        cursor: pointer; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; background: rgba(255,255,255,0.3); font-size: 14px; line-height: 1; flex-shrink: 0;
+    }
+    .owner-tag-remove:hover { background: rgba(255,255,255,0.5); }
 
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+    .owner-select-placeholder { color: #9ca3af; font-size: 0.95rem; }
+    .owner-select-arrow { margin-left: auto; color: #6b7280; transition: transform 0.2s; flex-shrink: 0; }
+    .owner-select-arrow.open { transform: rotate(180deg); }
+
+    .owner-dropdown {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff;
+        border: 2px solid var(--app-green); border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1000; display: none;
+    }
+    .owner-dropdown.open { display: block; }
+
+    .owner-search-input {
+        width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
+        font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 8px 8px 0 0;
+    }
+    .owner-search-input::placeholder { color: #9ca3af; }
+
+    .owner-list { max-height: 250px; overflow-y: auto; }
+    .owner-list-item {
+        padding: 12px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: background 0.15s; font-size: 0.95rem; color: #374151;
+    }
+    .owner-list-item:hover { background: #f3f4f6; }
+    .owner-list-item.selected { background: #f0fdf4; color: #166534; font-weight: 600; }
+    .owner-list-item.selected::before { content: '✓'; color: var(--app-green); font-weight: 700; }
+    .owner-list-item .owner-email { font-size: 0.8rem; color: #6b7280; margin-left: auto; }
+
+    .owner-list-empty { padding: 20px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+    .owner-list-loading { padding: 20px 14px; text-align: center; color: #6b7280; font-size: 0.9rem; }
+</style>
+
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Neuen Raum erstellen</h2>
+            <p class="text-muted mb-0">Erstellen Sie eine neue Gruppe und weisen Sie Besitzer:innen zu.</p>
+        </div>
+        <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Zurück zur Übersicht
+        </a>
     </div>
 
-    <div class="mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-        <span asp-validation-for="Description" class="text-danger"></span>
-    </div>
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form asp-area="Admin" asp-controller="Groups" asp-action="Create" method="post" id="createGroupForm">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-    <div class="mb-3">
-        <label class="form-label">Besitzer:innen</label>
-        <div class="border rounded p-2" style="max-height:220px; overflow:auto;">
-            @if (Model.OwnerOptions != null && Model.OwnerOptions.Count > 0)
-            {
-                foreach (var opt in Model.OwnerOptions)
-                {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="SelectedOwnerIds" value="@opt.UserId" @(opt.IsSelected ? "checked" : null) />
-                        <label class="form-check-label">@opt.DisplayName</label>
+                <!-- Single Column Layout -->
+                <div class="d-flex flex-column gap-4">
+                    
+                    <!-- Section: Basic Info -->
+                    <div>
+                        <h5 class="fw-bold mb-3 text-app-green"><i class="bi bi-info-circle me-2"></i>Basisdaten</h5>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label fw-semibold">Name der Gruppe <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control form-control-lg" placeholder="z.B. Marketing Team A" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label fw-semibold">Beschreibung</label>
+                            <textarea asp-for="Description" class="form-control" rows="5" placeholder="Optionale Beschreibung der Gruppe..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
                     </div>
-                }
-            }
-            else
-            {
-                <p class="text-muted mb-0">Keine geeigneten Benutzer für Besitzer:innen gefunden.</p>
-            }
+
+                    <hr class="text-muted opacity-25">
+
+                    <!-- Section: Owners -->
+                    <div>
+                        <h5 class="fw-bold mb-3 text-app-green"><i class="bi bi-person-badge me-2"></i>Besitzer:innen verwalten</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Besitzer:innen auswählen</label>
+
+                            <!-- Hidden inputs for form submission -->
+                            <div id="ownerHiddenInputs"></div>
+
+                            <!-- Custom Premium Dropdown -->
+                            <div class="owner-select-container" id="ownerSelectContainer">
+                                <div class="owner-select-box" id="ownerSelectBox">
+                                    <span class="owner-select-placeholder">Benutzer suchen und auswählen...</span>
+                                    <span class="owner-select-arrow"><i class="bi bi-chevron-down"></i></span>
+                                </div>
+                                <div class="owner-dropdown" id="ownerDropdown">
+                                    <input type="text" class="owner-search-input" id="ownerSearchInput" placeholder="Name oder E-Mail eingeben (min. 2 Zeichen)...">
+                                    <div class="owner-list" id="ownerList">
+                                        <div class="owner-list-empty">Geben Sie mindestens 2 Zeichen ein, um zu suchen</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-search me-1"></i>Suchen Sie nach Namen oder E-Mail-Adressen. Es werden nur berechtigte Benutzer angezeigt.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-light">Abbrechen</a>
+                    <button type="submit" class="btn btn-app-black px-4"><i class="bi bi-check-lg me-1"></i> Gruppe erstellen</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <div class="mt-3 d-flex gap-2">
-        <button type="submit" class="btn btn-primary">Speichern</button>
-        <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-secondary">Abbrechen</a>
-    </div>
-</form>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function() {
+            const container = document.getElementById('ownerSelectContainer');
+            const selectBox = document.getElementById('ownerSelectBox');
+            const dropdown = document.getElementById('ownerDropdown');
+            const searchInput = document.getElementById('ownerSearchInput');
+            const list = document.getElementById('ownerList');
+            const hiddenInputsContainer = document.getElementById('ownerHiddenInputs');
+            const arrow = selectBox.querySelector('.owner-select-arrow');
+            const searchUrl = '@Url.Action("SearchPotentialOwners", "Groups", new { area = "Admin" })';
+
+            // Store selected owners: Map<userId, displayName>
+            const selected = new Map();
+            let isOpen = false;
+            let searchTimeout = null;
+
+            // Pre-populate with existing selected owners
+            @if (Model.OwnerOptions != null)
+            {
+                foreach (var opt in Model.OwnerOptions.Where(o => o.IsSelected))
+                {
+                    @:selected.set('@opt.UserId', '@Html.Raw(opt.DisplayName.Replace("'", "\\'"))');
+                }
+            }
+
+            function openDropdown() {
+                if (isOpen) return;
+                isOpen = true;
+                dropdown.classList.add('open');
+                selectBox.classList.add('focused');
+                arrow.classList.add('open');
+                searchInput.focus();
+            }
+
+            function closeDropdown() {
+                if (!isOpen) return;
+                isOpen = false;
+                dropdown.classList.remove('open');
+                selectBox.classList.remove('focused');
+                arrow.classList.remove('open');
+            }
+
+            function renderTags() {
+                const placeholder = selectBox.querySelector('.owner-select-placeholder');
+                selectBox.querySelectorAll('.owner-tag').forEach(t => t.remove());
+
+                if (selected.size === 0) {
+                    if (placeholder) placeholder.style.display = '';
+                } else {
+                    if (placeholder) placeholder.style.display = 'none';
+                    selected.forEach((displayName, userId) => {
+                        const tag = document.createElement('span');
+                        tag.className = 'owner-tag';
+                        tag.innerHTML = `<span title="${displayName}">${displayName}</span><span class="owner-tag-remove" data-id="${userId}">&times;</span>`;
+                        selectBox.insertBefore(tag, arrow);
+                    });
+                }
+
+                // Update hidden inputs for form submission
+                hiddenInputsContainer.innerHTML = '';
+                selected.forEach((displayName, userId) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'SelectedOwnerIds';
+                    input.value = userId;
+                    hiddenInputsContainer.appendChild(input);
+                });
+
+                // Update list items selected state
+                list.querySelectorAll('.owner-list-item').forEach(item => {
+                    item.classList.toggle('selected', selected.has(item.dataset.id));
+                });
+            }
+
+            function renderList(results) {
+                if (!results || results.length === 0) {
+                    list.innerHTML = '<div class="owner-list-empty">Keine Benutzer gefunden</div>';
+                    return;
+                }
+
+                list.innerHTML = results.map(user => {
+                    const isSelected = selected.has(user.id);
+                    return `<div class="owner-list-item ${isSelected ? 'selected' : ''}" data-id="${user.id}" data-text="${user.text}">
+                        <span>${user.text}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            async function searchOwners(query) {
+                if (!query || query.length < 2) {
+                    list.innerHTML = '<div class="owner-list-empty">Geben Sie mindestens 2 Zeichen ein, um zu suchen</div>';
+                    return;
+                }
+
+                list.innerHTML = '<div class="owner-list-loading"><i class="bi bi-hourglass-split me-2"></i>Suche...</div>';
+
+                try {
+                    const res = await fetch(`${searchUrl}?query=${encodeURIComponent(query)}`, { credentials: 'same-origin' });
+                    const data = await res.json();
+                    renderList(data);
+                } catch (err) {
+                    list.innerHTML = '<div class="owner-list-empty text-danger">Fehler beim Laden</div>';
+                }
+            }
+
+            // Event: Click on select box
+            selectBox.addEventListener('click', (e) => {
+                if (e.target.closest('.owner-tag-remove')) {
+                    const userId = e.target.closest('.owner-tag-remove').dataset.id;
+                    selected.delete(userId);
+                    renderTags();
+                    e.stopPropagation();
+                    return;
+                }
+                isOpen ? closeDropdown() : openDropdown();
+            });
+
+            // Event: Search input
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchOwners(searchInput.value.trim());
+                }, 300);
+            });
+
+            // Event: Click on list item
+            list.addEventListener('click', (e) => {
+                const item = e.target.closest('.owner-list-item');
+                if (!item) return;
+
+                const userId = item.dataset.id;
+                const displayName = item.dataset.text;
+
+                if (selected.has(userId)) {
+                    selected.delete(userId);
+                } else {
+                    selected.set(userId, displayName);
+                }
+                renderTags();
+            });
+
+            // Event: Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            // Initial render
+            renderTags();
+        })();
+    </script>
+}

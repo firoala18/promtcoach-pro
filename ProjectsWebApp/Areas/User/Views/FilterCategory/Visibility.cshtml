@@ -1,5 +1,7 @@
 @model IEnumerable<ProjectsWebApp.Models.FilterCategory>
 @using ProjectsWebApp.Models
+@using ProjectsWebApp.DataAccsess.Data
+@inject ApplicationDbContext _modesDb
 @{
     ViewData["Title"] = "Kategorien ein-/ausblenden";
     var isAjax = string.Equals(Context?.Request?.Headers["X-Requested-With"].ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
@@ -10,6 +12,26 @@
     var currentType = (PromptType)ViewBag.Type;
     var currentTypeStr = currentType.ToString();
 
+    // Get Mode titles from database
+    var allModes = _modesDb.Modes.Where(m => !m.IsHidden).ToList();
+    var modeTitleMap = allModes
+        .Where(m => !string.IsNullOrEmpty(m.RouteType) && !string.IsNullOrEmpty(m.Title))
+        .ToDictionary(m => m.RouteType, m => m.Title, StringComparer.OrdinalIgnoreCase);
+
+    // Default titles for types not in database
+    var defaultTitles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Text", "Text" },
+        { "Bild", "Bild" },
+        { "Video", "Video" },
+        { "Sound", "Sound" },
+        { "Beruf", "KI-Agent" },
+        { "Bildung", "Domäne" },
+        { "Eigenfilter", "Szenarien" },
+        { "Framework", "Framework" },
+        { "Meta", "Meta" }
+    };
+
     var orderedPromptTypes = new[]
     {
         PromptType.Text,
@@ -17,16 +39,24 @@
         PromptType.Video,
         PromptType.Sound,
         PromptType.Beruf,
-        PromptType.Bildung
+        PromptType.Bildung,
+        PromptType.Eigenfilter,
+        PromptType.Framework,
+        PromptType.Meta
     };
 
     var allTypes = Enum.GetValues(typeof(PromptType)).Cast<PromptType>().ToHashSet();
     var types = orderedPromptTypes.Where(pt => allTypes.Contains(pt)).ToList();
 
-    Func<PromptType, string> typeLabel = pt => pt switch
+    // Dynamic typeLabel function using Mode titles from database
+    Func<PromptType, string> typeLabel = pt =>
     {
-        PromptType.Beruf => "Agent",
-        _ => pt.ToString()
+        var routeType = pt.ToString();
+        if (modeTitleMap.TryGetValue(routeType, out var title) && !string.IsNullOrEmpty(title))
+        {
+            return title;
+        }
+        return defaultTitles.TryGetValue(routeType, out var defaultTitle) ? defaultTitle : routeType;
     };
 
     var hiddenIds = ViewBag.HiddenCategoryIds as HashSet<int> ?? new HashSet<int>();

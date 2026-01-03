@@ -1,5 +1,7 @@
 ﻿@model IEnumerable<ProjectsWebApp.Models.FilterCategory>
 @using ProjectsWebApp.Models
+@using ProjectsWebApp.DataAccsess.Data
+@inject ApplicationDbContext _modesDb
 
 @{
     ViewData["Title"] = "Filter-Kategorien";
@@ -12,7 +14,24 @@
                               && pt != PromptType.Framework
                               && pt != PromptType.Meta);
 
-  
+    // Get the Mode icon for the current type
+    var allModes = _modesDb.Modes.Where(m => !m.IsHidden).ToList();
+    var currentMode = allModes.FirstOrDefault(m =>
+        !string.IsNullOrEmpty(m.RouteType) &&
+        m.RouteType.Equals(currentTypeStr, StringComparison.OrdinalIgnoreCase));
+
+    // Default icons for Arbeitsbereiche types (matching LandingItemController defaults)
+    var defaultIcons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Eigenfilter", "bi bi-stars" },
+        { "Framework", "bi bi-diagram-3" },
+        { "Meta", "bi bi-layers" }
+    };
+
+    var currentTypeIcon = !string.IsNullOrEmpty(currentMode?.IconClass)
+        ? currentMode.IconClass
+        : (defaultIcons.TryGetValue(currentTypeStr, out var defaultIcon) ? defaultIcon : "bi bi-funnel");
+    var currentTypeTitle = !string.IsNullOrEmpty(currentMode?.Title) ? currentMode.Title : "Filter-Kategorien";
 }
 
 <style>
@@ -174,7 +193,7 @@
 </style>
 
 <div class="fc-page">
-<h2 class="mb-4"><i class="bi bi-funnel me-2"></i>Filter-Kategorien entwickeln</h2>
+<h2 class="mb-4">@currentTypeTitle entwickeln</h2>
 
 
 

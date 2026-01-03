@@ -37,8 +37,6 @@ public class LandingItemController : Controller
 
     public async Task<IActionResult> Index()
     {
-        await EnsureDefaultModesAsync();
-
         var vm = new LandingPageVM
         {
             Hero = await _db.Heroes.FirstOrDefaultAsync(),
@@ -152,6 +150,28 @@ public class LandingItemController : Controller
         feature.Description = description;
         feature.SortOrder = sortOrder;
 
+        await _db.SaveChangesAsync();
+        return Json(new { success = true });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteMode([FromForm] int id)
+    {
+        var mode = await _db.Modes.FindAsync(id);
+        if (mode == null) return Json(new { success = false, message = "Mode nicht gefunden" });
+
+        _db.Modes.Remove(mode);
+        await _db.SaveChangesAsync();
+        return Json(new { success = true });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteFeature([FromForm] int id)
+    {
+        var feature = await _db.Features.FindAsync(id);
+        if (feature == null) return Json(new { success = false, message = "Feature nicht gefunden" });
+
+        _db.Features.Remove(feature);
         await _db.SaveChangesAsync();
         return Json(new { success = true });
     }

@@ -705,6 +705,107 @@
         overflow-y: auto;
         padding-right: .25rem; /* keep content away from scrollbar */
     }
+
+    /* Premium Room Selection Dropdown */
+    .room-select-container { position: relative; width: 100%; }
+    .room-select-box {
+        min-height: 50px; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 10px;
+        background: #fff; cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .room-select-box:hover { border-color: #d1d5db; }
+    .room-select-box.focused { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(58,204,89,0.15); }
+
+    .room-tag {
+        display: inline-flex; align-items: center; gap: 4px; background: var(--accent); color: #fff;
+        padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; max-width: 200px;
+    }
+    .room-tag span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .room-tag-remove {
+        cursor: pointer; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; background: rgba(255,255,255,0.3); font-size: 14px; line-height: 1; flex-shrink: 0;
+    }
+    .room-tag-remove:hover { background: rgba(255,255,255,0.5); }
+
+    .room-select-placeholder { color: #9ca3af; font-size: 0.95rem; }
+    .room-select-arrow { margin-left: auto; color: #6b7280; transition: transform 0.2s; flex-shrink: 0; }
+    .room-select-arrow.open { transform: rotate(180deg); }
+
+    .room-dropdown {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff;
+        border: 2px solid var(--accent); border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 1050; display: none;
+    }
+    .room-dropdown.open { display: block; }
+
+    /* Portal dropdown - renders outside modal */
+    .room-dropdown-portal {
+        position: fixed; background: #fff; border: 2px solid #3acc59; border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.25); z-index: 999999; display: none;
+    }
+    .room-dropdown-portal.open { display: block; }
+    .room-list-item.hidden { display: none !important; }
+
+    .room-search-input {
+        width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
+        font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 8px 8px 0 0;
+    }
+    .room-search-input::placeholder { color: #9ca3af; }
+
+    .room-list { max-height: 200px; overflow-y: auto; }
+    .room-list-item {
+        padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: background 0.15s; font-size: 0.95rem; color: #374151;
+    }
+    .room-list-item:hover { background: #f3f4f6; }
+    .room-list-item.selected { background: #f0fdf4; color: #166534; font-weight: 600; }
+    .room-list-item.selected::before { content: '\2713'; color: var(--accent); font-weight: 700; }
+
+    .room-list-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+
+    /* Premium Filter Dropdown (single-select) */
+    .filter-select-container { position: relative; width: 100%; min-width: 300px; max-width: 380px; }
+    .filter-select-box {
+        height: 46px; padding: 0 18px; border: 1px solid #e5e7eb; border-radius: 999px;
+        background: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: border-color 0.2s, box-shadow 0.2s; font-weight: 600; color: #0f172a;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04); font-size: 0.95rem;
+    }
+    .filter-select-box:hover { border-color: #d1d5db; }
+    .filter-select-box.focused { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(58,204,89,0.15); }
+    .filter-select-box .filter-icon { color: #64748b; font-size: 1.2rem; flex-shrink: 0; }
+    .filter-select-box .filter-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .filter-select-box .filter-arrow { color: #6b7280; transition: transform 0.2s; flex-shrink: 0; }
+    .filter-select-box .filter-arrow.open { transform: rotate(180deg); }
+
+    .filter-dropdown-portal {
+        position: fixed; background: #fff; border: 2px solid var(--accent); border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none; min-width: 300px;
+    }
+    .filter-dropdown-portal.open { display: block; }
+
+    .filter-search-input {
+        width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
+        font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 10px 10px 0 0;
+    }
+    .filter-search-input::placeholder { color: #9ca3af; }
+
+    .filter-list { max-height: 280px; overflow-y: auto; }
+    .filter-list-item {
+        padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: background 0.15s; font-size: 0.95rem; color: #374151;
+    }
+    .filter-list-item:hover { background: #f3f4f6; }
+    .filter-list-item.selected { background: linear-gradient(135deg,#ecfdf3,#d1fae5); color: #166534; font-weight: 600; }
+    .filter-list-item.selected::before { content: '\2713'; color: var(--accent); font-weight: 700; }
+    .filter-list-item.hidden { display: none !important; }
+    .filter-list-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+
+    /* Responsive adjustments for filter dropdown */
+    @@media (max-width: 991.98px) {
+        .filter-select-container { min-width: 0; width: 100%; }
+        .filter-select-box { width: 100%; }
+    }
 </style>
 
 <div class="asst-hero d-flex align-items-center justify-content-between">
@@ -719,38 +820,35 @@
     </div>
 </div>
 
-<div class="modal fade" id="assistantGroupsModal" tabindex="-1" aria-labelledby="assistantGroupsModalLabel" aria-hidden="true">
+<div class="modal fade" id="assistantGroupsModal" tabindex="-1" aria-labelledby="assistantGroupsModalLabel" aria-hidden="true" data-bs-focus="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="assistantGroupsModalLabel">Assistent in Gruppen veröffentlichen</h5>
+                <h5 class="modal-title" id="assistantGroupsModalLabel">In welchen Räume veröffentlichen?</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
             </div>
             <div class="modal-body">
                 <form id="assistantGroupsForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" id="agAssistantId" />
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <strong id="agAssistantName"></strong>
                     </div>
-                    <div id="assistantGroupsList">
-                        @if (ViewBag.AllGroups is List<string> pg && pg.Count > 0)
-                        {
-                            foreach (var g in pg)
-                            {
-                                if (string.IsNullOrWhiteSpace(g)) continue;
-                                var norm = g.Trim();
-                                var inputId = $"ag_group_{norm.GetHashCode()}";
-                                <div class="form-check mb-1" data-group="@norm">
-                                    <input class="form-check-input ag-group-checkbox" type="checkbox" value="@norm" id="@inputId" name="groups" />
-                                    <label class="form-check-label" for="@inputId">@norm</label>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="text-muted small mb-0">Keine Gruppen verfügbar.</p>
-                        }
+
+                    <!-- Hidden inputs for form submission -->
+                    <div id="agHiddenInputs"></div>
+
+                    <!-- Premium Dropdown (portal will be created in body) -->
+                    <div class="room-select-container" id="agRoomSelectContainer">
+                        <div class="room-select-box" id="agRoomSelectBox">
+                            <span class="room-select-placeholder">Räume auswählen...</span>
+                            <span class="room-select-arrow"><i class="bi bi-chevron-down"></i></span>
+                        </div>
+                    </div>
+                    <!-- Store all groups data for JS -->
+                    <script type="application/json" id="agAllGroupsData">@Html.Raw(Json.Serialize(ViewBag.AllGroups ?? new List<string>()))</script>
+                    <div class="form-text text-muted mt-2">
+                        <i class="bi bi-info-circle me-1"></i>Wählen Sie die Räume aus, in denen der Assistent veröffentlicht werden soll.
                     </div>
                 </form>
             </div>
@@ -777,55 +875,27 @@
         </div>
         <div class="col-12 col-md-4 col-lg-4">
             <div class="sort-filter-shell">
-                @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
-                {
-                    var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string> { "Ohne Gruppe" };
+                @{
+                    var filterGroups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string>();
                     var selectedGroup = ViewBag.SelectedGroup as string;
-                    <form asp-area="User" asp-controller="Home" asp-action="Assistenten" method="get" class="mb-0">
-                        <div class="select-wrapper" style="min-width:200px;max-width:260px">
-                            <i class="bi bi-people"></i>
-                            <select name="group" class="form-select sort-select" onchange="this.form.submit()" title="Nach Gruppen filtern">
-                                <option value="">Alle Gruppen</option>
-                                @foreach (var g in groups)
-                                {
-                                    var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
-                                    if (isSel)
-                                    {
-                                        <option value="@g" selected="selected">@g</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@g">@g</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                    </form>
+                    var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+                    var displayText = string.IsNullOrEmpty(selectedGroup) ? "Alle Räume" : selectedGroup;
                 }
-                else
-                {
-                    var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string>();
-                    var selectedGroup = ViewBag.SelectedGroup as string;
-                    <form asp-area="User" asp-controller="Home" asp-action="Assistenten" method="get" class="mb-0">
-                        <div class="select-wrapper" style="min-width:200px;max-width:260px">
-                            <i class="bi bi-people"></i>
-                            <select name="group" class="form-select sort-select" onchange="this.form.submit()" title="Nach Gruppen filtern">
-                                @foreach (var g in groups)
-                                {
-                                    var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
-                                    if (isSel)
-                                    {
-                                        <option value="@g" selected="selected">@g</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@g">@g</option>
-                                    }
-                                }
-                            </select>
-                        </div>
-                    </form>
-                }
+                <!-- Premium Filter Dropdown -->
+                <div class="filter-select-container" id="filterSelectContainer">
+                    <div class="filter-select-box" id="filterSelectBox" title="Nach Räume filtern">
+                        <i class="bi bi-people filter-icon"></i>
+                        <span class="filter-text" id="filterSelectedText">@displayText</span>
+                        <span class="filter-arrow"><i class="bi bi-chevron-down"></i></span>
+                    </div>
+                </div>
+                <!-- Store filter data for JS -->
+                <script type="application/json" id="filterGroupsData">@Html.Raw(Json.Serialize(new {
+                    groups = filterGroups,
+                    selected = selectedGroup ?? "",
+                    isAdmin = isAdmin,
+                    actionUrl = Url.Action("Assistenten", "Home", new { area = "User" })
+                }))</script>
                 <button type="button" id="mineToggle" class="toggle-pill" aria-pressed="false">
                     <i class="bi bi-person"></i>
                     <span>Meine Assistenten</span>
@@ -916,7 +986,7 @@
                                     data-id="@a.Id"
                                     data-name="@a.Name">
                                 <i class="bi bi-people-fill"></i>
-                                <span>Gruppen</span>
+                                <span>Räume</span>
                             </button>
                         }
                     </div>
@@ -1098,100 +1168,488 @@
     })();
 </script>
 
+<!-- Premium Filter Dropdown Script -->
 <script>
     (function () {
-        var modalEl = document.getElementById('assistantGroupsModal');
+        const container = document.getElementById('filterSelectContainer');
+        const selectBox = document.getElementById('filterSelectBox');
+        const selectedText = document.getElementById('filterSelectedText');
+        if (!container || !selectBox) return;
+
+        const arrow = selectBox.querySelector('.filter-arrow');
+        const portalId = 'filterDropdownPortal';
+        let isOpen = false;
+
+        // Load data from JSON
+        let filterData = { groups: [], selected: '', isAdmin: false, actionUrl: '' };
+        try {
+            const jsonEl = document.getElementById('filterGroupsData');
+            if (jsonEl) filterData = JSON.parse(jsonEl.textContent) || filterData;
+        } catch (e) { }
+
+        function getPortalElements() {
+            return {
+                portal: document.getElementById(portalId),
+                searchInput: document.querySelector('#' + portalId + ' .filter-search-input'),
+                list: document.querySelector('#' + portalId + ' .filter-list')
+            };
+        }
+
+        function positionPortal() {
+            const { portal } = getPortalElements();
+            if (!portal || !selectBox) return;
+            const rect = selectBox.getBoundingClientRect();
+            portal.style.top = (rect.bottom + 4) + 'px';
+            portal.style.left = rect.left + 'px';
+            portal.style.width = Math.max(rect.width, 220) + 'px';
+        }
+
+        function filterList(query) {
+            const { list } = getPortalElements();
+            if (!list) return;
+            const term = (query || '').toLowerCase().trim();
+            list.querySelectorAll('.filter-list-item').forEach(item => {
+                const text = (item.dataset.search || '').toLowerCase();
+                item.classList.toggle('hidden', term && !text.includes(term));
+            });
+        }
+
+        function createPortal() {
+            let portal = document.getElementById(portalId);
+            if (portal) portal.remove();
+
+            portal = document.createElement('div');
+            portal.id = portalId;
+            portal.className = 'filter-dropdown-portal';
+
+            // Build list HTML - include "Alle Räume" option for admins
+            let listHtml = '';
+            if (filterData.isAdmin) {
+                const isSelected = !filterData.selected || filterData.selected === '';
+                listHtml += `<div class="filter-list-item ${isSelected ? 'selected' : ''}" data-value="" data-search="alle räume">Alle Räume</div>`;
+            }
+
+            listHtml += (filterData.groups || [])
+                .filter(g => g && g.trim())
+                .map(g => {
+                    const norm = g.trim();
+                    const esc = norm.replace(/"/g, '&quot;');
+                    const isSelected = filterData.selected === norm;
+                    return `<div class="filter-list-item ${isSelected ? 'selected' : ''}" data-value="${esc}" data-search="${norm.toLowerCase()}">${norm}</div>`;
+                }).join('');
+
+            if (!listHtml) {
+                listHtml = '<div class="filter-list-empty">Keine Räume verfügbar.</div>';
+            }
+
+            portal.innerHTML = `
+                <input type="text" class="filter-search-input" placeholder="Räume durchsuchen…" autocomplete="off">
+                <div class="filter-list">${listHtml}</div>`;
+
+            document.body.appendChild(portal);
+
+            // Attach event listeners
+            const searchInput = portal.querySelector('.filter-search-input');
+            const list = portal.querySelector('.filter-list');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    filterList(e.target.value);
+                });
+                searchInput.addEventListener('click', (e) => e.stopPropagation());
+                searchInput.addEventListener('mousedown', (e) => e.stopPropagation());
+                searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+            }
+
+            if (list) {
+                list.addEventListener('click', (e) => {
+                    const item = e.target.closest('.filter-list-item');
+                    if (!item) return;
+                    e.stopPropagation();
+                    const val = item.dataset.value;
+                    // Navigate to the filtered page
+                    const url = new URL(filterData.actionUrl, window.location.origin);
+                    if (val) {
+                        url.searchParams.set('group', val);
+                    }
+                    window.location.href = url.toString();
+                });
+            }
+
+            portal.addEventListener('click', (e) => e.stopPropagation());
+
+            return portal;
+        }
+
+        function openDropdown() {
+            if (isOpen) return;
+            createPortal();
+            const { portal, searchInput } = getPortalElements();
+            if (!portal) return;
+            isOpen = true;
+            positionPortal();
+            portal.classList.add('open');
+            selectBox.classList.add('focused');
+            if (arrow) arrow.classList.add('open');
+            if (searchInput) {
+                searchInput.value = '';
+                requestAnimationFrame(() => searchInput.focus());
+            }
+            filterList('');
+        }
+
+        function closeDropdown() {
+            const { portal } = getPortalElements();
+            if (!isOpen) return;
+            isOpen = false;
+            if (portal) portal.classList.remove('open');
+            selectBox.classList.remove('focused');
+            if (arrow) arrow.classList.remove('open');
+        }
+
+        // Event: Click on select box
+        selectBox.addEventListener('click', () => {
+            isOpen ? closeDropdown() : openDropdown();
+        });
+
+        // Event: Click outside to close
+        document.addEventListener('click', (e) => {
+            if (!isOpen) return;
+            const { portal } = getPortalElements();
+            if (selectBox.contains(e.target)) return;
+            if (portal && portal.contains(e.target)) return;
+            closeDropdown();
+        });
+
+        // Reposition on scroll/resize
+        window.addEventListener('scroll', () => { if (isOpen) positionPortal(); }, true);
+        window.addEventListener('resize', () => { if (isOpen) positionPortal(); });
+    })();
+</script>
+
+<script>
+    (function () {
+        const modalEl = document.getElementById('assistantGroupsModal');
         if (!modalEl) return;
 
-        var modalInstance = null;
+        let modalInstance = null;
         function getModal() {
             try {
                 if (!modalInstance && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    modalInstance = new bootstrap.Modal(modalEl);
+                    // Disable focus trap so portal dropdown can receive keyboard input
+                    modalInstance = new bootstrap.Modal(modalEl, { focus: false });
                 }
             } catch { }
             return modalInstance;
         }
 
-        var form = document.getElementById('assistantGroupsForm');
-        var idInput = document.getElementById('agAssistantId');
-        var nameEl = document.getElementById('agAssistantName');
+        const form = document.getElementById('assistantGroupsForm');
+        const idInput = document.getElementById('agAssistantId');
+        const nameEl = document.getElementById('agAssistantName');
+        const container = document.getElementById('agRoomSelectContainer');
+        const selectBox = document.getElementById('agRoomSelectBox');
+        const hiddenInputsContainer = document.getElementById('agHiddenInputs');
+        const arrow = selectBox ? selectBox.querySelector('.room-select-arrow') : null;
 
-        function groupCheckboxes() {
-            return Array.from(document.querySelectorAll('#assistantGroupsList .ag-group-checkbox'));
+        // Load all groups from JSON data
+        let allGroupsData = [];
+        try {
+            const jsonEl = document.getElementById('agAllGroupsData');
+            if (jsonEl) allGroupsData = JSON.parse(jsonEl.textContent) || [];
+        } catch(e) { allGroupsData = []; }
+
+        // State
+        let selected = new Set();
+        let allowedGroups = [];
+        let isOpen = false;
+        const portalId = 'agRoomDropdownPortal';
+
+        const getUrl = '@Url.Action("GetAssistantGroups", "Home", new { area = "User" })';
+        const postUrl = '@Url.Action("UpdateAssistantGroups", "Home", new { area = "User" })';
+
+        // Helper functions that work with current portal
+        function getPortalElements() {
+            return {
+                portal: document.getElementById(portalId),
+                searchInput: document.getElementById('agRoomSearch'),
+                list: document.getElementById('agRoomList')
+            };
         }
 
-        var getUrl = '@Url.Action("GetAssistantGroups", "Home", new { area = "User" })';
-        var postUrl = '@Url.Action("UpdateAssistantGroups", "Home", new { area = "User" })';
+        function positionPortal() {
+            const { portal } = getPortalElements();
+            if (!portal || !selectBox) return;
+            const rect = selectBox.getBoundingClientRect();
+            portal.style.top = (rect.bottom + 4) + 'px';
+            portal.style.left = rect.left + 'px';
+            portal.style.width = rect.width + 'px';
+        }
 
-        var buttons = document.querySelectorAll('.asst-share-groups-btn');
-        buttons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var asstId = btn.getAttribute('data-id');
-                var asstName = btn.getAttribute('data-name') || '';
+        function filterList(query) {
+            const { list } = getPortalElements();
+            if (!list) return;
+            const term = (query || '').toLowerCase().trim();
+            list.querySelectorAll('.room-list-item').forEach(item => {
+                const searchText = item.dataset.search || '';
+                const isAllowed = allowedGroups.length === 0 || allowedGroups.includes(item.dataset.value);
+                const matchesQuery = !term || searchText.includes(term);
+                item.classList.toggle('hidden', !(isAllowed && matchesQuery));
+            });
+        }
+
+        function updateListSelection() {
+            const { list } = getPortalElements();
+            if (!list) return;
+            list.querySelectorAll('.room-list-item').forEach(item => {
+                item.classList.toggle('selected', selected.has(item.dataset.value));
+            });
+        }
+
+        function renderTags() {
+            const placeholder = selectBox.querySelector('.room-select-placeholder');
+            selectBox.querySelectorAll('.room-tag').forEach(t => t.remove());
+
+            if (selected.size === 0) {
+                if (placeholder) placeholder.style.display = '';
+            } else {
+                if (placeholder) placeholder.style.display = 'none';
+                selected.forEach(val => {
+                    const tag = document.createElement('span');
+                    tag.className = 'room-tag';
+                    tag.innerHTML = `<span>${val}</span><span class="room-tag-remove" data-val="${val}">&times;</span>`;
+                    selectBox.insertBefore(tag, arrow);
+                });
+            }
+
+            // Update hidden inputs
+            hiddenInputsContainer.innerHTML = '';
+            selected.forEach(val => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'groups';
+                input.value = val;
+                hiddenInputsContainer.appendChild(input);
+            });
+
+            updateListSelection();
+        }
+
+        function openDropdown() {
+            const { portal, searchInput } = getPortalElements();
+            if (isOpen || !portal) return;
+            isOpen = true;
+            positionPortal();
+            portal.classList.add('open');
+            selectBox.classList.add('focused');
+            if (arrow) arrow.classList.add('open');
+            if (searchInput) {
+                searchInput.value = '';
+                // Use multiple attempts to ensure focus works with Bootstrap modal
+                requestAnimationFrame(() => {
+                    searchInput.focus();
+                    searchInput.click();
+                });
+            }
+            filterList('');
+            updateListSelection();
+        }
+
+        function closeDropdown() {
+            const { portal } = getPortalElements();
+            if (!isOpen) return;
+            isOpen = false;
+            if (portal) portal.classList.remove('open');
+            selectBox.classList.remove('focused');
+            if (arrow) arrow.classList.remove('open');
+        }
+
+        function createPortal() {
+            let portal = document.getElementById(portalId);
+            if (portal) portal.remove();
+
+            portal = document.createElement('div');
+            portal.id = portalId;
+            portal.className = 'room-dropdown-portal';
+
+            // Build list HTML
+            const listHtml = allGroupsData
+                .filter(g => g && g.trim())
+                .map(g => {
+                    const norm = g.trim();
+                    const esc = norm.replace(/"/g, '&quot;');
+                    return `<div class="room-list-item" data-value="${esc}" data-search="${norm.toLowerCase()}">${norm}</div>`;
+                }).join('') || '<div class="room-list-empty">Keine Räume verfügbar.</div>';
+
+            portal.innerHTML = `
+                <input type="text" class="room-search-input" id="agRoomSearch" placeholder="Räume durchsuchen…" tabindex="0" autocomplete="off">
+                <div class="room-list" id="agRoomList">${listHtml}</div>`;
+
+            document.body.appendChild(portal);
+
+            // Attach event listeners to portal elements
+            const searchInput = document.getElementById('agRoomSearch');
+            const list = document.getElementById('agRoomList');
+
+            // Search input - filter on typing
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    filterList(e.target.value);
+                });
+
+                // Prevent all events from bubbling to modal
+                searchInput.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+                searchInput.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                });
+                searchInput.addEventListener('keydown', (e) => {
+                    e.stopPropagation();
+                });
+                searchInput.addEventListener('keyup', (e) => {
+                    e.stopPropagation();
+                });
+
+                // Force focus on the input
+                searchInput.addEventListener('focus', () => {
+                    searchInput.setAttribute('tabindex', '1');
+                });
+            }
+
+            // Click on list item
+            if (list) {
+                list.addEventListener('click', (e) => {
+                    const item = e.target.closest('.room-list-item');
+                    if (!item) return;
+                    e.stopPropagation();
+                    const val = item.dataset.value;
+                    if (selected.has(val)) selected.delete(val);
+                    else selected.add(val);
+                    renderTags();
+                });
+            }
+
+            // Prevent portal clicks from bubbling
+            portal.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            return portal;
+        }
+
+        // Single event listener on selectBox (attached once)
+        if (selectBox) {
+            selectBox.addEventListener('click', (e) => {
+                if (e.target.closest('.room-tag-remove')) {
+                    const val = e.target.closest('.room-tag-remove').dataset.val;
+                    selected.delete(val);
+                    renderTags();
+                    e.stopPropagation();
+                    return;
+                }
+                isOpen ? closeDropdown() : openDropdown();
+            });
+        }
+
+        // Close on outside click (global handler)
+        document.addEventListener('click', (e) => {
+            if (!isOpen) return;
+            const { portal } = getPortalElements();
+            if (selectBox && selectBox.contains(e.target)) return;
+            if (portal && portal.contains(e.target)) return;
+            closeDropdown();
+        });
+
+        function cleanupPortal() {
+            const portal = document.getElementById(portalId);
+            if (portal) portal.remove();
+            isOpen = false;
+            if (selectBox) selectBox.classList.remove('focused');
+            if (arrow) arrow.classList.remove('open');
+        }
+
+        // Button click handlers
+        const buttons = document.querySelectorAll('.asst-share-groups-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const asstId = btn.getAttribute('data-id');
+                const asstName = btn.getAttribute('data-name') || '';
                 if (!asstId) return;
 
                 if (idInput) idInput.value = asstId;
                 if (nameEl) nameEl.textContent = asstName;
 
-                groupCheckboxes().forEach(function (cb) {
-                    cb.checked = false;
-                    var row = cb.closest('.form-check');
-                    if (row) row.style.display = '';
-                });
+                // Reset state
+                selected = new Set();
+                allowedGroups = [];
+                isOpen = false;
 
-                fetch(getUrl + '?id=' + encodeURIComponent(asstId), {
-                    credentials: 'same-origin'
-                })
-                    .then(function (resp) {
-                        if (!resp.ok) throw new Error('Request failed');
-                        return resp.json();
+                // Clean old portal
+                cleanupPortal();
+
+                // Reset tags
+                const placeholder = selectBox.querySelector('.room-select-placeholder');
+                selectBox.querySelectorAll('.room-tag').forEach(t => t.remove());
+                if (placeholder) placeholder.style.display = '';
+                hiddenInputsContainer.innerHTML = '';
+
+                // Create portal
+                createPortal();
+
+                // Fetch assigned groups
+                fetch(getUrl + '?id=' + encodeURIComponent(asstId), { credentials: 'same-origin' })
+                    .then(resp => resp.ok ? resp.json() : null)
+                    .then(data => {
+                        if (data && data.ok) {
+                            allowedGroups = data.allowedGroups || [];
+                            (data.assignedGroups || []).forEach(g => selected.add(g));
+                            renderTags();
+                        }
                     })
-                    .then(function (data) {
-                        if (!data || !data.ok) return;
-                        var allowed = data.allowedGroups || [];
-                        var assigned = data.assignedGroups || [];
-                        var allowedSet = {};
-                        allowed.forEach(function (g) { allowedSet[g] = true; });
+                    .catch(() => {});
 
-                        groupCheckboxes().forEach(function (cb) {
-                            var g = cb.value;
-                            var row = cb.closest('.form-check');
-                            if (!row) return;
-                            if (allowed.length > 0 && !allowedSet[g]) {
-                                row.style.display = 'none';
-                                cb.checked = false;
-                            } else {
-                                row.style.display = '';
-                                cb.checked = assigned.indexOf(g) >= 0;
-                            }
-                        });
-                    })
-                    .catch(function () {
-                        // ignore, modal will still open with default state
-                    });
-
-                var m = getModal();
+                const m = getModal();
                 if (m) m.show();
             });
         });
 
+        // Form submit
         if (form) {
-            form.addEventListener('submit', function (e) {
+            form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                var fd = new FormData(form);
-                fetch(postUrl, {
-                    method: 'POST',
-                    body: fd,
-                    credentials: 'same-origin'
-                })
-                    .then(function (resp) {
-                        if (resp.ok) {
-                            window.location.reload();
-                        }
-                    })
-                    .catch(function () { });
+                closeDropdown();
+
+                const fd = new FormData(form);
+                fetch(postUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(resp => { if (resp.ok) window.location.reload(); })
+                    .catch(() => {});
             });
         }
+
+        // Modal hidden - cleanup
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            selected = new Set();
+            allowedGroups = [];
+            cleanupPortal();
+
+            // Reset tags
+            const placeholder = selectBox.querySelector('.room-select-placeholder');
+            selectBox.querySelectorAll('.room-tag').forEach(t => t.remove());
+            if (placeholder) placeholder.style.display = '';
+            hiddenInputsContainer.innerHTML = '';
+        });
+
+        // Prevent modal from stealing focus from portal
+        modalEl.addEventListener('focusin', (e) => {
+            const { portal } = getPortalElements();
+            if (portal && portal.classList.contains('open')) {
+                const searchInput = document.getElementById('agRoomSearch');
+                if (searchInput && document.activeElement !== searchInput) {
+                    // If portal is open and focus went to modal, refocus search
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        });
     })();
 </script>

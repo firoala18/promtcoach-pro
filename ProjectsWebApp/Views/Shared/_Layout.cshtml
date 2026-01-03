@@ -65,30 +65,57 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
     }
 
     /* ============================================================
-       NAVBAR LOGO - Responsive sizing for iPads & Tablets
+       NAVBAR LOGO - Responsive sizing for all devices
        ============================================================ */
     .brand-logo {
-        height: 75px !important;
+        height: 70px !important;
         width: auto !important;
-        max-width: none !important; /* Override img-fluid constraint */
+        max-width: none !important;
         transition: height 0.2s ease;
+        object-fit: contain;
     }
 
-    /* iPad Pro Landscape & Large Tablets (1024px - 1366px) */
-    @@media (min-width: 992px) and (max-width: 1400px) {
+    /* Ensure logo is vertically centered inside navbar across breakpoints */
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Align logo + burger vertically in the navbar container */
+    .navbar .container-fluid {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Desktop XL (1400px+) */
+    @@media (min-width: 1400px) {
         .brand-logo {
-            height: 150px !important;
+            height: 80px !important;
         }
     }
 
-    /* iPad Pro Portrait & Tablets (768px - 1024px) */
+    /* Desktop / Large tablets landscape (1200px - 1399px) */
+    @@media (min-width: 1200px) and (max-width: 1399px) {
+        .brand-logo {
+            height: 70px !important;
+        }
+    }
+
+    /* iPad Pro Landscape & Large Tablets (992px - 1199px) */
+    @@media (min-width: 992px) and (max-width: 1199px) {
+        .brand-logo {
+            height: 65px !important;
+        }
+    }
+
+    /* iPad Pro Portrait & Tablets (768px - 991px) */
     @@media (min-width: 768px) and (max-width: 991px) {
         .brand-logo {
-            height: 130px !important;
+            height: 60px !important;
         }
 
         .navbar-brand {
-            padding-left: 1rem !important;
+            padding-left: 0.75rem !important;
         }
     }
 
@@ -107,10 +134,10 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
         }
     }
 
-    /* Collapsed navbar / Mobile (< 768px) */
+    /* Mobile / Collapsed navbar (< 768px) */
     @@media (max-width: 767px) {
         .brand-logo {
-            height: 55px !important;
+            height: 50px !important;
         }
 
         .navbar-brand {
@@ -121,7 +148,14 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
     /* Very small screens */
     @@media (max-width: 480px) {
         .brand-logo {
-            height: 45px !important;
+            height: 42px !important;
+        }
+    }
+
+    /* Extra small screens */
+    @@media (max-width: 360px) {
+        .brand-logo {
+            height: 36px !important;
         }
     }
 
@@ -139,39 +173,44 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
             flex: 0 0 auto;
         }
 
-        /* Better hamburger button */
+        /* Better hamburger button - black background */
         .navbar-toggler {
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0.5rem;
             border-radius: 8px;
+            background-color: transparent;
         }
 
         .navbar-toggler:focus {
             box-shadow: none;
+            outline: none;
         }
 
         .navbar-toggler-icon {
             width: 1.75em;
             height: 1.75em;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
 
-        /* Full-width collapse container */
-        .navbar-collapse {
+        /* Full-width collapse container - enforce BLACK like navbar */
+        .navbar-collapse,
+        .navbar-collapse.show {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            background: linear-gradient(180deg, #7daa15 0%, #6d9412 100%);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+            background-color: #191919 !important;
+            background-image: none !important;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
             border-radius: 0 0 16px 16px;
             padding: 0.5rem;
             margin: 0 !important;
             z-index: 1050;
         }
 
-        /* Nav items container */
+        /* Nav items container (keep subtle overlay but never full green) */
         .navbar-collapse .navbar-nav {
-            background: rgba(255, 255, 255, 0.08);
+            background-color: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 0.5rem;
             gap: 0.25rem;
@@ -191,12 +230,12 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
 
         .navbar-collapse .nav-link:hover,
         .navbar-collapse .nav-link:focus {
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
         }
 
         .navbar-collapse .nav-link.active-nav-link {
-            background: rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.15);
             border-bottom: none;
         }
 
@@ -875,6 +914,12 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
                         <i class="bi bi-box-arrow-in-right me-1"></i>
                         <span class="d-none d-sm-inline">Login</span>
                     </a>
+                    <a class="btn btn-link text-dark ms-2"
+                       asp-area="Identity" asp-page="/Account/Register"
+                       style="text-decoration: none; color: black; font-size: 1rem;">
+                        <i class="bi bi-person me-1"></i>
+                        <span class="d-none d-sm-inline">Registrieren</span>
+                    </a>
                 }
 
             </div>
@@ -1001,7 +1046,7 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
             </div>
         }
         <!-- 3) Thick subheader -->
-        <a class="thickSubheader" href="https://medienlabor.uni-wuppertal.de/apps/promptcoach/">
+        <a class="thickSubheader" href="https://prompt-coach.xr-adiqu.de/">
             <div class="headerSubdomains" style="background-color: #f1f1f1;">
                 <div class="container" style="padding: 0;margin-top:0px">
                     <div class="row position-relative align-items-center">
@@ -1028,9 +1073,9 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
         </div>
     </section>
 
-    <button id="scrollTopBtn" type="button" aria-label="Nach oben">
+    <a href="#" id="scrollTopBtn" aria-label="Nach oben">
         <i class="bi bi-arrow-up-short"></i>
-    </button>
+    </a>
 
     <!-- Redesigned Footer -->
     <footer class="footer">

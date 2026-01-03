@@ -3,10 +3,18 @@
 @using System.Linq
 @using System.Text.RegularExpressions
 @using Microsoft.AspNetCore.Identity
+@using ProjectsWebApp.DataAccsess.Data
+
 @inject Microsoft.AspNetCore.Identity.UserManager<IdentityUser> UserManager
+@inject ApplicationDbContext _modesDb
 
 @{
     ViewData["Title"] = "Bibliothek";
+
+    // Load Modes from database for dynamic icons
+    var allModes = _modesDb.Modes.Where(m => !m.IsHidden).OrderBy(m => m.SortOrder).ToList();
+    var modeIconMap = allModes.ToDictionary(m => m.RouteType.ToLower(), m => m.IconClass, StringComparer.OrdinalIgnoreCase);
+    var modeTitleMap = allModes.ToDictionary(m => m.RouteType.ToLower(), m => m.Title, StringComparer.OrdinalIgnoreCase);
 
     // counts per PromptType
     var total = Model.Count();
@@ -88,24 +96,21 @@
         };
     }
 
-    string IconClass(string type)
+    string IconClass(string type, Dictionary<string, string> iconMap)
     {
         var t = (type ?? string.Empty).ToLower();
 
         if (t == "akademisch" || t == "lehr") t = "bildung";
         if (t == "beruf") t = "eigenfilter"; // Agent → Domäne‑Bucket
 
-        return t switch
+        // Try to get icon from database Mode, fallback to default
+        if (iconMap.TryGetValue(t, out var icon))
         {
-            "bild" => "bi-image",
-            "video" => "bi-play-btn",
-            "sound" => "bi-volume-up",
-            "bildung" => "bi-journal-bookmark",
-            "eigenfilter" => "bi-funnel-fill", // Domäne‑Icon
-            "framework" => "bi-diagram-3",
-            "meta" => "bi-gear",
-            _ => "bi-text-paragraph"
-        };
+            return icon;
+        }
+
+        // Fallback for unmapped types
+        return "bi-text-paragraph";
     }
 }
 
@@ -1963,6 +1968,47 @@
         outline: 2px solid #587a0f;
         outline-offset: 2px;
     }
+
+    /* Premium Filter Dropdown (single-select) */
+    .bib-filter-container { position: relative; min-width: 300px; max-width: 380px; }
+    .bib-filter-box {
+        height: 44px; padding: 0 18px; border: 1px solid #d9d9d9; border-radius: .65rem;
+        background: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: border-color 0.2s, box-shadow 0.2s; font-weight: 500; color: #333; font-size: 0.95rem;
+    }
+    .bib-filter-box:hover { border-color: #aaa; }
+    .bib-filter-box.focused { border-color: #587a0f; box-shadow: 0 0 0 3px rgba(88,122,15,0.15); }
+    .bib-filter-box .bib-filter-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bib-filter-box .bib-filter-arrow { color: #6b7280; transition: transform 0.2s; flex-shrink: 0; }
+    .bib-filter-box .bib-filter-arrow.open { transform: rotate(180deg); }
+
+    .bib-filter-portal {
+        position: fixed; background: #fff; border: 2px solid #587a0f; border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none; min-width: 300px;
+    }
+    .bib-filter-portal.open { display: block; }
+
+    .bib-filter-search {
+        width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
+        font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 8px 8px 0 0;
+    }
+    .bib-filter-search::placeholder { color: #9ca3af; }
+
+    .bib-filter-list { max-height: 280px; overflow-y: auto; }
+    .bib-filter-item {
+        padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        transition: background 0.15s; font-size: 0.95rem; color: #374151;
+    }
+    .bib-filter-item:hover { background: #f3f4f6; }
+    .bib-filter-item.selected { background: linear-gradient(135deg,#f0f7e6,#e3f0d3); color: #3d5a0f; font-weight: 600; }
+    .bib-filter-item.selected::before { content: '\2713'; color: #587a0f; font-weight: 700; }
+    .bib-filter-item.hidden { display: none !important; }
+    .bib-filter-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
+
+    @@media (max-width: 991.98px) {
+        .bib-filter-container { min-width: 0; width: 100%; }
+        .bib-filter-box { width: 100%; }
+    }
 </style>
 
 
@@ -2064,14 +2110,10 @@
     <div id="tplToolbar" class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-3">
         <div class="d-flex flex-wrap gap-2 justify-content-center">
             <div class="TypeTab active" data-type="all">Alle</div>
-            <div class="TypeTab" data-type="text" title="Text-prompts"><i class="fa fa-pencil-square" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="bild" title="Bild-prompts"><i class="bi bi-image" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="video" title="Video-prompts"><i class="fa fa-video-camera" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="sound" title="Sound-prompts"><i class="fa fa-volume-up" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="bildung" title="Bildung & Forschung-prompts"><i class="fa fa-graduation-cap" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="eigenfilter" title="Domäne-prompts"><i class="bi bi-funnel-fill" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="framework" title="Framework-prompts"><i class="bi bi-diagram-3" aria-hidden="true"></i></div>
-            <div class="TypeTab" data-type="meta" title="Meta-prompts"><i class="fa fa-cogs" aria-hidden="true"></i></div>
+            @foreach (var mode in allModes)
+            {
+                <div class="TypeTab" data-type="@mode.RouteType.ToLower()" title="@mode.Title-prompts"><i class="@mode.IconClass" aria-hidden="true"></i></div>
+            }
         </div>
     </div>
 
@@ -2093,29 +2135,26 @@
             <span class="fw-semibold">Bibliothek filtern</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-            @{ var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string> { "Ohne Gruppe" }; }
-            <form asp-area="User" asp-controller="Home" asp-action="Bibliothek" method="get" class="d-flex align-items-center gap-2 mb-0">
-                <input type="hidden" name="mine" value="@(mineSel ? "true" : "false")" />
-                @* <label class="me-1 text-muted">Gruppe</label> *@
-                <select name="group" class="form-select select-group" onchange="this.form.submit()">
-                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Coach"))
-                    {
-                        <option value="">Alle Gruppen</option>
-                    }
-                    @foreach (var g in groups)
-                    {
-                        var isSel = selectedGroup != null && string.Equals(selectedGroup, g, StringComparison.OrdinalIgnoreCase);
-                        if (isSel)
-                        {
-                            <option value="@g" selected="selected">@g</option>
-                        }
-                        else
-                        {
-                            <option value="@g">@g</option>
-                        }
-                    }
-                </select>
-            </form>
+            @{
+                var groups = ViewBag.AllGroups as IEnumerable<string> ?? new List<string> { "Ohne Gruppe" };
+                var isAdminOrCoach = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Coach");
+                var bibDisplayText = string.IsNullOrEmpty(selectedGroup) ? "Alle Räume" : selectedGroup;
+            }
+            <!-- Premium Filter Dropdown -->
+            <div class="bib-filter-container" id="bibFilterContainer">
+                <div class="bib-filter-box" id="bibFilterBox" title="Nach Räume filtern">
+                    <span class="bib-filter-text" id="bibFilterText">@bibDisplayText</span>
+                    <span class="bib-filter-arrow"><i class="bi bi-chevron-down"></i></span>
+                </div>
+            </div>
+            <!-- Store filter data for JS -->
+            <script type="application/json" id="bibFilterData">@Html.Raw(Json.Serialize(new {
+                groups = groups,
+                selected = selectedGroup ?? "",
+                isAdmin = isAdminOrCoach,
+                mine = mineSel,
+                actionUrl = Url.Action("Bibliothek", "Home", new { area = "User" })
+            }))</script>
             @if (mineSel)
             {
                 <a class="btn btn-mine active" asp-area="User" asp-controller="Home" asp-action="Bibliothek" asp-route-group="@selectedGroup" style="color:white;" asp-route-mine="false">Alle anzeigen</a>
@@ -2158,7 +2197,7 @@
                     <div class="card-content">
                         <div class="card-top">
                             <div class="icon-wrapper">
-                                <i class="bi @(IconClass(t.PromptType))"
+                                <i class="bi @(IconClass(t.PromptType, modeIconMap))"
                                    style="font-size:1.25rem; color: #5c5c5c"></i>
                             </div>
 
@@ -2745,5 +2784,164 @@ if (bibTb) {
             });
           });
         });
+
+        /* ========== Premium Filter Dropdown ========== */
+        (function () {
+            const container = document.getElementById('bibFilterContainer');
+            const selectBox = document.getElementById('bibFilterBox');
+            if (!container || !selectBox) return;
+
+            const arrow = selectBox.querySelector('.bib-filter-arrow');
+            const portalId = 'bibFilterPortal';
+            let isOpen = false;
+
+            // Load data from JSON
+            let filterData = { groups: [], selected: '', isAdmin: false, mine: false, actionUrl: '' };
+            try {
+                const jsonEl = document.getElementById('bibFilterData');
+                if (jsonEl) filterData = JSON.parse(jsonEl.textContent) || filterData;
+            } catch (e) { }
+
+            function getPortalElements() {
+                return {
+                    portal: document.getElementById(portalId),
+                    searchInput: document.querySelector('#' + portalId + ' .bib-filter-search'),
+                    list: document.querySelector('#' + portalId + ' .bib-filter-list')
+                };
+            }
+
+            function positionPortal() {
+                const { portal } = getPortalElements();
+                if (!portal || !selectBox) return;
+                const rect = selectBox.getBoundingClientRect();
+                portal.style.top = (rect.bottom + 4) + 'px';
+                portal.style.left = rect.left + 'px';
+                portal.style.width = Math.max(rect.width, 220) + 'px';
+            }
+
+            function filterList(query) {
+                const { list } = getPortalElements();
+                if (!list) return;
+                const term = (query || '').toLowerCase().trim();
+                list.querySelectorAll('.bib-filter-item').forEach(item => {
+                    const text = (item.dataset.search || '').toLowerCase();
+                    item.classList.toggle('hidden', term && !text.includes(term));
+                });
+            }
+
+            function createPortal() {
+                let portal = document.getElementById(portalId);
+                if (portal) portal.remove();
+
+                portal = document.createElement('div');
+                portal.id = portalId;
+                portal.className = 'bib-filter-portal';
+
+                // Build list HTML - include "Alle Räume" option for admins
+                let listHtml = '';
+                if (filterData.isAdmin) {
+                    const isSelected = !filterData.selected || filterData.selected === '';
+                    listHtml += `<div class="bib-filter-item ${isSelected ? 'selected' : ''}" data-value="" data-search="alle räume">Alle Räume</div>`;
+                }
+
+                listHtml += (filterData.groups || [])
+                    .filter(g => g && g.trim())
+                    .map(g => {
+                        const norm = g.trim();
+                        const esc = norm.replace(/"/g, '&quot;');
+                        const isSelected = filterData.selected === norm;
+                        return `<div class="bib-filter-item ${isSelected ? 'selected' : ''}" data-value="${esc}" data-search="${norm.toLowerCase()}">${norm}</div>`;
+                    }).join('');
+
+                if (!listHtml) {
+                    listHtml = '<div class="bib-filter-empty">Keine Räume verfügbar.</div>';
+                }
+
+                portal.innerHTML = `
+                    <input type="text" class="bib-filter-search" placeholder="Räume durchsuchen…" autocomplete="off">
+                    <div class="bib-filter-list">${listHtml}</div>`;
+
+                document.body.appendChild(portal);
+
+                // Attach event listeners
+                const searchInput = portal.querySelector('.bib-filter-search');
+                const list = portal.querySelector('.bib-filter-list');
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        filterList(e.target.value);
+                    });
+                    searchInput.addEventListener('click', (e) => e.stopPropagation());
+                    searchInput.addEventListener('mousedown', (e) => e.stopPropagation());
+                    searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+                }
+
+                if (list) {
+                    list.addEventListener('click', (e) => {
+                        const item = e.target.closest('.bib-filter-item');
+                        if (!item) return;
+                        e.stopPropagation();
+                        const val = item.dataset.value;
+                        // Navigate to the filtered page
+                        const url = new URL(filterData.actionUrl, window.location.origin);
+                        if (val) {
+                            url.searchParams.set('group', val);
+                        }
+                        if (filterData.mine) {
+                            url.searchParams.set('mine', 'true');
+                        }
+                        window.location.href = url.toString();
+                    });
+                }
+
+                portal.addEventListener('click', (e) => e.stopPropagation());
+
+                return portal;
+            }
+
+            function openDropdown() {
+                if (isOpen) return;
+                createPortal();
+                const { portal, searchInput } = getPortalElements();
+                if (!portal) return;
+                isOpen = true;
+                positionPortal();
+                portal.classList.add('open');
+                selectBox.classList.add('focused');
+                if (arrow) arrow.classList.add('open');
+                if (searchInput) {
+                    searchInput.value = '';
+                    requestAnimationFrame(() => searchInput.focus());
+                }
+                filterList('');
+            }
+
+            function closeDropdown() {
+                const { portal } = getPortalElements();
+                if (!isOpen) return;
+                isOpen = false;
+                if (portal) portal.classList.remove('open');
+                selectBox.classList.remove('focused');
+                if (arrow) arrow.classList.remove('open');
+            }
+
+            // Event: Click on select box
+            selectBox.addEventListener('click', () => {
+                isOpen ? closeDropdown() : openDropdown();
+            });
+
+            // Event: Click outside to close
+            document.addEventListener('click', (e) => {
+                if (!isOpen) return;
+                const { portal } = getPortalElements();
+                if (selectBox.contains(e.target)) return;
+                if (portal && portal.contains(e.target)) return;
+                closeDropdown();
+            });
+
+            // Reposition on scroll/resize
+            window.addEventListener('scroll', () => { if (isOpen) positionPortal(); }, true);
+            window.addEventListener('resize', () => { if (isOpen) positionPortal(); });
+        })();
     </script>
 }

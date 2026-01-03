@@ -225,12 +225,37 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
         }
 
         // GET: /Admin/Groups/Create
+        // GET: /Admin/Groups/Create
         [HttpGet]
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> Create()
         {
             var vm = new GroupEditViewModel();
-            await PopulateOwnerOptionsAsync(vm, preselectCurrentUser: true);
+            // We do NOT load all users here anymore for scalability.
+            // Instead, we preselect the current user if they are eligible.
+            var uid = _userManager.GetUserId(User);
+            if (!string.IsNullOrWhiteSpace(uid))
+            {
+                var user = await _userManager.FindByIdAsync(uid);
+                if (user != null)
+                {
+                    bool isOwnerCandidate = await _userManager.IsInRoleAsync(user, "Dozent")
+                                         || await _userManager.IsInRoleAsync(user, "Admin")
+                                         || await _userManager.IsInRoleAsync(user, "SuperAdmin")
+                                         || await _userManager.IsInRoleAsync(user, "Coach")
+                                         || await _userManager.IsInRoleAsync(user, "ApiManager");
+                    if (isOwnerCandidate)
+                    {
+                        vm.OwnerOptions.Add(new GroupOwnerOption
+                        {
+                            UserId = user.Id,
+                            DisplayName = user.Email ?? user.UserName ?? user.Id,
+                            IsSelected = true
+                        });
+                        vm.SelectedOwnerIds.Add(user.Id);
+                    }
+                }
+            }
             return View(vm);
         }
 
@@ -242,7 +267,7 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await PopulateOwnerOptionsAsync(vm, preselectCurrentUser: false);
+                await PopulateSelectedOwnerOptionsAsync(vm);
                 return View(vm);
             }
 
@@ -250,7 +275,7 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
             if (string.IsNullOrWhiteSpace(nameTrimmed))
             {
                 ModelState.AddModelError(nameof(vm.Name), "Name der Gruppe ist erforderlich.");
-                await PopulateOwnerOptionsAsync(vm, preselectCurrentUser: false);
+                await PopulateSelectedOwnerOptionsAsync(vm);
                 return View(vm);
             }
 
@@ -258,7 +283,7 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
             if (exists)
             {
                 ModelState.AddModelError(nameof(vm.Name), "Es existiert bereits eine Gruppe mit diesem Namen.");
-                await PopulateOwnerOptionsAsync(vm, preselectCurrentUser: false);
+                await PopulateSelectedOwnerOptionsAsync(vm);
                 return View(vm);
             }
 
@@ -1124,6 +1149,27 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
             catch { }
         }
 
+        private async Task PopulateSelectedOwnerOptionsAsync(GroupEditViewModel vm)
+        {
+            vm.OwnerOptions.Clear();
+            if (vm.SelectedOwnerIds == null || vm.SelectedOwnerIds.Count == 0) return;
+
+            var distinctIds = vm.SelectedOwnerIds.Distinct().ToList();
+            var users = await _userManager.Users
+                .Where(u => distinctIds.Contains(u.Id))
+                .ToListAsync();
+
+            foreach (var u in users)
+            {
+                vm.OwnerOptions.Add(new GroupOwnerOption
+                {
+                    UserId = u.Id,
+                    DisplayName = u.Email ?? u.UserName ?? u.Id,
+                    IsSelected = true
+                });
+            }
+        }
+
         private async Task PopulateOwnerOptionsAsync(GroupEditViewModel vm, bool preselectCurrentUser)
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -1860,6 +1906,48 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
             }
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+        [HttpGet]
+        [Authorize(Roles = "Admin,SuperAdmin,Dozent")]
+        public async Task<IActionResult> SearchPotentialOwners(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            {
+                return Json(new List<object>());
+            }
+
+            query = query.Trim();
+
+            // Note: This is a simple implementation. For huge user bases, you'd want a more efficient search strategy/indexing.
+            // We filter in memory after fetching potential matches or use a raw SQL query if needed.
+            // Here we fetch users matching email/username, then filter by role.
+            
+            var users = await _userManager.Users
+                .Where(u => u.Email.Contains(query) || u.UserName.Contains(query))
+                .Take(50) // Limit initial fetch
+                .ToListAsync();
+
+            var results = new List<object>();
+
+            foreach (var u in users)
+            {
+                bool isOwnerCandidate = await _userManager.IsInRoleAsync(u, "Dozent")
+                                     || await _userManager.IsInRoleAsync(u, "Admin")
+                                     || await _userManager.IsInRoleAsync(u, "SuperAdmin")
+                                     || await _userManager.IsInRoleAsync(u, "Coach")
+                                     || await _userManager.IsInRoleAsync(u, "ApiManager");
+
+                if (isOwnerCandidate)
+                {
+                    results.Add(new
+                    {
+                        id = u.Id,
+                        text = u.Email ?? u.UserName ?? "Unbekannt"
+                    });
+                }
+            }
+
+            return Json(results);
         }
     }
 }

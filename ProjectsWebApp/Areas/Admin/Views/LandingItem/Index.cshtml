@@ -352,11 +352,16 @@
                         <input type="file" class="form-control" id="modeImageFile" name="imageFile" accept="image/*">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-save">
-                        <i class="bi bi-check-lg me-1"></i>Speichern
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" onclick="deleteMode()">
+                        <i class="bi bi-trash me-1"></i>Löschen
                     </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-save">
+                            <i class="bi bi-check-lg me-1"></i>Speichern
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -393,11 +398,16 @@
                         <input type="number" class="form-control" id="featureSortOrder" name="sortOrder" min="1" style="max-width: 150px;">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-save">
-                        <i class="bi bi-check-lg me-1"></i>Speichern
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" onclick="deleteFeature()">
+                        <i class="bi bi-trash me-1"></i>Löschen
                     </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-save">
+                            <i class="bi bi-check-lg me-1"></i>Speichern
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -536,6 +546,50 @@
         }
     });
 
+    async function deleteMode() {
+        const id = document.getElementById('modeId').value;
+        const title = document.getElementById('modeTitle').value;
+
+        const result = await Swal.fire({
+            title: 'Prompt-Art löschen?',
+            html: `Möchten Sie <strong>"${title}"</strong> wirklich löschen?<br><br><small class="text-muted">Diese Aktion kann nicht rückgängig gemacht werden.</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ja, löschen',
+            cancelButtonText: 'Abbrechen'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const formData = new FormData();
+                formData.append('id', id);
+
+                const res = await fetch('@Url.Action("DeleteMode")', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    modeModal.hide();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Gelöscht!',
+                        text: 'Prompt-Art wurde gelöscht.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => location.reload());
+                } else {
+                    throw new Error(data.message || 'Löschen fehlgeschlagen');
+                }
+            } catch (err) {
+                Swal.fire('Fehler', err.message, 'error');
+            }
+        }
+    }
+
     // Feature functions
     async function editFeature(id) {
         try {
@@ -582,5 +636,49 @@
             Swal.fire('Fehler', err.message, 'error');
         }
     });
+
+    async function deleteFeature() {
+        const id = document.getElementById('featureId').value;
+        const title = document.getElementById('featureTitle').value;
+
+        const result = await Swal.fire({
+            title: 'Info-Karte löschen?',
+            html: `Möchten Sie <strong>"${title}"</strong> wirklich löschen?<br><br><small class="text-muted">Diese Aktion kann nicht rückgängig gemacht werden.</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ja, löschen',
+            cancelButtonText: 'Abbrechen'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const formData = new FormData();
+                formData.append('id', id);
+
+                const res = await fetch('@Url.Action("DeleteFeature")', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    featureModal.hide();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Gelöscht!',
+                        text: 'Info-Karte wurde gelöscht.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => location.reload());
+                } else {
+                    throw new Error(data.message || 'Löschen fehlgeschlagen');
+                }
+            } catch (err) {
+                Swal.fire('Fehler', err.message, 'error');
+            }
+        }
+    }
 </script>
 }

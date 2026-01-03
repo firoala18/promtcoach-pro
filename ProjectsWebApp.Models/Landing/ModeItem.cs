@@ -24,5 +24,7 @@ namespace ProjectsWebApp.Models.Landing
         public string RouteType { get; set; }
 
         public int SortOrder { get; set; }
+
+        public bool IsHidden { get; set; } = false;
     }
 }

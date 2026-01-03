@@ -1,7 +1,35 @@
 @using Microsoft.AspNetCore.Identity
+@using ProjectsWebApp.DataAccsess.Data
 
 @inject SignInManager<IdentityUser> SignInManager
 @inject UserManager<IdentityUser> UserManager
+@inject ApplicationDbContext _modesDb
+
+@{
+    var allModes = _modesDb.Modes
+        .Where(m => !m.IsHidden)
+        .OrderBy(m => m.SortOrder)
+        .ToList();
+
+    // Dictionary for looking up Mode icons by RouteType (only non-empty icons)
+    var modeIconMap = allModes
+        .Where(m => !string.IsNullOrEmpty(m.RouteType) && !string.IsNullOrEmpty(m.IconClass))
+        .ToDictionary(m => m.RouteType.ToLower(), m => m.IconClass, StringComparer.OrdinalIgnoreCase);
+
+    // Prompt-Arten modes (excluding Arbeitsbereiche types)
+    var arbeitsbereicheTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "eigenfilter", "framework", "meta" };
+    var promptArtenModes = allModes.Where(m => !string.IsNullOrEmpty(m.RouteType) && !arbeitsbereicheTypes.Contains(m.RouteType)).ToList();
+
+    // Helper to get icon class for Arbeitsbereiche items (returns fallback if icon is empty)
+    string GetModeIcon(string routeType, string fallback)
+    {
+        if (modeIconMap.TryGetValue(routeType.ToLower(), out var icon) && !string.IsNullOrEmpty(icon))
+        {
+            return icon;
+        }
+        return fallback;
+    }
+}
 
 <style>
     /* ============================================================
@@ -45,6 +73,11 @@
         width: 100%;
         max-width: none;
         margin: 0;
+    }
+
+    /* User workspace dropdown: 3 columns */
+    #workspaceMegaMenu .mega-menu-inner {
+        grid-template-columns: repeat(3, minmax(200px, 1fr));
     }
 
     .mega-menu-column {
@@ -457,90 +490,62 @@
             <div class="mega-menu" id="workspaceMegaMenu" role="menu" aria-labelledby="workspaceMegaMenuTrigger">
                 <div class="mega-menu-inner">
 
-                    <!-- Gruppe 1: Arbeitsbereich -->
+                    <!-- Gruppe 1: Arbeitsbereiche (merged column) -->
                     <div class="mega-menu-column">
-                        <h6 class="mega-menu-header">Arbeitsbereich</h6>
+                        <h6 class="mega-menu-header">Arbeitsbereiche</h6>
                         <ul class="mega-menu-items">
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Eigenfilter">
-                                    <span class="mega-menu-icon"><i class="bi bi-funnel"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Eigenfilter", "bi bi-stars")"></i></span>
                                     <span class="mega-menu-text">Szenarien entwickeln</span>
                                 </a>
                             </li>
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Eigenfilter">
-                                    <span class="mega-menu-icon"><i class="bi bi-magic"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Eigenfilter", "bi bi-stars")"></i></span>
                                     <span class="mega-menu-text">Szenarien anwenden</span>
                                 </a>
                             </li>
-                        </ul>
-                    </div>
-
-                    <!-- Gruppe 1: Arbeitsbereich -->
-                    <div class="mega-menu-column">
-                        <h6 class="mega-menu-header">Arbeitsbereich</h6>
-                        <ul class="mega-menu-items">
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Framework">
-                                    <span class="mega-menu-icon"><i class="bi bi-grid-3x3"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Framework", "bi bi-diagram-3")"></i></span>
                                     <span class="mega-menu-text">Framework entwickeln</span>
                                 </a>
                             </li>
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Framework">
-                                    <span class="mega-menu-icon"><i class="bi bi-cpu"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Framework", "bi bi-diagram-3")"></i></span>
                                     <span class="mega-menu-text">Framework anwenden</span>
                                 </a>
                             </li>
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="FilterCategory" asp-action="Index" asp-route-type="Meta">
-                                    <span class="mega-menu-icon"><i class="bi bi-layers"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Meta", "bi bi-layers")"></i></span>
                                     <span class="mega-menu-text">Meta-Filter entwickeln</span>
                                 </a>
                             </li>
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Meta">
-                                    <span class="mega-menu-icon"><i class="bi bi-gear-wide-connected"></i></span>
+                                    <span class="mega-menu-icon"><i class="@GetModeIcon("Meta", "bi bi-layers")"></i></span>
                                     <span class="mega-menu-text">Meta anwenden</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
 
-                    <!-- Gruppe 2: Prompt-Arten -->
+                    <!-- Gruppe 2: Prompt-Arten (dynamisch aus Datenbank) -->
                     <div class="mega-menu-column">
                         <h6 class="mega-menu-header">Prompt-Arten</h6>
                         <ul class="mega-menu-items">
-                            <li class="mega-menu-item">
-                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Text">
-                                    <span class="mega-menu-icon"><i class="bi bi-fonts"></i></span>
-                                    <span class="mega-menu-text">Text</span>
-                                </a>
-                            </li>
-                            <li class="mega-menu-item">
-                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Bild">
-                                    <span class="mega-menu-icon"><i class="bi bi-image"></i></span>
-                                    <span class="mega-menu-text">Bild</span>
-                                </a>
-                            </li>
-                            <li class="mega-menu-item">
-                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Video">
-                                    <span class="mega-menu-icon"><i class="bi bi-play-btn"></i></span>
-                                    <span class="mega-menu-text">Video</span>
-                                </a>
-                            </li>
-                            <li class="mega-menu-item">
-                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Sound">
-                                    <span class="mega-menu-icon"><i class="bi bi-volume-up"></i></span>
-                                    <span class="mega-menu-text">Sound</span>
-                                </a>
-                            </li>
-                            <li class="mega-menu-item">
-                                <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="Akademisch">
-                                    <span class="mega-menu-icon"><i class="bi bi-mortarboard"></i></span>
-                                    <span class="mega-menu-text">Akademisch</span>
-                                </a>
-                            </li>
+                            @foreach (var mode in promptArtenModes)
+                            {
+                                <li class="mega-menu-item">
+                                    <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="PromptAssistent" asp-route-type="@mode.RouteType">
+                                        <span class="mega-menu-icon"><i class="@mode.IconClass"></i></span>
+                                        <span class="mega-menu-text">@mode.Title</span>
+                                    </a>
+                                </li>
+                            }
                         </ul>
                     </div>
 
@@ -556,7 +561,7 @@
                             </li>
                             <li class="mega-menu-item">
                                 <a class="mega-menu-link" asp-area="User" asp-controller="Home" asp-action="Bibliothek">
-                                    <span class="mega-menu-icon"><i class="bi bi-collection"></i></span>
+                                    <span class="mega-menu-icon"> <i class="fa fa-university"></i></span>
                                     <span class="mega-menu-text">Bibliothek</span>
                                 </a>
                             </li>
@@ -781,7 +786,7 @@
         <li class="nav-item">
             <a class="nav-link nav-icon-link d-flex align-items-center justify-content-center"
                asp-area="Admin" asp-controller="Groups" asp-action="Index" title="Räume">
-                <i class="bi bi-people fs-5"></i>
+               <i class="bi bi-collection fs-5"></i>
             </a>
         </li>
 
