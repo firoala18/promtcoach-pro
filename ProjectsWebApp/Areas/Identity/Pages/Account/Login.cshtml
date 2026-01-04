@@ -219,6 +219,10 @@
             Einloggen
         </button>
 
+        <!-- Register Link -->
+        <p class="note" style="margin-top: 24px;">
+            Sie haben noch kein Konto? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="link-sm">Registrieren</a>
+        </p>
 
         @if (Model.ExternalLogins?.Count > 0)
         {

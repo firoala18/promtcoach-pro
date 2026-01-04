@@ -488,6 +488,17 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
         color: #ffffff;
         padding: 3rem 0 1.5rem;
         font-size: clamp(0.875rem, 1.5vw, 0.95rem);
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .footer > .container {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
     .footer a {
@@ -1080,9 +1091,9 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
     <!-- Redesigned Footer -->
     <footer class="footer">
         <div class="container">
-            <div class="row">
+            <div class="row justify-content-center">
                 <!-- Quick Links -->
-                <div class="col-md-6 mb-4 mb-md-0 mt-5">
+                <div class="col-md-5 col-lg-4 mb-4 mb-md-0 mt-5 text-center text-md-start">
                     <h5 class="footer-title">Schnellzugriff</h5>
                     <ul class="footer-links">
                         <li>
@@ -1090,11 +1101,6 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
                                asp-controller="Home"
                                asp-action="PromptEngineering"><i class="bi bi-arrow-right me-2"></i>Prompt Engineering</a>
                         </li>
-                      @*   <li>
-                            <a asp-area="User"
-                               asp-controller="Home"
-                               asp-action="Bibliothek"><i class="bi bi-arrow-right me-2"></i>Bibliothek</a>
-                        </li> *@
                         <li>
                             <a asp-area="User"
                                asp-controller="Home"
@@ -1111,16 +1117,12 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
                                asp-action="Kontakt"><i class="bi bi-arrow-right me-2"></i>Kontakt</a>
                         </li>
                     </ul>
-
-                  
                 </div>
 
                 <!-- Logo and Project Info -->
-                <div class="col-md-6 mt-5">
-                    <div class="text-center text-md-end">
-                        <img src="@Url.Content("~/logo-PromptCoach-transparenz.svg")" alt="Prompt Coach Logo" class="footer-logo">
-                        <p class="footer-description">Prompt Coach: Future Skills für den KI-Alltag.<br/>Essenzielles Wissen im Prompt-Engineering – für alle, die KI sicher, kreativ und berufsorientiert einsetzen möchten.</p>
-                    </div>
+                <div class="col-md-5 col-lg-4 mt-5 text-center">
+                    <img src="@Url.Content("~/logo-PromptCoach-transparenz.svg")" alt="Prompt Coach Logo" class="footer-logo">
+                    <p class="footer-description">Prompt Coach: Future Skills für den KI-Alltag.<br/>Essenzielles Wissen im Prompt-Engineering – für alle, die KI sicher, kreativ und berufsorientiert einsetzen möchten.</p>
                 </div>
             </div>
 

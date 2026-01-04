@@ -74,3 +74,35 @@ window.onload = function () {
         window.scrollTo(0, parseInt(lastScrollPosition, 10));
     }
 };
+
+// ========================
+// SCROLL TO TOP BUTTON
+// ========================
+(function() {
+    const scrollBtn = document.getElementById('scrollTopBtn');
+    if (!scrollBtn) return;
+
+    // Show/hide button based on scroll position
+    function toggleScrollButton() {
+        if (window.scrollY > 300) {
+            scrollBtn.classList.add('visible');
+        } else {
+            scrollBtn.classList.remove('visible');
+        }
+    }
+
+    // Smooth scroll to top
+    scrollBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    // Listen for scroll events
+    window.addEventListener('scroll', toggleScrollButton, { passive: true });
+
+    // Check initial state
+    toggleScrollButton();
+})();

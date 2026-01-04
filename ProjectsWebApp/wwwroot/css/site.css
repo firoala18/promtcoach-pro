@@ -475,5 +475,130 @@ input[type="password"].form-control,
   box-shadow: none !important;
 }
 
+/* ========================
+   GLOBAL BACK BUTTON
+   Used across Admin and User areas
+========================= */
+.zurueck-container {
+    margin-bottom: 1.5rem;
+}
+
+.btn-zurueck {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #fff;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.btn-zurueck:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+    text-decoration: none;
+    transform: translateX(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.btn-zurueck:active {
+    transform: translateX(0);
+}
+
+.btn-zurueck i {
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.btn-zurueck:hover i {
+    transform: translateX(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .btn-zurueck {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .btn-zurueck span {
+        display: none;
+    }
+
+    .btn-zurueck i {
+        font-size: 1.1rem;
+    }
+}
+
+/* ========================
+   SCROLL TO TOP BUTTON
+========================= */
+#scrollTopBtn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #89ba17 0%, #6d9412 100%);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(137, 186, 23, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+#scrollTopBtn:hover {
+    background: linear-gradient(135deg, #9acc1d 0%, #89ba17 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(137, 186, 23, 0.5);
+    color: #fff;
+    text-decoration: none;
+}
+
+#scrollTopBtn:active {
+    transform: translateY(0);
+}
+
+#scrollTopBtn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+#scrollTopBtn i {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* Responsive adjustments for scroll button */
+@media (max-width: 576px) {
+    #scrollTopBtn {
+        bottom: 1.25rem;
+        right: 1.25rem;
+        width: 42px;
+        height: 42px;
+    }
+
+    #scrollTopBtn i {
+        font-size: 1.3rem;
+    }
+}
+
 
 

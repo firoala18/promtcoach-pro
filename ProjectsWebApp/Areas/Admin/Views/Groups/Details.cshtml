@@ -759,7 +759,9 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
+        margin-top: 1.5rem;
         margin-bottom: 2rem;
+        justify-content: center;
     }
 
         .sub-config-tabs .nav-link {
@@ -794,6 +796,12 @@
             .sub-config-tabs .nav-link.active:hover {
                 background: #1e293b;
             }
+
+    /* Tab content top margin for API-Schlüssel and Einladungscodes */
+    #tab-apikeys,
+    #tab-invites {
+        padding-top: 1.5rem;
+    }
 
     /* Usage Section Styles */
     .usage-stat-item {
