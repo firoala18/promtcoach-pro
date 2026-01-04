@@ -74,25 +74,3 @@ window.onload = function () {
         window.scrollTo(0, parseInt(lastScrollPosition, 10));
     }
 };
-
-document.addEventListener("DOMContentLoaded", function () {
-    var btn = document.getElementById("scrollTopBtn");
-    if (!btn) return;
-
-    function toggleScrollTop() {
-        var y = window.scrollY || window.pageYOffset;
-        if (y > 300) {
-            btn.classList.add("scroll-top-visible");
-        } else {
-            btn.classList.remove("scroll-top-visible");
-        }
-    }
-
-    window.addEventListener("scroll", toggleScrollTop);
-    toggleScrollTop();
-
-    btn.addEventListener("click", function (e) {
-        e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-});

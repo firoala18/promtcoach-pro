@@ -1,57 +1,74 @@
 version: "3.9"
 
+# Project name: prompt-coach-app (ensures unique container/volume prefixes)
+name: prompt-coach-app
+
 services:
   db:
+    container_name: prompt-coach-db
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${PGDATABASE:-promptcoach}
-      POSTGRES_USER: ${PGUSER:-promptcoach}
-      POSTGRES_PASSWORD: ${PGPASSWORD:-promptcoach}
+      POSTGRES_DB: ${PGDATABASE:-prompt_coach_db}
+      POSTGRES_USER: ${PGUSER:-prompt_coach}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-prompt_coach_secret}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - prompt_coach_pgdata:/var/lib/postgresql/data
     ports:
-      - "${PGHOST_PORT:-5433}:5432"
+      - "${PGHOST_PORT:-5434}:5432"
     healthcheck:
       test: ["CMD-SHELL","pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - prompt-coach-network
 
   web:
+    container_name: prompt-coach-web
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
-      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=promptcoach;Username=promptcoach;Password=promptcoach}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=prompt_coach_db;Username=prompt_coach;Password=prompt_coach_secret}
       ASPNETCORE_URLS: http://0.0.0.0:8080
       ASPNETCORE_PATHBASE: ${ASPNETCORE_PATHBASE:-}
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "5001:8080"
+      - "5051:8080"
     volumes:
-      - uploads_images:/app/wwwroot/images
-      - uploads_videos:/app/wwwroot/videos
-      - uploads_misc:/app/wwwroot/uploads
+      - prompt_coach_uploads_images:/app/wwwroot/images
+      - prompt_coach_uploads_videos:/app/wwwroot/videos
+      - prompt_coach_uploads_misc:/app/wwwroot/uploads
+    networks:
+      - prompt-coach-network
 
   migrator:
+    container_name: prompt-coach-migrator
     image: mcr.microsoft.com/dotnet/sdk:8.0
     depends_on:
       db:
         condition: service_healthy
     working_dir: /src
     environment:
-      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=promptcoach;Username=promptcoach;Password=promptcoach}
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING:-Host=db;Port=5432;Database=prompt_coach_db;Username=prompt_coach;Password=prompt_coach_secret}
     volumes:
       - .:/src
     command: ["bash","scripts/migrate.sh"]
+    networks:
+      - prompt-coach-network
+
+networks:
+  prompt-coach-network:
+    name: prompt-coach-network
+    driver: bridge
 
 volumes:
-  pgdata:
-  uploads_images:
-  uploads_videos:
-  uploads_misc:
+  prompt_coach_pgdata:
+  prompt_coach_uploads_images:
+  prompt_coach_uploads_videos:
+  prompt_coach_uploads_misc:

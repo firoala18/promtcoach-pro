@@ -12,9 +12,11 @@
         .ToList();
 
     // Dictionary for looking up Mode icons by RouteType (only non-empty icons)
+    // Use GroupBy to handle duplicate RouteTypes - take first occurrence
     var modeIconMap = allModes
         .Where(m => !string.IsNullOrEmpty(m.RouteType) && !string.IsNullOrEmpty(m.IconClass))
-        .ToDictionary(m => m.RouteType.ToLower(), m => m.IconClass, StringComparer.OrdinalIgnoreCase);
+        .GroupBy(m => m.RouteType.ToLower())
+        .ToDictionary(g => g.Key, g => g.First().IconClass, StringComparer.OrdinalIgnoreCase);
 
     // Prompt-Arten modes (excluding Arbeitsbereiche types)
     var arbeitsbereicheTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "eigenfilter", "framework", "meta" };

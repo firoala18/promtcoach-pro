@@ -22,3 +22,6 @@ ProjectsWebApp/wwwroot/Video/
 .idea/
 *.sln.iml
 nul
+
+# Database backups
+backups/

@@ -11,300 +11,322 @@ function toAppUrl(p) {
     if (p.startsWith('/')) p = p.slice(1);
     return BASE_PATH + p;
 }
+$(document).ready(function () {
 
-let kibarAllItems = [];
-let kibarFilteredItems = [];
-let kibarPageSize = 12;
-let kibarPage = 1;
+    // ========== CARD VIEW FUNCTIONALITY ==========
+    let allData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    let pageSize = 12;
 
-function safeText(v) {
-    if (v === null || v === undefined) return '';
-    return String(v);
-}
+    const cardsContainer = document.getElementById('kibarCards');
+    const emptyContainer = document.getElementById('kibarCardsEmpty');
+    const paginationWrap = document.getElementById('kibarPaginationWrap');
+    const paginationEl = document.getElementById('kibarPagination');
+    const searchInput = document.getElementById('kibarSearch');
+    const pageSizeSelect = document.getElementById('kibarPageSize');
+    const countEl = document.getElementById('kibarCount');
 
-function escapeHtml(str) {
-    return safeText(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function stripHtmlToText(html) {
-    const raw = safeText(html);
-    if (!raw) return '';
-    try {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = raw;
-        const text = tmp.textContent || tmp.innerText || '';
-        return text.replace(/\s+/g, ' ').trim();
-    } catch {
-        return raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    }
-}
-
-function buildTags(tags) {
-    const t = safeText(tags).trim();
-    if (!t) return '';
-    const parts = t.split(',').map(s => s.trim()).filter(Boolean);
-    if (!parts.length) return '';
-    return parts.map(x => `<span class="badge rounded-pill">${escapeHtml(x)}</span>`).join('');
-}
-
-function buildToggle(label, className, id, checked) {
-    const c = checked ? 'checked' : '';
-    return `
-<div class="form-check form-switch">
-  <input class="form-check-input ${className}" type="checkbox" data-id="${id}" ${c}>
-  <label class="form-check-label small">${escapeHtml(label)}</label>
-</div>`;
-}
-
-function renderKibarCards(items) {
-    const cards = document.getElementById('kibarCards');
-    const empty = document.getElementById('kibarCardsEmpty');
-    const count = document.getElementById('kibarCount');
-    if (!cards) return;
-
-    const total = kibarAllItems.length;
-    const shown = items.length;
-    if (count) {
-        count.textContent = total === shown
-            ? `${shown} Einträge`
-            : `${shown} von ${total} Einträgen`;
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
     }
 
-    if (!items.length) {
-        cards.innerHTML = '';
-        if (empty) empty.classList.remove('d-none');
-        renderKibarPagination(0);
-        return;
-    }
+    function renderCards() {
+        if (!cardsContainer) return;
 
-    if (empty) empty.classList.add('d-none');
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const pageData = filteredData.slice(start, end);
 
-    const html = items.map(row => {
-        const id = row.id;
-        const title = escapeHtml(row.title);
-        const desc = escapeHtml(stripHtmlToText(row.description));
-        const order = escapeHtml(row.verlauf);
-        const imgSrc = toAppUrl(row.imageUrl);
-
-        const base = (window.UPSERT_BASE && typeof window.UPSERT_BASE === 'string')
-            ? window.UPSERT_BASE
-            : (BASE_PATH + 'admin/makerspaceproject/upsert');
-        const editHref = `${base}?id=${encodeURIComponent(id)}`;
-
-        const projectUrl = safeText(row.projectUrl).trim();
-        const projectHref = projectUrl ? toAppUrl(projectUrl) : '';
-
-        return `
-<article class="kibar-item" data-id="${id}">
-  <div class="kibar-item-media">
-    ${row.imageUrl ? `<img src="${imgSrc}" alt="${title}">` : `<div class="text-muted"><i class="bi bi-image"></i></div>`}
-  </div>
-  <div class="kibar-item-body">
-    <div class="kibar-item-meta">
-      <div class="kibar-order"><i class="bi bi-sort-numeric-down"></i> ${order}</div>
-      <div class="text-muted small">ID: ${id}</div>
-    </div>
-    <h3 class="kibar-item-title">${title}</h3>
-    <div class="kibar-tags">${buildTags(row.tags)}</div>
-    ${desc ? `<p class="kibar-item-desc">${desc}</p>` : ``}
-    <div class="kibar-item-toggles">
-      ${buildToggle('Tipp', 'lesezeichen-toggle', id, !!row.lesezeichen)}
-      ${buildToggle('Forschung', 'forschung-toggle', id, !!row.forschung)}
-      ${buildToggle('Lehre', 'top-toggle', id, !!row.top)}
-      ${buildToggle('Lernen', 'events-toggle', id, !!row.events)}
-      ${buildToggle('Tutorial', 'tutorial-toggle', id, !!row.tutorial)}
-      ${buildToggle('IT-Recht', 'ITRecht-toggle', id, !!row.itRecht)}
-      ${buildToggle('Beiträge', 'beitraege-toggle', id, !!row.beitraege)}
-    </div>
-  </div>
-  <div class="kibar-item-actions">
-    <div>
-      ${projectHref ? `<a class="btn btn-sm kibar-open-btn" href="${projectHref}" target="_blank" rel="noopener" title="In neuem Tab öffnen" aria-label="In neuem Tab öffnen"><i class="bi bi-box-arrow-up-right"></i></a>` : ``}
-    </div>
-    <div class="d-flex align-items-center gap-3 kibar-action-buttons">
-      <a href="${editHref}" class="btn btn-sm btn-warning" title="Bearbeiten">
-        <i class="bi bi-pencil-square"></i>
-      </a>
-      <button class="btn btn-sm btn-danger delete-project" data-id="${id}" title="Löschen">
-        <i class="bi bi-trash-fill"></i>
-      </button>
-    </div>
-  </div>
-</article>`;
-    }).join('');
-
-    cards.innerHTML = html;
-}
-
-function renderKibarPagination(totalItems) {
-    const wrap = document.getElementById('kibarPaginationWrap');
-    const ul = document.getElementById('kibarPagination');
-    if (!wrap || !ul) return;
-
-    const size = Math.max(1, parseInt(kibarPageSize, 10) || 12);
-    const totalPages = Math.max(1, Math.ceil((totalItems || 0) / size));
-    kibarPage = Math.min(Math.max(1, kibarPage), totalPages);
-
-    if (totalItems <= size) {
-        wrap.classList.add('d-none');
-        ul.innerHTML = '';
-        return;
-    }
-
-    wrap.classList.remove('d-none');
-
-    const makeItem = (labelHtml, page, disabled, active, aria) => {
-        const cls = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
-        const aCls = 'page-link';
-        const attrs = [];
-        if (aria) attrs.push(`aria-label="${aria}"`);
-        if (active) attrs.push('aria-current="page"');
-        return `<li class="${cls}"><a href="#" class="${aCls}" data-page="${page}" ${attrs.join(' ')}>${labelHtml}</a></li>`;
-    };
-
-    let html = '';
-    html += makeItem('&laquo;', Math.max(1, kibarPage - 1), kibarPage === 1, false, 'Vorherige');
-
-    const windowSize = 2;
-    const start = Math.max(1, kibarPage - windowSize);
-    const end = Math.min(totalPages, kibarPage + windowSize);
-
-    if (start > 1) {
-        html += makeItem('1', 1, false, kibarPage === 1);
-        if (start > 2) {
-            html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        if (pageData.length === 0) {
+            cardsContainer.innerHTML = '';
+            if (emptyContainer) emptyContainer.classList.remove('d-none');
+            if (paginationWrap) paginationWrap.classList.add('d-none');
+            if (countEl) countEl.textContent = '0 Einträge';
+            return;
         }
+
+        if (emptyContainer) emptyContainer.classList.add('d-none');
+        if (countEl) countEl.textContent = `${filteredData.length} Einträge`;
+
+        const upsertBase = window.UPSERT_BASE || (BASE_PATH + 'admin/makerspaceproject/upsert');
+
+        cardsContainer.innerHTML = pageData.map(item => {
+            const imgSrc = toAppUrl(item.imageUrl) || '';
+            const editUrl = `${upsertBase}?id=${encodeURIComponent(item.id)}`;
+            const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+            return `
+            <div class="kibar-item" data-id="${item.id}">
+                <div class="kibar-item-media">
+                    ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title)}" onerror="this.style.display='none'">` : '<i class="bi bi-image text-muted" style="font-size:2.5rem"></i>'}
+                </div>
+                <div class="kibar-item-body">
+                    <div class="kibar-item-meta">
+                        <span class="kibar-order"><i class="bi bi-arrow-down-up"></i> ${item.displayOrder || 0}</span>
+                        <span class="text-muted small">#${item.id}</span>
+                    </div>
+                    <h5 class="kibar-item-title">${escapeHtml(item.title)}</h5>
+                    ${tags.length ? `<div class="kibar-tags">${tags.map(t => `<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+                    <p class="kibar-item-desc">${escapeHtml(item.description)}</p>
+                    <div class="kibar-item-toggles">
+                        <div class="form-check form-switch"><input class="form-check-input lesezeichen-toggle" type="checkbox" data-id="${item.id}" ${item.lesezeichen ? 'checked' : ''}><label class="form-check-label small">Tipp</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input forschung-toggle" type="checkbox" data-id="${item.id}" ${item.forschung ? 'checked' : ''}><label class="form-check-label small">Forschung</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input top-toggle" type="checkbox" data-id="${item.id}" ${item.top ? 'checked' : ''}><label class="form-check-label small">Lehre</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input events-toggle" type="checkbox" data-id="${item.id}" ${item.events ? 'checked' : ''}><label class="form-check-label small">Lernen</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input tutorial-toggle" type="checkbox" data-id="${item.id}" ${item.tutorial ? 'checked' : ''}><label class="form-check-label small">Tutorial</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input ITRecht-toggle" type="checkbox" data-id="${item.id}" ${item.itRecht ? 'checked' : ''}><label class="form-check-label small">IT-Recht</label></div>
+                        <div class="form-check form-switch"><input class="form-check-input beitraege-toggle" type="checkbox" data-id="${item.id}" ${item.beitraege ? 'checked' : ''}><label class="form-check-label small">Beiträge</label></div>
+                    </div>
+                </div>
+                <div class="kibar-item-actions">
+                    <a href="${escapeHtml(item.projectUrl)}" target="_blank" class="btn kibar-open-btn" title="Öffnen"><i class="bi bi-box-arrow-up-right"></i></a>
+                    <div class="d-flex kibar-action-buttons">
+                        <a href="${editUrl}" class="btn btn-warning" title="Bearbeiten"><i class="bi bi-pencil-square"></i></a>
+                        <button class="btn btn-danger delete-project" data-id="${item.id}" title="Löschen"><i class="bi bi-trash-fill"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        renderPagination();
     }
 
-    for (let p = start; p <= end; p++) {
-        html += makeItem(String(p), p, false, p === kibarPage);
-    }
+    function renderPagination() {
+        if (!paginationEl || !paginationWrap) return;
 
-    if (end < totalPages) {
-        if (end < totalPages - 1) {
-            html += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        const totalPages = Math.ceil(filteredData.length / pageSize);
+        if (totalPages <= 1) {
+            paginationWrap.classList.add('d-none');
+            return;
         }
-        html += makeItem(String(totalPages), totalPages, false, kibarPage === totalPages);
+
+        paginationWrap.classList.remove('d-none');
+        let html = '';
+
+        html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage - 1}">&laquo;</a></li>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+            } else if (i === currentPage - 3 || i === currentPage + 3) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">&raquo;</a></li>`;
+
+        paginationEl.innerHTML = html;
     }
 
-    html += makeItem('&raquo;', Math.min(totalPages, kibarPage + 1), kibarPage === totalPages, false, 'Nächste');
-    ul.innerHTML = html;
-}
+    function filterData(query) {
+        const q = (query || '').toLowerCase().trim();
+        if (!q) {
+            filteredData = [...allData];
+        } else {
+            filteredData = allData.filter(item =>
+                (item.title && item.title.toLowerCase().includes(q)) ||
+                (item.description && item.description.toLowerCase().includes(q)) ||
+                (item.tags && item.tags.toLowerCase().includes(q))
+            );
+        }
+        currentPage = 1;
+        renderCards();
+    }
 
-function applyKibarSearch() {
-    const q = safeText(document.getElementById('kibarSearch')?.value).trim().toLowerCase();
-    if (!q) {
-        kibarFilteredItems = [...kibarAllItems];
-    } else {
-        kibarFilteredItems = kibarAllItems.filter(x => {
-            const hay = [x.title, x.tags, x.description].map(safeText).join(' ').toLowerCase();
-            return hay.includes(q);
+    function loadData() {
+        $.ajax({
+            url: BASE_PATH + 'admin/makerspaceproject/getall',
+            type: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                allData = response.data || [];
+                allData.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+                filteredData = [...allData];
+                renderCards();
+            },
+            error: function () {
+                if (emptyContainer) {
+                    emptyContainer.textContent = 'Fehler beim Laden der Daten';
+                    emptyContainer.classList.remove('d-none');
+                }
+            }
         });
     }
 
-    const size = Math.max(1, parseInt(kibarPageSize, 10) || 12);
-    const totalPages = Math.max(1, Math.ceil(kibarFilteredItems.length / size));
-    kibarPage = Math.min(Math.max(1, kibarPage), totalPages);
-    const start = (kibarPage - 1) * size;
-    const pageItems = kibarFilteredItems.slice(start, start + size);
-
-    renderKibarCards(pageItems);
-    renderKibarPagination(kibarFilteredItems.length);
-}
-
-function loadKibarCards() {
-    return $.ajax({
-        url: BASE_PATH + 'admin/makerspaceproject/getall',
-        type: 'GET',
-        datatype: 'json'
-    }).then(function (resp) {
-        const list = (resp && resp.data) ? resp.data : [];
-        kibarAllItems = Array.isArray(list) ? list : [];
-        applyKibarSearch();
-    }).catch(function () {
-        kibarAllItems = [];
-        applyKibarSearch();
-    });
-}
-
-function reloadAfterMutation() {
-    return loadKibarCards().finally(function () {
-        try {
-            if (dataTable1 && dataTable1.ajax) dataTable1.ajax.reload(null, false);
-        } catch { }
-    });
-}
-
-function updateLocalItem(id, patch) {
-    const idx = kibarAllItems.findIndex(x => String(x.id) === String(id));
-    if (idx >= 0) {
-        kibarAllItems[idx] = { ...kibarAllItems[idx], ...patch };
-        applyKibarSearch();
+    // Event listeners
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            filterData(this.value);
+        });
     }
-}
 
-$(document).ready(function () {
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', function () {
+            pageSize = parseInt(this.value, 10) || 12;
+            currentPage = 1;
+            renderCards();
+        });
+    }
 
-    // Keep old DataTable init as a no-op fallback if DataTables is present.
-    try {
-        const hasCards = !!document.getElementById('kibarCards');
-        if (!hasCards && $.fn && $.fn.DataTable && document.getElementById('tblMakerSpace')) {
-            dataTable1 = $('#tblMakerSpace').DataTable({
-                "ajax": {
-                    url: BASE_PATH + 'admin/makerspaceproject/getall',
-                    type: 'GET',
-                    datatype: 'json'
+    if (paginationEl) {
+        paginationEl.addEventListener('click', function (e) {
+            e.preventDefault();
+            const link = e.target.closest('a[data-page]');
+            if (!link) return;
+            const page = parseInt(link.dataset.page, 10);
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                renderCards();
+                cardsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // Load data on page load
+    loadData();
+    // ========== END CARD VIEW FUNCTIONALITY ==========
+
+    dataTable1 = $('#tblMakerSpace').DataTable({ // ✅ assign it here
+      
+        "ajax": {
+            url: BASE_PATH + 'admin/makerspaceproject/getall',
+            type: 'GET',
+            datatype: 'json'
+        },
+        "columns": [
+            { data: 'verlauf', width: "3%" },
+            {
+                data: 'imageUrl',
+                render: function (data) {
+                    const src = toAppUrl(data);
+                    return `
+    <img src="${src}" style="width: 100px; height: 60px; object-fit: contain; background-color: #f9f9f9; border-radius: 6px;" />`;
                 },
-                "columns": [
-                    { data: 'verlauf', width: "3%" },
-                    { data: 'imageUrl', width: "10%" },
-                    { data: 'title', width: "20%" },
-                    { data: 'lesezeichen', width: "8%" },
-                    { data: 'forschung', width: "8%" },
-                    { data: 'top', width: "8%" },
-                    { data: 'events', width: "8%" },
-                    { data: 'tutorial', width: "8%" },
-                    { data: 'itRecht', width: "8%" },
-                    { data: 'beitraege', width: "8%" },
-                    { data: 'id', width: "10%" }
-                ],
-                "paging": false,
-                "searching": false,
-                "info": false,
-                "ordering": false
-            });
+                width: "10%"
+            },
+
+            { data: 'title', width: "20%" },
+
+            {
+                data: 'lesezeichen',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input lesezeichen-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+
+            {
+                data: 'forschung',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input forschung-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+
+            {
+                data: 'top',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input top-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+
+            {
+                data: 'events',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input events-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+
+            {
+                data: 'tutorial',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input tutorial-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+            {
+                data: 'itRecht',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input ITRecht-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+            {
+                data: 'beitraege',
+                render: function (data, type, row) {
+                    const checked = data ? 'checked' : '';
+                    return `<div class="form-check form-switch text-center">
+        <input class="form-check-input beitraege-toggle" type="checkbox" data-id="${row.id}" ${checked}>
+    </div>`;
+                },
+                width: "8%"
+            },
+
+
+
+            {
+                data: 'id',
+                render: function (data) { // ✅ Single render function
+                    const base = (window.UPSERT_BASE && typeof window.UPSERT_BASE === 'string')
+                        ? window.UPSERT_BASE
+                        : (BASE_PATH + 'admin/makerspaceproject/upsert');
+                    const href = `${base}?id=${encodeURIComponent(data)}`;
+                    return `
+    <div class="d-flex justify-content-center">
+        <a href="${href}" class="btn btn-warning mx-2">
+            <i class="bi bi-pencil-square"></i>
+        </a>
+        <button class="btn btn-danger mx-2 delete-project" data-id="${data}">
+            <i class="bi bi-trash-fill"></i>
+        </button>
+    </div>`;
+                },
+                width: "10%"
+            }
+        ],
+
+        "language": {
+            "emptyTable": "Keine Daten verfügbar",
+            "search": "Suchen:",
+            "lengthMenu": "Zeige _MENU_ Einträge",
+            "info": "Zeige _START_ bis _END_ von _TOTAL_ Einträgen",
+            "paginate": {
+                "next": "Nächste",
+                "previous": "Vorherige"
+            }
+        },
+        
+        "order": [[0, "asc"]],
+        "pageLength": 50,
+        "stateSave": true,
+        initComplete: function () {
+            this.api().page.len(50).draw(false);
         }
-    } catch { }
-
-    if (document.getElementById('kibarCards')) {
-        loadKibarCards();
-    }
-
-    document.getElementById('kibarSearch')?.addEventListener('input', function () {
-        kibarPage = 1;
-        applyKibarSearch();
-    });
-
-    document.getElementById('kibarPageSize')?.addEventListener('change', function (e) {
-        const v = parseInt(e.target.value, 10);
-        kibarPageSize = Number.isFinite(v) && v > 0 ? v : 12;
-        kibarPage = 1;
-        applyKibarSearch();
-    });
-
-    document.getElementById('kibarPagination')?.addEventListener('click', function (e) {
-        const a = e.target?.closest?.('a[data-page]');
-        if (!a) return;
-        e.preventDefault();
-        const p = parseInt(a.getAttribute('data-page'), 10);
-        if (!Number.isFinite(p) || p <= 0) return;
-        kibarPage = p;
-        applyKibarSearch();
     });
 
 
@@ -325,8 +347,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { top: isChecked });
     });
 
     $(document).on('change', '.forschung-toggle', function () {
@@ -346,8 +366,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { forschung: isChecked });
     });
 
     $(document).on('change', '.download-toggle', function () {
@@ -367,8 +385,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { download: isChecked });
     });
 
     $(document).on('change', '.tutorial-toggle', function () {
@@ -388,8 +404,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { tutorial: isChecked });
     });
 
     $(document).on('change', '.netzwerk-toggle', function () {
@@ -409,8 +423,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { netzwerk: isChecked });
     });
 
 
@@ -431,8 +443,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { events: isChecked });
     });
 
     $(document).on('change', '.lesezeichen-toggle', function () {
@@ -452,8 +462,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { lesezeichen: isChecked });
     });
 
     $(document).on('change', '.ITRecht-toggle', function () {
@@ -473,8 +481,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { itRecht: isChecked });
     });
 
 
@@ -495,8 +501,6 @@ $(document).ready(function () {
                 Swal.fire('Fehler!', 'Ein Fehler ist aufgetreten.', 'error');
             }
         });
-
-        updateLocalItem(id, { beitraege: isChecked });
     });
 
     // DELETE‑Handler
@@ -530,7 +534,7 @@ $(document).ready(function () {
                             title: 'Gelöscht!',
                             timer: 1800,
                             showConfirmButton: false
-                        }).then(() => reloadAfterMutation());
+                        }).then(() => dataTable1.ajax.reload(null, false));   // Tabelle neu laden
                     } else {
                         Swal.fire('Fehler!', resp.message, 'error');
                     }
