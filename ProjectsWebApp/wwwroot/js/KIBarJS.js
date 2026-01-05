@@ -34,6 +34,13 @@ $(document).ready(function () {
         }[m]));
     }
 
+    function stripHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.innerHTML = str;
+        return div.textContent || div.innerText || '';
+    }
+
     function renderCards() {
         if (!cardsContainer) return;
 
@@ -58,6 +65,7 @@ $(document).ready(function () {
             const imgSrc = toAppUrl(item.imageUrl) || '';
             const editUrl = `${upsertBase}?id=${encodeURIComponent(item.id)}`;
             const tags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+            const description = stripHtml(item.description);
 
             return `
             <div class="kibar-item" data-id="${item.id}">
@@ -66,12 +74,12 @@ $(document).ready(function () {
                 </div>
                 <div class="kibar-item-body">
                     <div class="kibar-item-meta">
-                        <span class="kibar-order"><i class="bi bi-arrow-down-up"></i> ${item.displayOrder || 0}</span>
+                        <span class="kibar-order"><i class="bi bi-arrow-down-up"></i> ${item.verlauf ?? 0}</span>
                         <span class="text-muted small">#${item.id}</span>
                     </div>
                     <h5 class="kibar-item-title">${escapeHtml(item.title)}</h5>
                     ${tags.length ? `<div class="kibar-tags">${tags.map(t => `<span class="badge">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-                    <p class="kibar-item-desc">${escapeHtml(item.description)}</p>
+                    <p class="kibar-item-desc">${escapeHtml(description)}</p>
                     <div class="kibar-item-toggles">
                         <div class="form-check form-switch"><input class="form-check-input lesezeichen-toggle" type="checkbox" data-id="${item.id}" ${item.lesezeichen ? 'checked' : ''}><label class="form-check-label small">Tipp</label></div>
                         <div class="form-check form-switch"><input class="form-check-input forschung-toggle" type="checkbox" data-id="${item.id}" ${item.forschung ? 'checked' : ''}><label class="form-check-label small">Forschung</label></div>
@@ -144,7 +152,7 @@ $(document).ready(function () {
             dataType: 'json',
             success: function (response) {
                 allData = response.data || [];
-                allData.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+                allData.sort((a, b) => (a.verlauf ?? 0) - (b.verlauf ?? 0));
                 filteredData = [...allData];
                 renderCards();
             },
