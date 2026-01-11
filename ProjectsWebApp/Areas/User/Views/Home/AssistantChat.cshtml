@@ -856,6 +856,110 @@
         transform: scale(1);
     }
 
+    /* ---------- Meta Tabs Styling ---------- */
+    .meta-tabs-container {
+        margin: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .meta-tabs-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+        background: linear-gradient(180deg, #fff, #f8fafc);
+        border-bottom: 1px solid var(--border);
+        padding: 0.5rem;
+    }
+
+    .meta-tabs-nav .nav-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.85rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #64748b;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .meta-tabs-nav .nav-link:hover {
+        color: var(--text);
+        background: #f1f5f9;
+    }
+
+    .meta-tabs-nav .nav-link.active {
+        color: #0f172a;
+        background: #fff;
+        border-color: var(--border);
+        box-shadow: 0 2px 4px rgba(16, 24, 40, 0.05);
+    }
+
+    .meta-tabs-nav .nav-link .chevron {
+        font-size: 0.7rem;
+        margin-left: 0.2rem;
+        transition: transform 0.2s ease;
+        transform: rotate(0deg);
+    }
+
+    .meta-tabs-nav .nav-link.active .chevron {
+        transform: rotate(180deg);
+    }
+
+    .meta-tabs-content {
+        padding: 0;
+    }
+
+    .meta-tab-pane {
+        display: none;
+        padding: 12px 14px 14px;
+    }
+
+    .meta-tab-pane.active {
+        display: block;
+    }
+
+    .meta-tab-pane .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .meta-tab-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-bottom: 0.75rem;
+    }
+
+    /* Compact mode for meta tabs */
+    .chat-shell.compact .meta-tabs-container {
+        margin: 8px 12px;
+    }
+
+    .chat-shell.compact .meta-tabs-nav {
+        padding: 0.4rem;
+    }
+
+    .chat-shell.compact .meta-tabs-nav .nav-link {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.82rem;
+    }
+
+    .chat-shell.compact .meta-tab-pane {
+        padding: 8px 10px 10px;
+        font-size: 0.92rem;
+    }
+
     /* -------- Mobile & Tablet Responsive Styles -------- */
     @@media (max-width: 991px) {
         .chat-body {
@@ -1039,300 +1143,307 @@
         </div>
     </div>
 
-    <details id="goalsBox" class="sys-prompt-box">
-        <summary class="sys-title">
-            <span>Ziele &amp; Beschreibung</span>
-            <span class="d-flex align-items-center gap-2">
+    @{
+        var canSeeMetaTabs = (ViewBag.CanSeeMetaTabs as bool?) ?? false;
+        var _g = Model.Goals ?? string.Empty;
+        _g = System.Text.RegularExpressions.Regex.Replace(_g, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _g = System.Text.RegularExpressions.Regex.Replace(_g, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _g = System.Text.RegularExpressions.Regex.Replace(_g, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        _g = _g.Trim();
+        var _d = Model.Description ?? string.Empty;
+        _d = System.Text.RegularExpressions.Regex.Replace(_d, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _d = System.Text.RegularExpressions.Regex.Replace(_d, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _d = System.Text.RegularExpressions.Regex.Replace(_d, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        _d = _d.Trim();
+        var _r = Model.Reflektion ?? string.Empty;
+        _r = System.Text.RegularExpressions.Regex.Replace(_r, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _r = System.Text.RegularExpressions.Regex.Replace(_r, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _r = System.Text.RegularExpressions.Regex.Replace(_r, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        _r = _r.Trim();
+        var _sysClean = Model.SystemPrompt ?? string.Empty;
+        _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
+        _sysClean = System.Net.WebUtility.HtmlDecode(_sysClean);
+        _sysClean = _sysClean.Trim();
+        var isOwner = (currentUser != null && Model.CreatedByUserId == currentUser.Id);
+    }
+
+    @if (canSeeMetaTabs)
+    {
+    <div class="meta-tabs-container">
+        <nav class="meta-tabs-nav" id="metaTabsNav">
+            <button type="button" class="nav-link active" data-tab="goals">
+                <i class="bi bi-bullseye"></i> Ziele <i class="bi bi-chevron-down chevron"></i>
+            </button>
+            @if (canSeeSystemPrompt)
+            {
+                <button type="button" class="nav-link" data-tab="sysprompt">
+                    <i class="bi bi-terminal"></i> System-Prompt <i class="bi bi-chevron-down chevron"></i>
+                </button>
+            }
+            <button type="button" class="nav-link" data-tab="reflektion">
+                <i class="bi bi-journal-text"></i> Reflektion <i class="bi bi-chevron-down chevron"></i>
+            </button>
+            @if (isOwner)
+            {
+                <button type="button" class="nav-link" data-tab="wissensbasis">
+                    <i class="bi bi-database"></i> Wissensbasis <i class="bi bi-chevron-down chevron"></i>
+                </button>
+            }
+            <button type="button" class="nav-link" data-tab="owner">
+                <i class="bi bi-person-badge"></i> Besitzer <i class="bi bi-chevron-down chevron"></i>
+            </button>
+        </nav>
+
+        <div class="meta-tabs-content">
+            <div class="meta-tab-pane active" id="tab-goals">
                 @if (canEditSystemPrompt)
                 {
-                    <button type="button" id="goalsEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Ziele &amp; Beschreibung bearbeiten">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                }
-                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
-            </span>
-        </summary>
-        <div id="goalsReadonly" class="sys-lines">
-            @{
-                var _g = Model.Goals ?? string.Empty;
-                _g = System.Text.RegularExpressions.Regex.Replace(_g, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _g = System.Text.RegularExpressions.Regex.Replace(_g, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _g = System.Text.RegularExpressions.Regex.Replace(_g, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
-                _g = _g.Trim();
-                var _d = Model.Description ?? string.Empty;
-                _d = System.Text.RegularExpressions.Regex.Replace(_d, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _d = System.Text.RegularExpressions.Regex.Replace(_d, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _d = System.Text.RegularExpressions.Regex.Replace(_d, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
-                _d = _d.Trim();
-            }
-            @if (!string.IsNullOrWhiteSpace(_g))
-            {
-                <div class="section-title"><span>Ziele</span></div>
-                <p class="para">@_g</p>
-            }
-            @if (!string.IsNullOrWhiteSpace(_d))
-            {
-                <div class="section-title mt-4"><span>Beschreibung</span></div>
-                <p class="para mb-0">@_d</p>
-            }
-            @if (string.IsNullOrWhiteSpace(_g) && string.IsNullOrWhiteSpace(_d))
-            {
-                <div class="muted">Keine Angaben.</div>
-            }
-        </div>
-        @if (canEditSystemPrompt)
-        {
-            <div id="goalsEditBox" class="p-2 d-none">
-                <form id="goalsForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantAbout" asp-route-id="@Model.Id" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-2">
-                        <label class="form-label">Ziele</label>
-                        <textarea id="goalsTextarea" name="goals" class="form-control" rows="5">@Model.Goals</textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Beschreibung</label>
-                        <textarea id="descTextarea" name="description" class="form-control" rows="5">@Model.Description</textarea>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
-                        <button type="button" id="goalsCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
-                    </div>
-                </form>
-            </div>
-        }
-    </details>
-
-    @if (canSeeSystemPrompt)
-    {
-        <details id="sysPrompt" class="sys-prompt-box">
-            <summary class="sys-title">
-                <span>System-Prompt</span>
-                <span class="d-flex align-items-center gap-2">
-                    @if (canEditSystemPrompt)
-                    {
-                        <button type="button" id="sysPromptEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="System-Prompt bearbeiten">
+                    <div class="meta-tab-header">
+                        <button type="button" id="goalsEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten">
                             <i class="bi bi-pencil"></i>
                         </button>
+                    </div>
+                }
+                <div id="goalsReadonly">
+                    @if (!string.IsNullOrWhiteSpace(_g))
+                    {
+                        <div class="section-title"><span>Ziele</span></div>
+                        <p class="para">@_g</p>
                     }
-                    <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
-                </span>
-            </summary>
-            <div id="sysPromptLines" class="sys-lines"></div>
-            @if (canEditSystemPrompt)
+                    @if (!string.IsNullOrWhiteSpace(_d))
+                    {
+                        <div class="section-title mt-4"><span>Beschreibung</span></div>
+                        <p class="para mb-0">@_d</p>
+                    }
+                    @if (string.IsNullOrWhiteSpace(_g) && string.IsNullOrWhiteSpace(_d))
+                    {
+                        <div class="muted">Keine Angaben.</div>
+                    }
+                </div>
+                @if (canEditSystemPrompt)
+                {
+                    <div id="goalsEditBox" class="d-none">
+                        <form id="goalsForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantAbout" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Ziele</label>
+                                <textarea id="goalsTextarea" name="goals" class="form-control" rows="5">@Model.Goals</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Beschreibung</label>
+                                <textarea id="descTextarea" name="description" class="form-control" rows="5">@Model.Description</textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                                <button type="button" id="goalsCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                            </div>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            @if (canSeeSystemPrompt)
             {
-                var _sysClean = Model.SystemPrompt ?? string.Empty;
-                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _sysClean = System.Text.RegularExpressions.Regex.Replace(_sysClean, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
-                _sysClean = System.Net.WebUtility.HtmlDecode(_sysClean);
-                _sysClean = _sysClean.Trim();
-                <div id="sysPromptEditBox" class="p-2 d-none">
-                    <form id="sysPromptForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantSystemPrompt" asp-route-id="@Model.Id" method="post">
-                        @Html.AntiForgeryToken()
-                        <textarea id="sysPromptTextarea" name="systemPrompt" rows="10" class="form-control mb-2">@_sysClean</textarea>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
-                            <button type="button" id="sysPromptCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                <div class="meta-tab-pane" id="tab-sysprompt">
+                    @if (canEditSystemPrompt)
+                    {
+                        <div class="meta-tab-header">
+                            <button type="button" id="sysPromptEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten">
+                                <i class="bi bi-pencil"></i>
+                            </button>
                         </div>
-                    </form>
+                    }
+                    <div id="sysPromptLines"></div>
+                    @if (canEditSystemPrompt)
+                    {
+                        <div id="sysPromptEditBox" class="d-none">
+                            <form id="sysPromptForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantSystemPrompt" asp-route-id="@Model.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <textarea id="sysPromptTextarea" name="systemPrompt" rows="10" class="form-control mb-2">@_sysClean</textarea>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                                    <button type="button" id="sysPromptCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                                </div>
+                            </form>
+                        </div>
+                    }
                 </div>
             }
-        </details>
-    }
 
-    <details id="reflBox" class="sys-prompt-box">
-        <summary class="sys-title">
-            <span>Reflektion</span>
-            <span class="d-flex align-items-center gap-2">
+            <div class="meta-tab-pane" id="tab-reflektion">
                 @if (canEditSystemPrompt)
                 {
-                    <button type="button" id="reflEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Reflektion bearbeiten">
-                        <i class="bi bi-pencil"></i>
-                    </button>
+                    <div class="meta-tab-header">
+                        <button type="button" id="reflEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
                 }
-                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
-            </span>
-        </summary>
-        <div id="reflReadonly" class="sys-lines">
-            @{
-                var _r = Model.Reflektion ?? string.Empty;
-                _r = System.Text.RegularExpressions.Regex.Replace(_r, "<\\s*br\\s*/?\\s*>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _r = System.Text.RegularExpressions.Regex.Replace(_r, "</(p|li|div|h[1-6])>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                _r = System.Text.RegularExpressions.Regex.Replace(_r, "<.*?>", string.Empty, System.Text.RegularExpressions.RegexOptions.Singleline);
-                _r = _r.Trim();
-            }
-            @if (!string.IsNullOrWhiteSpace(_r))
-            {
-                <p class="para mb-0">@_r</p>
-            }
-            else
-            {
-                <div class="muted">Keine Reflektion hinterlegt.</div>
-            }
-        </div>
-        @if (canEditSystemPrompt)
-        {
-            <div id="reflEditBox" class="p-2 d-none">
-                <form id="reflForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantReflektion" asp-route-id="@Model.Id" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-2">
-                        <label class="form-label">Reflektion</label>
-                        <textarea id="reflTextarea" name="reflektion" class="form-control" rows="5">@Model.Reflektion</textarea>
+                <div id="reflReadonly">
+                    @if (!string.IsNullOrWhiteSpace(_r))
+                    {
+                        <p class="para mb-0">@_r</p>
+                    }
+                    else
+                    {
+                        <div class="muted">Keine Reflektion hinterlegt.</div>
+                    }
+                </div>
+                @if (canEditSystemPrompt)
+                {
+                    <div id="reflEditBox" class="d-none">
+                        <form id="reflForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantReflektion" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Reflektion</label>
+                                <textarea id="reflTextarea" name="reflektion" class="form-control" rows="5">@Model.Reflektion</textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                                <button type="button" id="reflCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
-                        <button type="button" id="reflCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
-                    </div>
-                </form>
+                }
             </div>
-        }
-    </details>
 
-    @if (currentUser != null && Model.CreatedByUserId == currentUser.Id)
-    {
-        <details id="kbBox" class="sys-prompt-box">
-            <summary class="sys-title">
-                <span>Wissensbasis</span>
-                <span class="d-flex align-items-center gap-2">
-                    <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
-                </span>
-            </summary>
-            <div class="sys-lines">
-                <div class="mb-2 text-muted">Gespeicherte Embeddings: @(ViewBag.EmbCount ?? 0)</div>
-                <form asp-area="User" asp-controller="Home" asp-action="UploadAssistantEmbedding" method="post" enctype="multipart/form-data" class="mb-3">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <div class="input-group">
-                        <input type="file" name="txtFile" accept=".txt,text/plain" class="form-control" />
-                        <button type="submit" class="btn btn-secondary">Hochladen &amp; Einbetten</button>
-                    </div>
-                </form>
-
-                @{
-                    var list = ViewBag.Embeddings as IEnumerable<ProjectsWebApp.Models.AssistantEmbedding>;
-                }
-                @if (list == null || !list.Any())
-                {
-                    <div class="text-muted">Keine Wissensdateien vorhanden.</div>
-                }
-                else
-                {
-                    <div class="d-flex flex-column gap-2">
-                        @foreach (var e in list)
-                        {
-                            var shortName = string.IsNullOrWhiteSpace(e.SourceFileName) ? $"Text #{e.Id}" : e.SourceFileName;
-                            <div class="kb-item">
-                                <div class="d-flex align-items-start justify-content-between">
-                                    <div class="me-2">
-                                        <div class="kb-title">@shortName</div>
-                                        <div class="kb-meta small">Hochgeladen: @e.UploadedAtUtc.ToLocalTime().ToString("g")</div>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2 ms-2">
-                                        <a asp-area="User" asp-controller="Home" asp-action="DownloadAssistantEmbedding" asp-route-id="@Model.Id" asp-route-embId="@e.Id" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-download"></i>
-                                        </a>
-                                        <form asp-area="User" asp-controller="Home" asp-action="DeleteAssistantEmbedding" method="post" class="kb-delete-form" data-name="@shortName">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="id" value="@Model.Id" />
-                                            <input type="hidden" name="embId" value="@e.Id" />
-                                            <button type="submit" class="btn btn-sm btn-danger kb-delete-btn"><i class="bi bi-trash"></i></button>
-                                        </form>
+            @if (isOwner)
+            {
+                <div class="meta-tab-pane" id="tab-wissensbasis">
+                    <div class="mb-2 text-muted">Gespeicherte Embeddings: @(ViewBag.EmbCount ?? 0)</div>
+                    <form asp-area="User" asp-controller="Home" asp-action="UploadAssistantEmbedding" method="post" enctype="multipart/form-data" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="input-group">
+                            <input type="file" name="txtFile" accept=".txt,text/plain" class="form-control" />
+                            <button type="submit" class="btn btn-secondary">Hochladen &amp; Einbetten</button>
+                        </div>
+                    </form>
+                    @{
+                        var list = ViewBag.Embeddings as IEnumerable<ProjectsWebApp.Models.AssistantEmbedding>;
+                    }
+                    @if (list == null || !list.Any())
+                    {
+                        <div class="text-muted">Keine Wissensdateien vorhanden.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var e in list)
+                            {
+                                var shortName = string.IsNullOrWhiteSpace(e.SourceFileName) ? $"Text #{e.Id}" : e.SourceFileName;
+                                <div class="kb-item">
+                                    <div class="d-flex align-items-start justify-content-between">
+                                        <div class="me-2">
+                                            <div class="kb-title">@shortName</div>
+                                            <div class="kb-meta small">Hochgeladen: @e.UploadedAtUtc.ToLocalTime().ToString("g")</div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 ms-2">
+                                            <a asp-area="User" asp-controller="Home" asp-action="DownloadAssistantEmbedding" asp-route-id="@Model.Id" asp-route-embId="@e.Id" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            <form asp-area="User" asp-controller="Home" asp-action="DeleteAssistantEmbedding" method="post" class="kb-delete-form" data-name="@shortName">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@Model.Id" />
+                                                <input type="hidden" name="embId" value="@e.Id" />
+                                                <button type="submit" class="btn btn-sm btn-danger kb-delete-btn"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-        </details>
-    }
+                            }
+                        </div>
+                    }
+                </div>
+            }
 
-    <details id="ownerBox" class="sys-prompt-box">
-        <summary class="sys-title">
-                <span>Assistent-Besitzer &amp; Lizenz</span>
-            <span class="d-flex align-items-center gap-2">
+            <div class="meta-tab-pane" id="tab-owner">
                 @if (canEditSystemPrompt)
                 {
-                    <button type="button" id="ownerEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten" aria-label="Owner &amp; Lizenz bearbeiten">
-                        <i class="bi bi-pencil"></i>
-                    </button>
+                    <div class="meta-tab-header">
+                        <button type="button" id="ownerEditBtn" class="btn btn-secondary btn-sm" title="Bearbeiten">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                    </div>
                 }
-                <i class="bi bi-chevron-up chevron" aria-hidden="true"></i>
-            </span>
-        </summary>
-        <div id="ownerReadonly" class="sys-lines">
-            <div class="kv-row">
-                <div class="kv-label">Assistent-ID</div>
-                <div class="kv-value">@Model.Id</div>
-            </div>
-            <div class="kv-row">
-                <div class="kv-label">Assistent-Name</div>
-                <div class="kv-value">@Model.Name</div>
-            </div>
-            <div class="kv-row">
-                    <div class="kv-label">Assistent-Besitzer</div>
-                <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.AuthorName) ? "–" : Model.AuthorName)</div>
-            </div>
-            <div class="kv-row mb-0">
-                <div class="kv-label">Lizenz</div>
-                <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.Licenses) ? "–" : Model.Licenses)</div>
-            </div>
-        </div>
-        @if (canEditSystemPrompt)
-        {
-            <div id="ownerEditBox" class="p-2 d-none">
-                <form id="ownerForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantOwnerLicense" asp-route-id="@Model.Id" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-2">
-                        <label class="form-label">Assistent-Name</label>
-                        <input id="ownerAssistantName" name="name" class="form-control" value="@Model.Name" />
+                <div id="ownerReadonly">
+                    <div class="kv-row">
+                        <div class="kv-label">Assistent-ID</div>
+                        <div class="kv-value">@Model.Id</div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Autor</label>
-                        <input id="ownerAuthorName" name="authorName" class="form-control" value="@Model.AuthorName" />
+                    <div class="kv-row">
+                        <div class="kv-label">Assistent-Name</div>
+                        <div class="kv-value">@Model.Name</div>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label">Lizenzen</label>
-                        @{ var lic2 = Model.Licenses ?? string.Empty; }
-                        <select id="ownerLicenses" name="licenses" class="form-select" required>
-                            @if (string.IsNullOrEmpty(lic2))
-                            {
-                                <option value="" selected>Bitte wählen …</option>;
-                            }
-                            else
-                            {
-                                <option value="">Bitte wählen …</option>;
-                            }
-                            @{
-                                var licenseOptions2 = new[] {
-                                    "Attribution_CC_BY",
-                                    "Attribution_ShareAlike_CC_BY_SA",
-                                    "Public_Domain_Dedication_CC0",
-                                    "Copyright",
-                                    "MIT"
-                                };
-                                foreach (var opt in licenseOptions2)
-                                {
-                                    if (string.Equals(lic2, opt, StringComparison.Ordinal))
+                    <div class="kv-row">
+                        <div class="kv-label">Assistent-Besitzer</div>
+                        <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.AuthorName) ? "–" : Model.AuthorName)</div>
+                    </div>
+                    <div class="kv-row mb-0">
+                        <div class="kv-label">Lizenz</div>
+                        <div class="kv-value text-body">@(string.IsNullOrWhiteSpace(Model.Licenses) ? "–" : Model.Licenses)</div>
+                    </div>
+                </div>
+                @if (canEditSystemPrompt)
+                {
+                    <div id="ownerEditBox" class="d-none">
+                        <form id="ownerForm" asp-area="User" asp-controller="Home" asp-action="UpdateAssistantOwnerLicense" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <label class="form-label">Assistent-Name</label>
+                                <input id="ownerAssistantName" name="name" class="form-control" value="@Model.Name" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Autor</label>
+                                <input id="ownerAuthorName" name="authorName" class="form-control" value="@Model.AuthorName" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">Lizenzen</label>
+                                @{ var lic2 = Model.Licenses ?? string.Empty; }
+                                <select id="ownerLicenses" name="licenses" class="form-select" required>
+                                    @if (string.IsNullOrEmpty(lic2))
                                     {
-                                        <option value="@opt" selected>@opt</option>;
+                                        <option value="" selected>Bitte wählen …</option>;
                                     }
                                     else
                                     {
-                                        <option value="@opt">@opt</option>;
+                                        <option value="">Bitte wählen …</option>;
                                     }
-                                }
-                            }
-                        </select>
+                                    @{
+                                        var licenseOptions2 = new[] {
+                                            "Attribution_CC_BY",
+                                            "Attribution_ShareAlike_CC_BY_SA",
+                                            "Public_Domain_Dedication_CC0",
+                                            "Copyright",
+                                            "MIT"
+                                        };
+                                        foreach (var opt in licenseOptions2)
+                                        {
+                                            if (string.Equals(lic2, opt, StringComparison.Ordinal))
+                                            {
+                                                <option value="@opt" selected>@opt</option>;
+                                            }
+                                            else
+                                            {
+                                                <option value="@opt">@opt</option>;
+                                            }
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
+                                <button type="button" id="ownerCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-accent btn-sm">Speichern</button>
-                        <button type="button" id="ownerCancelBtn" class="btn btn-secondary btn-sm">Abbrechen</button>
-                    </div>
-                </form>
+                }
             </div>
-        }
-    </details>
+        </div>
+    </div>
+    }
 
     <div id="chatBox" class="chat-body">
         @* Chat messages will be rendered here via JS *@
@@ -1676,6 +1787,33 @@
         })();
 
     document.addEventListener('DOMContentLoaded', function(){
+      // --- Meta Tabs wiring ---
+      const metaTabsNav = document.getElementById('metaTabsNav');
+      if (metaTabsNav) {
+        metaTabsNav.addEventListener('click', function(e) {
+          const btn = e.target.closest('.nav-link');
+          if (!btn) return;
+          const tabId = btn.getAttribute('data-tab');
+          if (!tabId) return;
+          const targetPane = document.getElementById('tab-' + tabId);
+
+          // If clicking on already active tab, toggle it closed
+          if (btn.classList.contains('active')) {
+            btn.classList.remove('active');
+            if (targetPane) targetPane.classList.remove('active');
+            return;
+          }
+
+          // Otherwise, switch to the new tab
+          metaTabsNav.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          // Update tab panes
+          document.querySelectorAll('.meta-tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === 'tab-' + tabId);
+          });
+        });
+      }
+
       // --- Chat wiring ---
       const chat = document.getElementById('chatBox');
       const input = document.getElementById('chatInput');
@@ -1866,9 +2004,9 @@
         if (!goalsEditBox || !goalsReadonly) return;
         goalsEditBox.classList.toggle('d-none', !on);
         goalsReadonly.classList.toggle('d-none', !!on);
+        const editHeader = document.querySelector('#tab-goals .meta-tab-header');
+        if (editHeader) editHeader.classList.toggle('d-none', !!on);
         if (on) {
-          const goalsBox = document.getElementById('goalsBox');
-          if (goalsBox) goalsBox.open = true;
           ensureChatEditors();
         } else {
           destroyChatEditors();
@@ -1923,10 +2061,8 @@
         if (!sysEditBox || !sysReadonly) return;
         sysEditBox.classList.toggle('d-none', !on);
         sysReadonly.classList.toggle('d-none', !!on);
-        if (on) {
-          const sysPromptBox = document.getElementById('sysPrompt');
-          if (sysPromptBox) sysPromptBox.open = true;
-        }
+        const editHeader = document.querySelector('#tab-sysprompt .meta-tab-header');
+        if (editHeader) editHeader.classList.toggle('d-none', !!on);
       }
       if (sysEditBtn) sysEditBtn.addEventListener('click', ()=> toggleSysEdit(true));
       if (sysCancelBtn) sysCancelBtn.addEventListener('click', ()=> toggleSysEdit(false));
@@ -1962,10 +2098,8 @@
         if (!ownerEditBox || !ownerReadonly) return;
         ownerEditBox.classList.toggle('d-none', !on);
         ownerReadonly.classList.toggle('d-none', !!on);
-        if (on) {
-          const ownerBox = document.getElementById('ownerBox');
-          if (ownerBox) ownerBox.open = true;
-        }
+        const editHeader = document.querySelector('#tab-owner .meta-tab-header');
+        if (editHeader) editHeader.classList.toggle('d-none', !!on);
       }
       if (ownerEditBtn) ownerEditBtn.addEventListener('click', ()=> toggleOwnerEdit(true));
       if (ownerCancelBtn) ownerCancelBtn.addEventListener('click', ()=> toggleOwnerEdit(false));
@@ -1999,9 +2133,9 @@
         if (!reflEditBox || !reflReadonly) return;
         reflEditBox.classList.toggle('d-none', !on);
         reflReadonly.classList.toggle('d-none', !!on);
+        const editHeader = document.querySelector('#tab-reflektion .meta-tab-header');
+        if (editHeader) editHeader.classList.toggle('d-none', !!on);
         if (on) {
-          const reflBox = document.getElementById('reflBox');
-          if (reflBox) reflBox.open = true;
           ensureReflEditor();
         } else {
           destroyReflEditor();

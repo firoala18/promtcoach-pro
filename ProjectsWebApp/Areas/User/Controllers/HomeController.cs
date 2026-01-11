@@ -407,26 +407,44 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 return;
             }
 
-            // Group-based access control
+            // Group-based access control (using AssistantGroups table)
             var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
             var isDozent = User.IsInRole("Dozent");
+            var isCoach = User.IsInRole("Coach");
             var currentUserId = _userManager.GetUserId(User);
             if (!isAdmin && assistant.CreatedByUserId != currentUserId && !(assistant?.IsGlobal ?? false))
             {
-                if (isDozent)
+                // Get groups the assistant is published to
+                HashSet<string> assistantGroups = new(StringComparer.OrdinalIgnoreCase);
+                HashSet<int> assistantGroupIds = new();
+                try
                 {
-                    string? creatorGrp = null;
-                    try
+                    var agList = _db.AssistantGroups.Where(ag => ag.AssistantId == id).ToList();
+                    foreach (var ag in agList)
                     {
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == assistant.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
+                        if (ag.GroupId.HasValue) assistantGroupIds.Add(ag.GroupId.Value);
+                        if (!string.IsNullOrWhiteSpace(ag.Group)) assistantGroups.Add(ag.Group.Trim());
                     }
-                    catch { }
-                    var creatorNorm = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    bool allowed = false;
+                }
+                catch { }
+
+                // Get user's groups
+                HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var mems = _db.UserGroupMemberships
+                                   .Where(m => m.UserId == currentUserId)
+                                   .Select(m => m.Group)
+                                   .AsEnumerable()
+                                   .Where(s => !string.IsNullOrWhiteSpace(s))
+                                   .Select(s => s!.Trim());
+                    foreach (var g in mems) userGroups.Add(g);
+                }
+                catch { }
+
+                // For Dozent/Coach: also include owned groups
+                if (isDozent || isCoach)
+                {
                     try
                     {
                         var owned = _db.DozentGroupOwnerships
@@ -434,78 +452,44 @@ namespace ProjectsWebApp.Areas.User.Controllers
                                        .Select(o => o.Group)
                                        .AsEnumerable()
                                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                                       .Select(s => s.Trim())
-                                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                        allowed = owned.Contains(creatorNorm);
-                        if (!allowed)
-                        {
-                            var ownerUserIds = _db.DozentGroupOwnerships
-                                                  .Select(o => o.DozentUserId)
-                                                  .AsEnumerable()
-                                                  .Where(s => !string.IsNullOrWhiteSpace(s))
-                                                  .ToHashSet(StringComparer.Ordinal);
-                            if (ownerUserIds.Contains(assistant.CreatedByUserId))
-                                allowed = true;
-                        }
-                        if (!allowed)
-                        {
-                            string? dozentMemberGroup2 = _db.UserGroupMemberships
-                                                           .Where(m => m.UserId == currentUserId)
-                                                           .OrderByDescending(m => m.CreatedAt)
-                                                           .Select(m => m.Group)
-                                                           .FirstOrDefault();
-                            if (!string.IsNullOrWhiteSpace(dozentMemberGroup2) &&
-                                string.Equals(creatorNorm, dozentMemberGroup2.Trim(), StringComparison.OrdinalIgnoreCase))
-                                allowed = true;
-                        }
-                    }
-                    catch { allowed = false; }
-                    if (!allowed)
-                    {
-                        Response.StatusCode = 403;
-                        return;
-                    }
-                }
-                else
-                {
-                    string? userGrp = null, creatorGrp = null;
-                    try
-                    {
-                        userGrp = _db.UserGroupMemberships
-                                     .Where(m => m.UserId == currentUserId)
-                                     .OrderByDescending(m => m.CreatedAt)
-                                     .Select(m => m.Group)
-                                     .FirstOrDefault();
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == assistant.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
+                                       .Select(s => s.Trim());
+                        foreach (var g in owned) userGroups.Add(g);
                     }
                     catch { }
-                    var gUser = string.IsNullOrWhiteSpace(userGrp) ? "Ohne Gruppe" : userGrp.Trim();
-                    var gCreator = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    if (!string.Equals(gUser, gCreator, StringComparison.Ordinal))
+                }
+
+                // Check if assistant is published to any of user's groups
+                bool allowed = false;
+
+                // Check by group name
+                foreach (var ug in userGroups)
+                {
+                    if (assistantGroups.Contains(ug))
                     {
-                        // Allow if creator is an owner of the user's group
-                        bool allowByOwner = false;
-                        try
-                        {
-                            var owners = _db.DozentGroupOwnerships
-                                            .Where(o => o.Group != null && o.Group.Trim() == gUser)
-                                            .Select(o => o.DozentUserId)
-                                            .AsEnumerable()
-                                            .Where(s => !string.IsNullOrWhiteSpace(s))
-                                            .ToHashSet(StringComparer.Ordinal);
-                            allowByOwner = owners.Contains(assistant.CreatedByUserId);
-                        }
-                        catch { allowByOwner = false; }
-                        if (!allowByOwner)
-                        {
-                            Response.StatusCode = 403;
-                            return;
-                        }
+                        allowed = true;
+                        break;
                     }
+                }
+
+                // Also check by group ID
+                if (!allowed && assistantGroupIds.Count > 0)
+                {
+                    try
+                    {
+                        var userGroupIds = _db.Groups
+                            .AsEnumerable()
+                            .Where(g => g?.Name != null && userGroups.Contains(g.Name.Trim()))
+                            .Select(g => g.Id)
+                            .ToHashSet();
+                        allowed = assistantGroupIds.Any(agId => userGroupIds.Contains(agId));
+                    }
+                    catch { }
+                }
+
+                if (!allowed)
+                {
+                    Response.StatusCode = 403;
+                    return;
                 }
             }
 
@@ -1377,7 +1361,7 @@ namespace ProjectsWebApp.Areas.User.Controllers
 
             if (isDozent || isCoach)
             {
-                // Dozent sees only assistants from their owned groups, plus their own
+                // Dozent sees only assistants published to their owned/member groups, plus their own
                 HashSet<string> owned = new(StringComparer.OrdinalIgnoreCase);
                 HashSet<string> memberGroups = new(StringComparer.OrdinalIgnoreCase);
                 try
@@ -1400,39 +1384,14 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 }
                 catch { }
 
-                // Creators from owned groups or Dozent's membership group
-                var creatorsByGroup = latestByCreator
-                    .AsEnumerable()
-                    .Where(cg => cg.Group != null && (
-                        owned.Contains(cg.Group.Trim()) ||
-                        memberGroups.Contains(cg.Group.Trim())
-                    ))
-                    .Select(cg => cg.UserId)
-                    .ToList();
-                // Also include owners for those exact groups (not all owners across the system)
-                HashSet<string> ownerUserIdsForAllowedGroups = new(StringComparer.Ordinal);
-                try
-                {
-                    ownerUserIdsForAllowedGroups = _db.DozentGroupOwnerships
-                        .Where(o => o.Group != null && (
-                            owned.Contains(o.Group.Trim()) ||
-                            memberGroups.Contains(o.Group.Trim())
-                        ))
-                        .Select(o => o.DozentUserId)
-                        .AsEnumerable()
-                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                        .ToHashSet(StringComparer.Ordinal);
-                }
-                catch { }
-                var allowedCreators = new HashSet<string>(creatorsByGroup, StringComparer.Ordinal);
-                foreach (var id in ownerUserIdsForAllowedGroups) allowedCreators.Add(id);
+                // Combine owned + member groups
+                var allAllowedGroupNames = owned.Concat(memberGroups).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
                 // Build groups dropdown (Dozent/Coach): union of owned + memberships, intersect with existing groups
                 List<string> existingGroups;
                 try { existingGroups = _db.Groups.AsEnumerable().Select(g => g?.Name?.Trim()).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).Distinct(StringComparer.OrdinalIgnoreCase).ToList(); }
                 catch { existingGroups = new List<string>(); }
-                var allowedGroups = owned
-                    .Concat(memberGroups)
+                var allowedGroups = allAllowedGroupNames
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Select(s => s.Trim())
                     .Where(s => existingGroups.Contains(s))
@@ -1451,34 +1410,76 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 var selectedNonAdmin = string.IsNullOrWhiteSpace(group) ? null : group?.Trim();
                 ViewBag.SelectedGroup = selectedNonAdmin;
 
+                // Get Group IDs for allowed groups
+                HashSet<int> allowedGroupIds = new();
+                try
+                {
+                    allowedGroupIds = _db.Groups
+                        .AsEnumerable()
+                        .Where(g => g?.Name != null && allowedGroups.Contains(g.Name.Trim()))
+                        .Select(g => g.Id)
+                        .ToHashSet();
+                }
+                catch { }
+
+                // Get assistant IDs published to allowed groups via AssistantGroups table
+                HashSet<int> publishedAssistantIds = new();
+                try
+                {
+                    publishedAssistantIds = _db.AssistantGroups
+                        .Where(ag => ag.GroupId != null && allowedGroupIds.Contains(ag.GroupId.Value))
+                        .Select(ag => ag.AssistantId)
+                        .ToHashSet();
+                    // Also check legacy Group string field
+                    var legacyIds = _db.AssistantGroups
+                        .AsEnumerable()
+                        .Where(ag => ag.Group != null && allowedGroups.Contains(ag.Group.Trim()))
+                        .Select(ag => ag.AssistantId);
+                    foreach (var id in legacyIds) publishedAssistantIds.Add(id);
+                }
+                catch { }
+
+                // Get all assistants that are published to allowed groups OR created by current user
                 var list = _db.Set<Assistant>()
-                    .Where(a => a.CreatedByUserId == currentUserId || allowedCreators.Contains(a.CreatedByUserId))
+                    .Where(a => a.CreatedByUserId == currentUserId || publishedAssistantIds.Contains(a.Id))
                     .OrderByDescending(a => a.CreatedAt)
                     .ToList();
 
-                // If a specific allowed group is selected, filter assistants by creator's latest group
+                // If a specific allowed group is selected, filter assistants by AssistantGroups
                 if (!string.IsNullOrWhiteSpace(selectedNonAdmin) && allowedGroups.Contains(selectedNonAdmin))
                 {
                     var normGroup = selectedNonAdmin.Trim();
-                    Dictionary<string, string?> latestGroupMap;
+                    // Get GroupId for selected group
+                    int? selectedGroupId = null;
                     try
                     {
-                        latestGroupMap = latestByCreator
-                            .AsEnumerable()
-                            .ToDictionary(x => x.UserId, x => x.Group);
+                        var grp = _db.Groups.AsEnumerable().FirstOrDefault(g => string.Equals(g?.Name?.Trim(), normGroup, StringComparison.OrdinalIgnoreCase));
+                        if (grp != null) selectedGroupId = grp.Id;
                     }
-                    catch
+                    catch { }
+
+                    // Get assistant IDs published to this specific group
+                    HashSet<int> assistantIdsForGroup = new();
+                    try
                     {
-                        latestGroupMap = new Dictionary<string, string?>();
+                        if (selectedGroupId.HasValue)
+                        {
+                            assistantIdsForGroup = _db.AssistantGroups
+                                .Where(ag => ag.GroupId == selectedGroupId.Value)
+                                .Select(ag => ag.AssistantId)
+                                .ToHashSet();
+                        }
+                        // Also check legacy Group string field
+                        var legacyIds = _db.AssistantGroups
+                            .AsEnumerable()
+                            .Where(ag => ag.Group != null && string.Equals(ag.Group.Trim(), normGroup, StringComparison.OrdinalIgnoreCase))
+                            .Select(ag => ag.AssistantId);
+                        foreach (var id in legacyIds) assistantIdsForGroup.Add(id);
                     }
+                    catch { }
 
                     list = list
-                        .Where(a =>
-                        {
-                            if (string.IsNullOrWhiteSpace(a.CreatedByUserId)) return false;
-                            if (!latestGroupMap.TryGetValue(a.CreatedByUserId, out var g) || string.IsNullOrWhiteSpace(g)) return false;
-                            return string.Equals(g.Trim(), normGroup, StringComparison.OrdinalIgnoreCase);
-                        })
+                        .Where(a => a.CreatedByUserId == currentUserId || assistantIdsForGroup.Contains(a.Id))
                         .OrderByDescending(a => a.CreatedAt)
                         .ToList();
                 }
@@ -1510,7 +1511,7 @@ namespace ProjectsWebApp.Areas.User.Controllers
             }
             else
             {
-                // Regular users: same-group visibility (+ own)
+                // Regular users: see assistants published to their groups (+ own)
                 HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
                 try
                 {
@@ -1523,28 +1524,6 @@ namespace ProjectsWebApp.Areas.User.Controllers
                     foreach (var g in mems) userGroups.Add(g);
                 }
                 catch { }
-                bool userHasNoGroup = userGroups.Count == 0;
-
-                var allowedCreatorsByGroup = latestByCreator
-                    .AsEnumerable()
-                    .Where(cg => (string.IsNullOrWhiteSpace(cg.Group) && userHasNoGroup) ||
-                                 (cg.Group != null && userGroups.Contains(cg.Group.Trim())))
-                    .Select(cg => cg.UserId)
-                    .ToList();
-                // Also include any group owners (Dozenten/Admin/Coach) for these groups
-                HashSet<string> ownerIdsForGroup = new(StringComparer.Ordinal);
-                try
-                {
-                    ownerIdsForGroup = _db.DozentGroupOwnerships
-                                          .AsEnumerable()
-                                          .Where(o => !string.IsNullOrWhiteSpace(o.Group) && userGroups.Contains(o.Group.Trim()))
-                                          .Select(o => o.DozentUserId)
-                                          .Where(id => !string.IsNullOrWhiteSpace(id))
-                                          .ToHashSet(StringComparer.Ordinal);
-                }
-                catch { }
-                var allowedCreators = new HashSet<string>(allowedCreatorsByGroup, StringComparer.Ordinal);
-                foreach (var idc in ownerIdsForGroup) allowedCreators.Add(idc);
 
                 // Build groups dropdown (regular user): own membership groups intersected with existing groups
                 List<string> existingGroups2;
@@ -1567,37 +1546,80 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 var selectedUser = string.IsNullOrWhiteSpace(group) ? null : group?.Trim();
                 ViewBag.SelectedGroup = selectedUser;
 
+                // Get Group IDs for user's groups
+                HashSet<int> userGroupIds = new();
+                try
+                {
+                    userGroupIds = _db.Groups
+                        .AsEnumerable()
+                        .Where(g => g?.Name != null && allowedGroups2.Contains(g.Name.Trim()))
+                        .Select(g => g.Id)
+                        .ToHashSet();
+                }
+                catch { }
+
+                // Get assistant IDs published to user's groups via AssistantGroups table
+                HashSet<int> publishedAssistantIds = new();
+                try
+                {
+                    publishedAssistantIds = _db.AssistantGroups
+                        .Where(ag => ag.GroupId != null && userGroupIds.Contains(ag.GroupId.Value))
+                        .Select(ag => ag.AssistantId)
+                        .ToHashSet();
+                    // Also check legacy Group string field
+                    var legacyIds = _db.AssistantGroups
+                        .AsEnumerable()
+                        .Where(ag => ag.Group != null && allowedGroups2.Contains(ag.Group.Trim()))
+                        .Select(ag => ag.AssistantId);
+                    foreach (var id in legacyIds) publishedAssistantIds.Add(id);
+                }
+                catch { }
+
+                // Get all assistants that are published to user's groups OR created by current user
                 var list = _db.Set<Assistant>()
-                    .Where(a => a.CreatedByUserId == currentUserId || allowedCreators.Contains(a.CreatedByUserId))
+                    .Where(a => a.CreatedByUserId == currentUserId || publishedAssistantIds.Contains(a.Id))
                     .OrderByDescending(a => a.CreatedAt)
                     .ToList();
 
-                // If a specific allowed group is selected, filter assistants by creator's latest group
+                // If a specific allowed group is selected, filter assistants by AssistantGroups
                 if (!string.IsNullOrWhiteSpace(selectedUser) && allowedGroups2.Contains(selectedUser))
                 {
                     var normGroup = selectedUser.Trim();
-                    Dictionary<string, string?> latestGroupMap;
+                    // Get GroupId for selected group
+                    int? selectedGroupId = null;
                     try
                     {
-                        latestGroupMap = latestByCreator
-                            .AsEnumerable()
-                            .ToDictionary(x => x.UserId, x => x.Group);
+                        var grp = _db.Groups.AsEnumerable().FirstOrDefault(g => string.Equals(g?.Name?.Trim(), normGroup, StringComparison.OrdinalIgnoreCase));
+                        if (grp != null) selectedGroupId = grp.Id;
                     }
-                    catch
+                    catch { }
+
+                    // Get assistant IDs published to this specific group
+                    HashSet<int> assistantIdsForGroup = new();
+                    try
                     {
-                        latestGroupMap = new Dictionary<string, string?>();
+                        if (selectedGroupId.HasValue)
+                        {
+                            assistantIdsForGroup = _db.AssistantGroups
+                                .Where(ag => ag.GroupId == selectedGroupId.Value)
+                                .Select(ag => ag.AssistantId)
+                                .ToHashSet();
+                        }
+                        // Also check legacy Group string field
+                        var legacyIds = _db.AssistantGroups
+                            .AsEnumerable()
+                            .Where(ag => ag.Group != null && string.Equals(ag.Group.Trim(), normGroup, StringComparison.OrdinalIgnoreCase))
+                            .Select(ag => ag.AssistantId);
+                        foreach (var id in legacyIds) assistantIdsForGroup.Add(id);
                     }
+                    catch { }
 
                     list = list
-                        .Where(a =>
-                        {
-                            if (string.IsNullOrWhiteSpace(a.CreatedByUserId)) return false;
-                            if (!latestGroupMap.TryGetValue(a.CreatedByUserId, out var g) || string.IsNullOrWhiteSpace(g)) return false;
-                            return string.Equals(g.Trim(), normGroup, StringComparison.OrdinalIgnoreCase);
-                        })
+                        .Where(a => a.CreatedByUserId == currentUserId || assistantIdsForGroup.Contains(a.Id))
                         .OrderByDescending(a => a.CreatedAt)
                         .ToList();
                 }
+
                 HashSet<int> sharedAssistantIds = new HashSet<int>();
                 ViewBag.SharedAssistantIds = sharedAssistantIds;
                 return View(list);
@@ -1614,32 +1636,43 @@ namespace ProjectsWebApp.Areas.User.Controllers
 
             var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
             var isDozent = User.IsInRole("Dozent");
+            var isCoach = User.IsInRole("Coach");
             var currentUserId = _userManager.GetUserId(User);
+
+            // Check access: Admin, creator, global assistants, or assistant published to user's groups
             if (!isAdmin && item.CreatedByUserId != currentUserId && !(item?.IsGlobal ?? false))
             {
-                if (isDozent)
+                // Get groups the assistant is published to
+                HashSet<string> assistantGroups = new(StringComparer.OrdinalIgnoreCase);
+                HashSet<int> assistantGroupIds = new();
+                try
                 {
-                    // allow only if creator's latest group is owned by this Dozent
-                    string? creatorGrp = null;
-                    HashSet<string> memberGroups = new(StringComparer.OrdinalIgnoreCase);
-                    try
+                    var agList = _db.AssistantGroups.Where(ag => ag.AssistantId == id).ToList();
+                    foreach (var ag in agList)
                     {
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == item.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
-                        var mems = _db.UserGroupMemberships
-                                       .Where(m => m.UserId == currentUserId)
-                                       .Select(m => m.Group)
-                                       .AsEnumerable()
-                                       .Where(s => !string.IsNullOrWhiteSpace(s))
-                                       .Select(s => s!.Trim());
-                        foreach (var g in mems) memberGroups.Add(g);
+                        if (ag.GroupId.HasValue) assistantGroupIds.Add(ag.GroupId.Value);
+                        if (!string.IsNullOrWhiteSpace(ag.Group)) assistantGroups.Add(ag.Group.Trim());
                     }
-                    catch { }
-                    var creatorNorm = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    bool allowed = false;
+                }
+                catch { }
+
+                // Get user's groups
+                HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var mems = _db.UserGroupMemberships
+                                   .Where(m => m.UserId == currentUserId)
+                                   .Select(m => m.Group)
+                                   .AsEnumerable()
+                                   .Where(s => !string.IsNullOrWhiteSpace(s))
+                                   .Select(s => s!.Trim());
+                    foreach (var g in mems) userGroups.Add(g);
+                }
+                catch { }
+
+                // For Dozent/Coach: also include owned groups
+                if (isDozent || isCoach)
+                {
                     try
                     {
                         var owned = _db.DozentGroupOwnerships
@@ -1647,56 +1680,41 @@ namespace ProjectsWebApp.Areas.User.Controllers
                                        .Select(o => o.Group)
                                        .AsEnumerable()
                                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                                       .Select(s => s.Trim())
-                                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                        allowed = owned.Contains(creatorNorm);
-                        if (!allowed && memberGroups.Contains(creatorNorm)) allowed = true;
-                    }
-                    catch { allowed = false; }
-                    if (!allowed) return Forbid();
-                }
-                else
-                {
-                    // regular users: must be same group as creator
-                    HashSet<string> userGroups = new(StringComparer.OrdinalIgnoreCase);
-                    string? creatorGrp = null;
-                    try
-                    {
-                        var mems = _db.UserGroupMemberships
-                                       .Where(m => m.UserId == currentUserId)
-                                       .Select(m => m.Group)
-                                       .AsEnumerable()
-                                       .Where(s => !string.IsNullOrWhiteSpace(s))
-                                       .Select(s => s!.Trim());
-                        foreach (var g in mems) userGroups.Add(g);
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == item.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
+                                       .Select(s => s.Trim());
+                        foreach (var g in owned) userGroups.Add(g);
                     }
                     catch { }
-                    var gCreator = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    bool userHasNoGroup = userGroups.Count == 0;
-                    bool sameGroup = (userHasNoGroup && string.Equals(gCreator, "Ohne Gruppe", StringComparison.OrdinalIgnoreCase))
-                                      || userGroups.Contains(gCreator);
-                    if (!sameGroup)
+                }
+
+                // Check if assistant is published to any of user's groups
+                bool allowed = false;
+
+                // Check by group name
+                foreach (var ug in userGroups)
+                {
+                    if (assistantGroups.Contains(ug))
                     {
-                        bool allowByOwner = false;
-                        try
-                        {
-                            var owners = _db.DozentGroupOwnerships
-                                            .AsEnumerable()
-                                            .Where(o => !string.IsNullOrWhiteSpace(o.Group) && (userHasNoGroup ? string.Equals(o.Group.Trim(), "Ohne Gruppe", StringComparison.OrdinalIgnoreCase) : userGroups.Contains(o.Group.Trim())))
-                                            .Select(o => o.DozentUserId)
-                                            .Where(s => !string.IsNullOrWhiteSpace(s))
-                                            .ToHashSet(StringComparer.Ordinal);
-                            allowByOwner = owners.Contains(item.CreatedByUserId);
-                        }
-                        catch { allowByOwner = false; }
-                        if (!allowByOwner) return Forbid();
+                        allowed = true;
+                        break;
                     }
                 }
+
+                // Also check by group ID
+                if (!allowed && assistantGroupIds.Count > 0)
+                {
+                    try
+                    {
+                        var userGroupIds = _db.Groups
+                            .AsEnumerable()
+                            .Where(g => g?.Name != null && userGroups.Contains(g.Name.Trim()))
+                            .Select(g => g.Id)
+                            .ToHashSet();
+                        allowed = assistantGroupIds.Any(agId => userGroupIds.Contains(agId));
+                    }
+                    catch { }
+                }
+
+                if (!allowed) return Forbid();
             }
             try
             {
@@ -1786,6 +1804,57 @@ namespace ProjectsWebApp.Areas.User.Controllers
             ViewBag.CanShareAssistant = canShareAssistant && shareGroups.Count > 0;
             ViewBag.AssistantIsShared = assistantIsShared;
             ViewBag.ShareGroups = shareGroups;
+
+            // Determine if user can see meta tabs (Ziele, System-Prompt, Reflektion, Wissensbasis, Besitzer)
+            // Only: Admins, Dozenten/Coaches in same group, or assistant owner
+            bool canSeeMetaTabs = false;
+            if (isAdmin)
+            {
+                canSeeMetaTabs = true;
+            }
+            else if (item.CreatedByUserId == currentUserId)
+            {
+                canSeeMetaTabs = true;
+            }
+            else if (isDozent || isCoach)
+            {
+                // Check if Dozent/Coach belongs to any of the assistant's groups
+                HashSet<string> dozentGroups = new(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var owned = _db.DozentGroupOwnerships
+                                   .Where(o => o.DozentUserId == currentUserId)
+                                   .Select(o => o.Group)
+                                   .AsEnumerable()
+                                   .Where(s => !string.IsNullOrWhiteSpace(s))
+                                   .Select(s => s!.Trim());
+                    foreach (var g in owned) dozentGroups.Add(g);
+                }
+                catch { }
+
+                // Get assistant's groups
+                HashSet<string> asstGroups = new(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var agList = _db.AssistantGroups.Where(ag => ag.AssistantId == id).ToList();
+                    foreach (var ag in agList)
+                    {
+                        if (!string.IsNullOrWhiteSpace(ag.Group)) asstGroups.Add(ag.Group.Trim());
+                    }
+                }
+                catch { }
+
+                // Check if any dozent group matches assistant's groups
+                foreach (var dg in dozentGroups)
+                {
+                    if (asstGroups.Contains(dg))
+                    {
+                        canSeeMetaTabs = true;
+                        break;
+                    }
+                }
+            }
+            ViewBag.CanSeeMetaTabs = canSeeMetaTabs;
 
             return View(item);
         }
@@ -1907,83 +1976,86 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 .GetFirstOrDefault(a => a.Id == id);
             if (assistant == null) return NotFound();
 
-            // Group-based access control
+            // Group-based access control (using AssistantGroups table)
             var isAdmin2 = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
             var isDozent2 = User.IsInRole("Dozent");
+            var isCoach2 = User.IsInRole("Coach");
             var currentUserId2 = _userManager.GetUserId(User);
             if (!isAdmin2 && assistant.CreatedByUserId != currentUserId2 && !(assistant?.IsGlobal ?? false))
             {
-                if (isDozent2)
+                // Get groups the assistant is published to
+                HashSet<string> assistantGroups2 = new(StringComparer.OrdinalIgnoreCase);
+                HashSet<int> assistantGroupIds2 = new();
+                try
                 {
-                    string? creatorGrp = null;
-                    try
+                    var agList2 = _db.AssistantGroups.Where(ag => ag.AssistantId == id).ToList();
+                    foreach (var ag in agList2)
                     {
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == assistant.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
+                        if (ag.GroupId.HasValue) assistantGroupIds2.Add(ag.GroupId.Value);
+                        if (!string.IsNullOrWhiteSpace(ag.Group)) assistantGroups2.Add(ag.Group.Trim());
                     }
-                    catch { }
-                    var creatorNorm = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    bool allowed = false;
+                }
+                catch { }
+
+                // Get user's groups
+                HashSet<string> userGroups2 = new(StringComparer.OrdinalIgnoreCase);
+                try
+                {
+                    var mems2 = _db.UserGroupMemberships
+                                   .Where(m => m.UserId == currentUserId2)
+                                   .Select(m => m.Group)
+                                   .AsEnumerable()
+                                   .Where(s => !string.IsNullOrWhiteSpace(s))
+                                   .Select(s => s!.Trim());
+                    foreach (var g in mems2) userGroups2.Add(g);
+                }
+                catch { }
+
+                // For Dozent/Coach: also include owned groups
+                if (isDozent2 || isCoach2)
+                {
                     try
                     {
-                        var owned = _db.DozentGroupOwnerships
+                        var owned2 = _db.DozentGroupOwnerships
                                        .Where(o => o.DozentUserId == currentUserId2)
                                        .Select(o => o.Group)
                                        .AsEnumerable()
                                        .Where(s => !string.IsNullOrWhiteSpace(s))
-                                       .Select(s => s.Trim())
-                                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                        allowed = owned.Contains(creatorNorm);
-                        if (!allowed)
-                        {
-                            var ownerUserIds = _db.DozentGroupOwnerships
-                                                  .Select(o => o.DozentUserId)
-                                                  .AsEnumerable()
-                                                  .Where(s => !string.IsNullOrWhiteSpace(s))
-                                                  .ToHashSet(StringComparer.Ordinal);
-                            if (ownerUserIds.Contains(assistant.CreatedByUserId))
-                                allowed = true;
-                        }
-                        if (!allowed)
-                        {
-                            string? dozentMemberGroup3 = _db.UserGroupMemberships
-                                                           .Where(m => m.UserId == currentUserId2)
-                                                           .OrderByDescending(m => m.CreatedAt)
-                                                           .Select(m => m.Group)
-                                                           .FirstOrDefault();
-                            if (!string.IsNullOrWhiteSpace(dozentMemberGroup3) &&
-                                string.Equals(creatorNorm, dozentMemberGroup3.Trim(), StringComparison.OrdinalIgnoreCase))
-                                allowed = true;
-                        }
-                    }
-                    catch { allowed = false; }
-                    if (!allowed) return Forbid();
-                }
-                else
-                {
-                    string? userGrp = null, creatorGrp = null;
-                    try
-                    {
-                        userGrp = _db.UserGroupMemberships
-                                     .Where(m => m.UserId == currentUserId2)
-                                     .OrderByDescending(m => m.CreatedAt)
-                                     .Select(m => m.Group)
-                                     .FirstOrDefault();
-                        creatorGrp = _db.UserGroupMemberships
-                                        .Where(m => m.UserId == assistant.CreatedByUserId)
-                                        .OrderByDescending(m => m.CreatedAt)
-                                        .Select(m => m.Group)
-                                        .FirstOrDefault();
+                                       .Select(s => s.Trim());
+                        foreach (var g in owned2) userGroups2.Add(g);
                     }
                     catch { }
-                    var gUser = string.IsNullOrWhiteSpace(userGrp) ? "Ohne Gruppe" : userGrp.Trim();
-                    var gCreator = string.IsNullOrWhiteSpace(creatorGrp) ? "Ohne Gruppe" : creatorGrp.Trim();
-                    if (!string.Equals(gUser, gCreator, StringComparison.Ordinal))
-                        return Forbid();
                 }
+
+                // Check if assistant is published to any of user's groups
+                bool allowed2 = false;
+
+                // Check by group name
+                foreach (var ug in userGroups2)
+                {
+                    if (assistantGroups2.Contains(ug))
+                    {
+                        allowed2 = true;
+                        break;
+                    }
+                }
+
+                // Also check by group ID
+                if (!allowed2 && assistantGroupIds2.Count > 0)
+                {
+                    try
+                    {
+                        var userGroupIds2 = _db.Groups
+                            .AsEnumerable()
+                            .Where(g => g?.Name != null && userGroups2.Contains(g.Name.Trim()))
+                            .Select(g => g.Id)
+                            .ToHashSet();
+                        allowed2 = assistantGroupIds2.Any(agId => userGroupIds2.Contains(agId));
+                    }
+                    catch { }
+                }
+
+                if (!allowed2) return Forbid();
             }
 
             // Resolve provider via centralized resolver
