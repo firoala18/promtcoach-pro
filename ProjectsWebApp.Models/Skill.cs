@@ -15,10 +15,12 @@ namespace ProjectsWebApp.Models
         public string Description { get; set; }
 
         public int DisplayOrder { get; set; }
+        public int DisplayOrder2 { get; set; }
 
         public string? IconPath { get; set; } // Optional for icons
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
     }
 
 }
