@@ -5,6 +5,12 @@
     var isAdminUserGlobal = User.IsInRole("Admin");
     var isDozentUserGlobal = User.IsInRole("Dozent");
     var isPrivilegedUser = isSuperUserGlobal || isAdminUserGlobal || isDozentUserGlobal;
+
+    // API Key edit permission: Admin/SuperAdmin can always edit, Dozent only if they are an owner
+    var currentUserEmail = User.Identity?.Name ?? "";
+    var isGroupOwner = Model.Owners != null && Model.Owners.Any(o =>
+        string.Equals(o, currentUserEmail, StringComparison.OrdinalIgnoreCase));
+    var canEditApiKeys = isSuperUserGlobal || isAdminUserGlobal || (isDozentUserGlobal && isGroupOwner);
 }
 
 <style>
@@ -890,6 +896,239 @@
         border-color: #89ba17;
         box-shadow: 0 0 0 0.25rem rgba(137, 186, 23, 0.25);
     }
+
+    /* ===== Professional 2-Step API Key Management ===== */
+
+    /* Step headers */
+    .api-step {
+        margin-bottom: 2rem;
+    }
+    .api-step-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .api-step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #0f172a;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+    .api-step-title {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #0f172a;
+        margin: 0;
+    }
+    .api-step-subtitle {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-left: auto;
+    }
+
+    /* Provider cards grid */
+    .provider-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    /* Provider card */
+    .provider-card {
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    .provider-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .provider-card.configured {
+        border-color: #22c55e;
+        background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%);
+    }
+    .provider-card.is-active {
+        border-color: #89ba17;
+        box-shadow: 0 0 0 3px rgba(137, 186, 23, 0.2);
+    }
+    .provider-card.is-active::before {
+        content: 'AKTIV';
+        position: absolute;
+        top: -10px;
+        right: 12px;
+        background: #89ba17;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 0.05em;
+    }
+
+    .provider-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .provider-card-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .provider-card-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .provider-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .provider-card-name {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #0f172a;
+        margin: 0;
+    }
+    .provider-card-status {
+        font-size: 0.75rem;
+        margin-top: 2px;
+    }
+    .provider-card-status.status-configured {
+        color: #16a34a;
+    }
+    .provider-card-status.status-not-configured {
+        color: #94a3b8;
+    }
+
+    .provider-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .provider-card-body label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Active provider selection */
+    .active-provider-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    .active-provider-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .active-provider-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #fff;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 140px;
+    }
+    .active-provider-option:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+    }
+    .active-provider-option.selected {
+        border-color: #89ba17;
+        background: linear-gradient(135deg, #f7fce9 0%, #fff 100%);
+    }
+    .active-provider-option.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f1f5f9;
+    }
+    .active-provider-option input[type="radio"] {
+        display: none;
+    }
+    .active-provider-radio {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #cbd5e1;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    .active-provider-option.selected .active-provider-radio {
+        border-color: #89ba17;
+        background: #89ba17;
+    }
+    .active-provider-option.selected .active-provider-radio::after {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #fff;
+        border-radius: 50%;
+    }
+    .active-provider-option-logo {
+        width: 24px;
+        height: 24px;
+    }
+    .active-provider-option-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .active-provider-option-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: #0f172a;
+    }
+    .active-provider-option.disabled .active-provider-option-name {
+        color: #94a3b8;
+    }
+    .no-providers-warning {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        color: #92400e;
+        font-size: 0.875rem;
+    }
+
+    .api-key-input {
+        font-family: monospace;
+        letter-spacing: 0.5px;
+    }
+    .toggle-visibility {
+        border-left: none;
+    }
+    .toggle-visibility:hover {
+        background: #e2e8f0;
+    }
 </style>
 
 <div class="container-fluid py-4">
@@ -1519,10 +1758,11 @@
                         <div class="tab-pane fade" id="tab-apikeys" role="tabpanel">
                             @if (Model.ApiKeys != null)
                             {
-                                <form method="post"
+                                <form id="apiKeysForm" method="post"
                                       action="@Url.Page("/Account/Manage/ManageUsers", new { area = "Identity", handler = "SaveGroupApiKeys" })"
                                       data-async="true"
-                                      data-success="API‑Schlüssel gespeichert.">
+                                      data-success="API‑Schlüssel gespeichert."
+                                      data-can-edit="@(canEditApiKeys ? "true" : "false")">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="GroupName" value="@Model.ApiKeys.GroupName" />
 
@@ -1536,42 +1776,67 @@
                                         </div>
                                     }
 
-                                    <fieldset @(Model.HasApiManagerOwner ? "disabled" : null)>
-                                        <div class="mb-4 active-provider-highlight">
-                                            <label class="form-label fw-semibold">Aktiver Anbieter</label>
-                                            <select name="ActiveProvider" class="form-select w-auto">
-                                                @* <option value="">(Standard)</option> *@
-                                                <option value="kisski" selected="@(Model.ApiKeys.ActiveProvider == "kisski" ? "selected" : null)">Kisski</option>
-                                                <option value="openai" selected="@(Model.ApiKeys.ActiveProvider == "openai" ? "selected" : null)">OpenAI-kompatibel</option>
-                                                <option value="gemini" selected="@(Model.ApiKeys.ActiveProvider == "gemini" ? "selected" : null)">Gemini</option>
-                                                @* <option value="claude" selected="@(Model.ApiKeys.ActiveProvider == "claude" ? "selected" : null)">Claude</option> *@
-                                            </select>
+                                    @if (!canEditApiKeys && !Model.HasApiManagerOwner)
+                                    {
+                                        <div class="alert alert-warning d-flex align-items-center">
+                                            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                            <div>
+                                                <strong>Keine Berechtigung:</strong> Sie können die API‑Schlüssel nicht bearbeiten.
+                                                <br /><small class="text-muted">Nur Admin oder Dozent*in/Forscher*in/Gruppen‑Manager*in, die auch Raum‑Besitzer*in sind, können API‑Schlüssel ändern.</small>
+                                            </div>
                                         </div>
+                                    }
 
-                                        <div class="accordion-wrapper">
-                                            <!-- Kisski -->
-                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "kisski" ? "open" : null)>
-                                                <summary>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <span class="provider-pill provider-pill-kisski">
-                                                            <img src="@Url.Content("~/KISSKI-Logo.png")" alt="KISSKI Logo" class="provider-logo" />
-                                                        </span>
-                                                        <span>KISSKI</span>
-                                                        @if (Model.ApiKeys.ActiveProvider == "kisski")
-                                                        {
-                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
-                                                        }
-                                                    </div>
-                                                </summary>
-                                                <div>
-                                                    <div class="row g-3">
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">API‑Key</label>
-                                                            <input name="KisskiApiKey" value="@Model.ApiKeys.KisskiApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                    @{
+                                        bool HasKisskiKey = !string.IsNullOrEmpty(Model.ApiKeys.KisskiApiKey);
+                                        bool HasOpenAIKey = !string.IsNullOrEmpty(Model.ApiKeys.OpenAIKey);
+                                        bool HasGeminiKey = !string.IsNullOrEmpty(Model.ApiKeys.GeminiApiKey);
+                                        int configuredCount = (HasKisskiKey ? 1 : 0) + (HasOpenAIKey ? 1 : 0) + (HasGeminiKey ? 1 : 0);
+                                        bool apiKeysDisabled = Model.HasApiManagerOwner || !canEditApiKeys;
+                                    }
+                                    <fieldset @(apiKeysDisabled ? "disabled" : null)>
+                                        <!-- STEP 1: Configure API Keys -->
+                                        <div class="api-step">
+                                            <div class="api-step-header">
+                                                <span class="api-step-number">1</span>
+                                                <h6 class="api-step-title">API‑Schlüssel konfigurieren</h6>
+                                                <span class="api-step-subtitle">@configuredCount von 3 Anbietern konfiguriert</span>
+                                            </div>
+
+                                            <div class="provider-cards-grid">
+                                                <!-- KISSKI Card -->
+                                                <div class="provider-card @(HasKisskiKey ? "configured" : "") @(Model.ApiKeys.ActiveProvider == "kisski" ? "is-active" : "")" data-provider="kisski">
+                                                    <div class="provider-card-header">
+                                                        <div class="provider-card-logo">
+                                                            <img src="@Url.Content("~/KISSKI-Logo.png")" alt="KISSKI" />
                                                         </div>
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">Modell</label>
-                                                            <select name="KisskiModel" class="form-select">
+                                                        <div class="provider-card-info">
+                                                            <h6 class="provider-card-name">KISSKI</h6>
+                                                            <div class="provider-card-status @(HasKisskiKey ? "status-configured" : "status-not-configured")">
+                                                                <i class="bi @(HasKisskiKey ? "bi-check-circle-fill" : "bi-circle")"></i>
+                                                                @(HasKisskiKey ? "Konfiguriert" : "Nicht konfiguriert")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="provider-card-body">
+                                                        <div>
+                                                            <label>API‑Key</label>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="password" name="KisskiApiKey" class="form-control api-key-input"
+                                                                       placeholder="@(HasKisskiKey ? "••••••••••••••••" : "API-Key eingeben...")"
+                                                                       autocomplete="new-password" />
+                                                                <button type="button" class="btn btn-outline-secondary toggle-visibility" title="Anzeigen/Verbergen">
+                                                                    <i class="bi bi-eye"></i>
+                                                                </button>
+                                                            </div>
+                                                            @if (HasKisskiKey)
+                                                            {
+                                                                <small class="text-muted" style="font-size: 0.7rem;">Leer lassen = Key behalten</small>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <label>Modell</label>
+                                                            <select name="KisskiModel" class="form-select form-select-sm">
                                                                 <option value="medgemma-27b" selected="@(Model.ApiKeys.KisskiModel == "medgemma-27b" ? "selected" : null)">medgemma-27b</option>
                                                                 <option value="gemma-3-27b-it" selected="@(Model.ApiKeys.KisskiModel == "gemma-3-27b-it" ? "selected" : null)">gemma-3-27b-it</option>
                                                                 <option value="openai-gpt-oss-120b" selected="@(Model.ApiKeys.KisskiModel == "openai-gpt-oss-120b" ? "selected" : null)">openai-gpt-oss-120b</option>
@@ -1579,31 +1844,40 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </details>
 
-                                            <!-- OpenAI -->
-                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "openai" ? "open" : null)>
-                                                <summary>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <span class="provider-pill provider-pill-openai">
-                                                            <img src="@Url.Content("~/ChatGPT-Logo.png")" alt="ChatGPT Logo" class="provider-logo" />
-                                                        </span>
-                                                        <span>OpenAI</span>
-                                                        @if (Model.ApiKeys.ActiveProvider == "openai")
-                                                        {
-                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
-                                                        }
-                                                    </div>
-                                                </summary>
-                                                <div>
-                                                    <div class="row g-3">
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">API‑Key</label>
-                                                            <input name="OpenAIKey" value="@Model.ApiKeys.OpenAIKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                <!-- OpenAI Card -->
+                                                <div class="provider-card @(HasOpenAIKey ? "configured" : "") @(Model.ApiKeys.ActiveProvider == "openai" ? "is-active" : "")" data-provider="openai">
+                                                    <div class="provider-card-header">
+                                                        <div class="provider-card-logo">
+                                                            <img src="@Url.Content("~/ChatGPT-Logo.png")" alt="OpenAI" />
                                                         </div>
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">Modell</label>
-                                                            <select name="OpenAIModel" class="form-select">
+                                                        <div class="provider-card-info">
+                                                            <h6 class="provider-card-name">OpenAI</h6>
+                                                            <div class="provider-card-status @(HasOpenAIKey ? "status-configured" : "status-not-configured")">
+                                                                <i class="bi @(HasOpenAIKey ? "bi-check-circle-fill" : "bi-circle")"></i>
+                                                                @(HasOpenAIKey ? "Konfiguriert" : "Nicht konfiguriert")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="provider-card-body">
+                                                        <div>
+                                                            <label>API‑Key</label>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="password" name="OpenAIKey" class="form-control api-key-input"
+                                                                       placeholder="@(HasOpenAIKey ? "••••••••••••••••" : "API-Key eingeben...")"
+                                                                       autocomplete="new-password" />
+                                                                <button type="button" class="btn btn-outline-secondary toggle-visibility" title="Anzeigen/Verbergen">
+                                                                    <i class="bi bi-eye"></i>
+                                                                </button>
+                                                            </div>
+                                                            @if (HasOpenAIKey)
+                                                            {
+                                                                <small class="text-muted" style="font-size: 0.7rem;">Leer lassen = Key behalten</small>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <label>Modell</label>
+                                                            <select name="OpenAIModel" class="form-select form-select-sm">
                                                                 <option value="gpt-4o-mini" selected="@(Model.ApiKeys.OpenAIModel == "gpt-4o-mini" || Model.ApiKeys.OpenAIModel == "4o-mini" ? "selected" : null)">4o-mini</option>
                                                                 <option value="gpt-4o" selected="@(Model.ApiKeys.OpenAIModel == "gpt-4o" || Model.ApiKeys.OpenAIModel == "4o" ? "selected" : null)">4o</option>
                                                                 <option value="gpt-5" selected="@(Model.ApiKeys.OpenAIModel == "gpt-5" ? "selected" : null)">GPT-5</option>
@@ -1611,66 +1885,110 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </details>
 
-                                            <!-- Gemini -->
-                                            <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "gemini" ? "open" : null)>
-                                                <summary>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <span class="provider-pill provider-pill-gemini">
-                                                            <img src="@Url.Content("~/Gemini-Logo.png")" alt="Gemini Logo" class="provider-logo" />
-                                                        </span>
-                                                        <span>Gemini</span>
-                                                        @if (Model.ApiKeys.ActiveProvider == "gemini")
-                                                        {
-                                                            <span class="badge bg-primary rounded-pill">Aktiv</span>
-                                                        }
-                                                    </div>
-                                                </summary>
-                                                <div>
-                                                    <div class="row g-3">
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">API‑Key</label>
-                                                            <input name="GeminiApiKey" value="@Model.ApiKeys.GeminiApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
+                                                <!-- Gemini Card -->
+                                                <div class="provider-card @(HasGeminiKey ? "configured" : "") @(Model.ApiKeys.ActiveProvider == "gemini" ? "is-active" : "")" data-provider="gemini">
+                                                    <div class="provider-card-header">
+                                                        <div class="provider-card-logo">
+                                                            <img src="@Url.Content("~/Gemini-Logo.png")" alt="Gemini" />
                                                         </div>
-                                                        <div class="col-md-6">
-                                                            <label class="form-label">Modell</label>
-                                                            <select name="GeminiModel" class="form-select">
+                                                        <div class="provider-card-info">
+                                                            <h6 class="provider-card-name">Gemini</h6>
+                                                            <div class="provider-card-status @(HasGeminiKey ? "status-configured" : "status-not-configured")">
+                                                                <i class="bi @(HasGeminiKey ? "bi-check-circle-fill" : "bi-circle")"></i>
+                                                                @(HasGeminiKey ? "Konfiguriert" : "Nicht konfiguriert")
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="provider-card-body">
+                                                        <div>
+                                                            <label>API‑Key</label>
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="password" name="GeminiApiKey" class="form-control api-key-input"
+                                                                       placeholder="@(HasGeminiKey ? "••••••••••••••••" : "API-Key eingeben...")"
+                                                                       autocomplete="new-password" />
+                                                                <button type="button" class="btn btn-outline-secondary toggle-visibility" title="Anzeigen/Verbergen">
+                                                                    <i class="bi bi-eye"></i>
+                                                                </button>
+                                                            </div>
+                                                            @if (HasGeminiKey)
+                                                            {
+                                                                <small class="text-muted" style="font-size: 0.7rem;">Leer lassen = Key behalten</small>
+                                                            }
+                                                        </div>
+                                                        <div>
+                                                            <label>Modell</label>
+                                                            <select name="GeminiModel" class="form-select form-select-sm">
                                                                 <option value="gemini-2.5-flash" selected="@(Model.ApiKeys.GeminiModel == "gemini-2.5-flash" ? "selected" : null)">Gemini 2.5 Flash</option>
                                                                 <option value="gemini-2.5-pro" selected="@(Model.ApiKeys.GeminiModel == "gemini-2.5-pro" ? "selected" : null)">Gemini 2.5 Pro</option>
                                                             </select>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </details>
-
-                                            <!-- Claude -->
-                                            @*  <details class="pc-accordion" @(Model.ApiKeys.ActiveProvider == "claude" ? "open" : null)>
-                                            <summary>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <span class="provider-pill provider-pill-claude">C</span>
-                                                    <span>Claude</span>
-                                                    @if (Model.ApiKeys.ActiveProvider == "claude") { <span class="badge bg-primary rounded-pill">Aktiv</span> }
-                                                </div>
-                                            </summary>
-                                            <div>
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">API‑Key</label>
-                                                        <input name="ClaudeApiKey" value="@Model.ApiKeys.ClaudeApiKey" class="form-control" placeholder="Neuen Key eingeben..." />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Modell</label>
-                                                        <input name="ClaudeModel" value="@Model.ApiKeys.ClaudeModel" class="form-control" />
-                                                    </div>
-                                                </div>
                                             </div>
-                                        </details> *@
+                                        </div>
+
+                                        <!-- STEP 2: Select Active Provider -->
+                                        <div class="api-step">
+                                            <div class="api-step-header">
+                                                <span class="api-step-number">2</span>
+                                                <h6 class="api-step-title">Aktiven Anbieter auswählen</h6>
+                                            </div>
+
+                                            <div class="active-provider-section">
+                                                @if (configuredCount == 0)
+                                                {
+                                                    <div class="no-providers-warning">
+                                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                                        <span>Konfigurieren Sie mindestens einen Anbieter oben, um ihn als aktiv auszuwählen.</span>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="active-provider-options">
+                                                        <!-- KISSKI Option -->
+                                                        <label class="active-provider-option @(Model.ApiKeys.ActiveProvider == "kisski" ? "selected" : "") @(!HasKisskiKey ? "disabled" : "")" data-provider="kisski">
+                                                            <input type="radio" name="ActiveProvider" value="kisski"
+                                                                   @(Model.ApiKeys.ActiveProvider == "kisski" ? "checked" : "")
+                                                                   @(!HasKisskiKey ? "disabled" : "") />
+                                                            <span class="active-provider-radio"></span>
+                                                            <span class="active-provider-option-logo">
+                                                                <img src="@Url.Content("~/KISSKI-Logo.png")" alt="KISSKI" />
+                                                            </span>
+                                                            <span class="active-provider-option-name">KISSKI</span>
+                                                        </label>
+
+                                                        <!-- OpenAI Option -->
+                                                        <label class="active-provider-option @(Model.ApiKeys.ActiveProvider == "openai" ? "selected" : "") @(!HasOpenAIKey ? "disabled" : "")" data-provider="openai">
+                                                            <input type="radio" name="ActiveProvider" value="openai"
+                                                                   @(Model.ApiKeys.ActiveProvider == "openai" ? "checked" : "")
+                                                                   @(!HasOpenAIKey ? "disabled" : "") />
+                                                            <span class="active-provider-radio"></span>
+                                                            <span class="active-provider-option-logo">
+                                                                <img src="@Url.Content("~/ChatGPT-Logo.png")" alt="OpenAI" />
+                                                            </span>
+                                                            <span class="active-provider-option-name">OpenAI</span>
+                                                        </label>
+
+                                                        <!-- Gemini Option -->
+                                                        <label class="active-provider-option @(Model.ApiKeys.ActiveProvider == "gemini" ? "selected" : "") @(!HasGeminiKey ? "disabled" : "")" data-provider="gemini">
+                                                            <input type="radio" name="ActiveProvider" value="gemini"
+                                                                   @(Model.ApiKeys.ActiveProvider == "gemini" ? "checked" : "")
+                                                                   @(!HasGeminiKey ? "disabled" : "") />
+                                                            <span class="active-provider-radio"></span>
+                                                            <span class="active-provider-option-logo">
+                                                                <img src="@Url.Content("~/Gemini-Logo.png")" alt="Gemini" />
+                                                            </span>
+                                                            <span class="active-provider-option-name">Gemini</span>
+                                                        </label>
+                                                    </div>
+                                                }
+                                            </div>
                                         </div>
 
                                         <div class="d-flex justify-content-end mt-4">
-                                            <button type="submit" class="btn btn-primary" @(Model.HasApiManagerOwner ? "disabled" : null)>
-                                                <i class="bi bi-save me-2"></i>API‑Schlüssel speichern
+                                            <button type="submit" class="btn btn-primary" @(apiKeysDisabled ? "disabled" : null)>
+                                                <i class="bi bi-save me-2"></i>Einstellungen speichern
                                             </button>
                                         </div>
                                     </fieldset>
@@ -2793,6 +3111,93 @@
             if (collapseEl.classList.contains('show')) {
                 toggleBtn.classList.add('open');
             }
+        })();
+
+        // Active provider selection - update visual states
+        (function () {
+            var providerOptions = document.querySelectorAll('.active-provider-option');
+            var providerCards = document.querySelectorAll('.provider-card');
+            if (!providerOptions.length) return;
+
+            providerOptions.forEach(function (option) {
+                var radio = option.querySelector('input[type="radio"]');
+                if (!radio || radio.disabled) return;
+
+                option.addEventListener('click', function (e) {
+                    if (option.classList.contains('disabled')) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // Update option visual states
+                    providerOptions.forEach(function (opt) {
+                        opt.classList.remove('selected');
+                    });
+                    option.classList.add('selected');
+
+                    // Update card visual states (is-active class)
+                    var provider = option.dataset.provider;
+                    providerCards.forEach(function (card) {
+                        card.classList.remove('is-active');
+                        if (card.dataset.provider === provider) {
+                            card.classList.add('is-active');
+                        }
+                    });
+                });
+            });
+        })();
+
+        // Toggle API key visibility
+        (function () {
+            var toggleButtons = document.querySelectorAll('.toggle-visibility');
+            toggleButtons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var inputGroup = btn.closest('.input-group');
+                    var input = inputGroup ? inputGroup.querySelector('.api-key-input') : null;
+                    var icon = btn.querySelector('i');
+                    if (!input) return;
+
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('bi-eye');
+                        icon.classList.add('bi-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('bi-eye-slash');
+                        icon.classList.add('bi-eye');
+                    }
+                });
+            });
+        })();
+
+        // API Key form permission check (catch any bypass attempts)
+        (function () {
+            var apiKeysForm = document.getElementById('apiKeysForm');
+            if (!apiKeysForm) return;
+
+            var canEdit = apiKeysForm.dataset.canEdit === 'true';
+            if (canEdit) return; // User has permission, no need to block
+
+            apiKeysForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Keine Berechtigung',
+                        html: '<p>Sie können die API‑Schlüssel nicht bearbeiten.</p>' +
+                              '<p class="text-muted small">Nur <strong>Admin</strong> oder <strong>Dozent*in/Forscher*in/Gruppen‑Manager*in</strong>, ' +
+                              'die auch <strong>Raum‑Besitzer*in</strong> sind, können API‑Schlüssel ändern.</p>',
+                        confirmButtonText: 'Verstanden',
+                        confirmButtonColor: '#89ba17'
+                    });
+                } else {
+                    alert('Keine Berechtigung: Sie können die API‑Schlüssel nicht bearbeiten.\n\n' +
+                          'Nur Admin oder Dozent*in/Forscher*in/Gruppen‑Manager*in, die auch Raum‑Besitzer*in sind, können API‑Schlüssel ändern.');
+                }
+                return false;
+            });
         })();
     </script>
 }

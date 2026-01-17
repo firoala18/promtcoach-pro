@@ -81,7 +81,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1">Neuen Raum erstellen</h2>
-            <p class="text-muted mb-0">Erstellen Sie eine neue Gruppe und weisen Sie Besitzer:innen zu.</p>
+            <p class="text-muted mb-0">Erstellen Sie eine neue Raum und weisen Sie Besitzer:innen zu.</p>
         </div>
         <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Zurück zur Übersicht
@@ -102,14 +102,14 @@
                         <h5 class="fw-bold mb-3 text-app-green"><i class="bi bi-info-circle me-2"></i>Basisdaten</h5>
                         
                         <div class="mb-3">
-                            <label asp-for="Name" class="form-label fw-semibold">Name der Gruppe <span class="text-danger">*</span></label>
+                            <label asp-for="Name" class="form-label fw-semibold">Raumtitel <span class="text-danger">*</span></label>
                             <input asp-for="Name" class="form-control form-control-lg" placeholder="z.B. Marketing Team A" />
                             <span asp-validation-for="Name" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="Description" class="form-label fw-semibold">Beschreibung</label>
-                            <textarea asp-for="Description" class="form-control" rows="5" placeholder="Optionale Beschreibung der Gruppe..."></textarea>
+                            <textarea asp-for="Description" class="form-control" rows="5" ></textarea>
                             <span asp-validation-for="Description" class="text-danger"></span>
                         </div>
                     </div>
@@ -149,7 +149,7 @@
 
                 <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                     <a asp-area="Admin" asp-controller="Groups" asp-action="Index" class="btn btn-light">Abbrechen</a>
-                    <button type="submit" class="btn btn-app-black px-4"><i class="bi bi-check-lg me-1"></i> Gruppe erstellen</button>
+                    <button type="submit" class="btn btn-app-black px-4"><i class="bi bi-check-lg me-1"></i> Raum erstellen</button>
                 </div>
             </form>
         </div>
