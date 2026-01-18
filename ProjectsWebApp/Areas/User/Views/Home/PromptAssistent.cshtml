@@ -11,6 +11,9 @@
     var currentUser = await UserManager.GetUserAsync(User);
     var currentUserId = currentUser?.Id;
     var isAdminUser = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || User.IsInRole("Coach");
+    var isDozentUser = User.IsInRole("Dozent");
+    // Only admins and dozents can enter new keywords; normal users can only select from suggestions
+    var canAddNewKeywords = isAdminUser || isDozentUser;
 
     var userGroups = ViewBag.UserGroups as List<string> ?? new List<string>();
     var activeGroup = ViewBag.ActiveGroup as string ?? "Ohne Gruppe";
@@ -937,6 +940,20 @@
     /* Open state: neutral/gray */
     .kw-in-input.open { background:#f3f6fb; border-color:#d7ddea; color:#4F4F4F; }
     .kw-in-input .btn-text { display: inline; }
+
+    /* Readonly keyword input for normal users */
+    .kw-input.kw-readonly {
+        background: #f8fafc;
+        cursor: pointer;
+        color: #475569;
+    }
+    .kw-input.kw-readonly:focus {
+        background: #f8fafc;
+    }
+    .kw-input-wrap:has(.kw-readonly):focus-within {
+        border-color: #cbd5e1;
+        box-shadow: none;
+    }
     @@media (max-width: 576px){
         .kw-input { padding-right: 3rem; }
         .kw-in-input { padding: .2rem .45rem; font-size: .95rem; }
@@ -2363,11 +2380,17 @@
 
                     <div class="mb-3 mt-4">
                         <label for="schluesselbegriffe" class="form-label fw-semibold">Schlüsselbegriffe:</label>
+                        @if (!canAddNewKeywords)
+                        {
+                            <small class="text-muted d-block mb-1">Bitte aus der Vorauswahl wählen</small>
+                        }
                         <div class="kw-input-wrap">
                             <input id="schluesselbegriffe"
                                    type="text"
-                                   class="form-control kw-input"
-                                   placeholder="z. B. KI, Visualisierung" />
+                                   class="form-control kw-input @(!canAddNewKeywords ? "kw-readonly" : "")"
+                                   placeholder="@(canAddNewKeywords ? "z. B. KI, Visualisierung" : "Aus Vorauswahl wählen...")"
+                                   @(!canAddNewKeywords ? "readonly" : "")
+                                   data-can-add="@(canAddNewKeywords ? "true" : "false")" />
                             @if ((ViewBag.KeywordSuggestions as IEnumerable<string>)?.Any() ?? false)
                             {
                                 <button type="button" id="kwToggleBtn" class="btn btn-sm kw-in-input btn-accent" aria-expanded="false" aria-controls="kwAccordion">
@@ -5146,6 +5169,17 @@
                 input.addEventListener('focus', () => {
                     if (!isOpen) openAcc();
                 });
+
+                // For readonly input (normal users), also open on click
+                if (input.hasAttribute('readonly') || input.dataset.canAdd === 'false') {
+                    input.addEventListener('click', () => {
+                        if (!isOpen) openAcc();
+                    });
+                    // Auto-open accordion for users who can only select (not type)
+                    setTimeout(() => {
+                        if (!isOpen) openAcc();
+                    }, 100);
+                }
             }
 
             // keep chip active states in sync with manual edits
@@ -8005,6 +8039,7 @@
                     if (selected.has(val)) selected.delete(val);
                     else selected.add(val);
                     renderTags();
+                    closeDropdown();
                   });
 
                   // Close on outside click

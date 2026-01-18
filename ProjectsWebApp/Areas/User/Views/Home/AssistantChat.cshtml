@@ -879,18 +879,31 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.5rem 0.85rem;
-        font-size: 0.88rem;
+        font-size: 0.95rem;
         font-weight: 600;
-        color: #64748b;
+        color: #1e293b;
         background: transparent;
         border: 1px solid transparent;
         border-radius: 8px;
         cursor: pointer;
         transition: all 0.15s ease;
+        position: relative;
+    }
+
+    /* Dividers between tabs */
+    .meta-tabs-nav .nav-link:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 60%;
+        width: 1px;
+        background: #cbd5e1;
     }
 
     .meta-tabs-nav .nav-link:hover {
-        color: var(--text);
+        color: #0f172a;
         background: #f1f5f9;
     }
 
@@ -899,6 +912,10 @@
         background: #fff;
         border-color: var(--border);
         box-shadow: 0 2px 4px rgba(16, 24, 40, 0.05);
+    }
+
+    .meta-tabs-nav .nav-link.active::after {
+        display: none;
     }
 
     .meta-tabs-nav .nav-link .chevron {
@@ -1173,7 +1190,7 @@
     {
     <div class="meta-tabs-container">
         <nav class="meta-tabs-nav" id="metaTabsNav">
-            <button type="button" class="nav-link active" data-tab="goals">
+            <button type="button" class="nav-link" data-tab="goals">
                 <i class="bi bi-bullseye"></i> Ziele <i class="bi bi-chevron-down chevron"></i>
             </button>
             @if (canSeeSystemPrompt)
@@ -1197,7 +1214,7 @@
         </nav>
 
         <div class="meta-tabs-content">
-            <div class="meta-tab-pane active" id="tab-goals">
+            <div class="meta-tab-pane" id="tab-goals">
                 @if (canEditSystemPrompt)
                 {
                     <div class="meta-tab-header">
@@ -2319,6 +2336,65 @@
             alert('PDF-Export fehlgeschlagen.');
           }
         });
+      }
+
+      // --- Abgeben (Finalize) button handler ---
+      const finalizeBtn = document.getElementById('finalizeBtn');
+      if (finalizeBtn) {
+        const asstId = @Model.Id;
+        finalizeBtn.addEventListener('click', async function() {
+          // Show confirmation dialog using SweetAlert if available
+          if (typeof Swal !== 'undefined') {
+            const result = await Swal.fire({
+              title: 'Assistent abgeben?',
+              html: '<p>Möchten Sie diesen Assistenten wirklich abgeben?</p><p class="text-muted small">Nach dem Abgeben wird der Assistent als "Abgegeben" markiert.</p>',
+              icon: 'question',
+              showCancelButton: true,
+              confirmButtonText: 'Ja, abgeben',
+              cancelButtonText: 'Abbrechen',
+              confirmButtonColor: '#dc3545',
+              reverseButtons: true
+            });
+            if (!result.isConfirmed) return;
+          } else {
+            if (!confirm('Möchten Sie diesen Assistenten wirklich abgeben?')) return;
+          }
+
+          // Set the finalized flag in localStorage
+          try {
+            localStorage.setItem('assistant:finalized:' + asstId, '1');
+          } catch (e) {
+            console.error('Could not save finalized state:', e);
+          }
+
+          // Show success message
+          if (typeof Swal !== 'undefined') {
+            await Swal.fire({
+              title: 'Abgegeben!',
+              text: 'Der Assistent wurde erfolgreich abgegeben.',
+              icon: 'success',
+              confirmButtonColor: '#89ba17'
+            });
+          } else {
+            alert('Der Assistent wurde erfolgreich abgegeben.');
+          }
+
+          // Update button to show finalized state
+          finalizeBtn.disabled = true;
+          finalizeBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Abgegeben';
+          finalizeBtn.classList.remove('btn-outline-danger');
+          finalizeBtn.classList.add('btn-success');
+        });
+
+        // Check if already finalized on page load
+        try {
+          if (localStorage.getItem('assistant:finalized:' + asstId) === '1') {
+            finalizeBtn.disabled = true;
+            finalizeBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Abgegeben';
+            finalizeBtn.classList.remove('btn-outline-danger');
+            finalizeBtn.classList.add('btn-success');
+          }
+        } catch (e) { /* ignore */ }
       }
     });
 </script>
