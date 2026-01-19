@@ -155,6 +155,29 @@ public class LandingItemController : Controller
     }
 
     [HttpPost]
+    public async Task<IActionResult> CreateMode([FromForm] string title, [FromForm] string iconClass,
+        [FromForm] string routeType, [FromForm] int sortOrder, IFormFile? imageFile)
+    {
+        var mode = new Mode
+        {
+            Title = title,
+            IconClass = iconClass,
+            RouteType = routeType,
+            SortOrder = sortOrder > 0 ? sortOrder : (await _db.Modes.AnyAsync() ? await _db.Modes.MaxAsync(m => m.SortOrder) + 1 : 1),
+            ImageUrl = string.Empty
+        };
+
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            mode.ImageUrl = await SaveFileAsync(imageFile);
+        }
+
+        _db.Modes.Add(mode);
+        await _db.SaveChangesAsync();
+        return Json(new { success = true, id = mode.Id });
+    }
+
+    [HttpPost]
     public async Task<IActionResult> DeleteMode([FromForm] int id)
     {
         var mode = await _db.Modes.FindAsync(id);

@@ -192,8 +192,11 @@
 
     <!-- Modes Section -->
     <section class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Prompt-Arten (9 Typen)</h5>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Prompt-Arten</h5>
+            <button type="button" class="btn btn-success btn-sm" onclick="addMode()">
+                <i class="bi bi-plus-lg me-1"></i>Neue Prompt-Art
+            </button>
         </div>
         <div class="card-body">
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
@@ -306,12 +309,13 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-grid me-2"></i>Prompt-Art bearbeiten</h5>
+                <h5 class="modal-title" id="modeModalTitle"><i class="bi bi-grid me-2"></i>Prompt-Art bearbeiten</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="modeForm" enctype="multipart/form-data">
                 <div class="modal-body">
                     <input type="hidden" id="modeId" name="id">
+                    <input type="hidden" id="modeIsNew" value="false">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Titel</label>
@@ -343,17 +347,17 @@
                             <input type="number" class="form-control" id="modeSortOrder" name="sortOrder" min="1">
                         </div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" id="modeCurrentImageSection">
                         <label class="form-label">Aktuelles Bild</label>
                         <div id="modeCurrentImage" class="mb-2"></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Neues Bild hochladen</label>
+                        <label class="form-label" id="modeImageLabel">Neues Bild hochladen</label>
                         <input type="file" class="form-control" id="modeImageFile" name="imageFile" accept="image/*">
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-danger" onclick="deleteMode()">
+                    <button type="button" class="btn btn-danger" id="modeDeleteBtn" onclick="deleteMode()">
                         <i class="bi bi-trash me-1"></i>Löschen
                     </button>
                     <div>
@@ -493,6 +497,25 @@
     });
 
     // Mode functions
+    function addMode() {
+        // Reset form for new mode
+        document.getElementById('modeId').value = '';
+        document.getElementById('modeIsNew').value = 'true';
+        document.getElementById('modeTitle').value = '';
+        document.getElementById('modeRouteType').value = 'Text';
+        document.getElementById('modeIconClass').value = 'bi bi-';
+        document.getElementById('modeSortOrder').value = '';
+        document.getElementById('modeImageFile').value = '';
+
+        // Update UI for "Add" mode
+        document.getElementById('modeModalTitle').innerHTML = '<i class="bi bi-plus-lg me-2"></i>Neue Prompt-Art erstellen';
+        document.getElementById('modeCurrentImageSection').style.display = 'none';
+        document.getElementById('modeImageLabel').textContent = 'Bild hochladen';
+        document.getElementById('modeDeleteBtn').style.display = 'none';
+
+        modeModal.show();
+    }
+
     async function editMode(id) {
         try {
             const res = await fetch(`@Url.Action("GetMode")?id=${id}`);
@@ -500,10 +523,18 @@
             const data = await res.json();
 
             document.getElementById('modeId').value = data.id;
+            document.getElementById('modeIsNew').value = 'false';
             document.getElementById('modeTitle').value = data.title || '';
             document.getElementById('modeRouteType').value = data.routeType || '';
             document.getElementById('modeIconClass').value = data.iconClass || '';
             document.getElementById('modeSortOrder').value = data.sortOrder || 1;
+            document.getElementById('modeImageFile').value = '';
+
+            // Update UI for "Edit" mode
+            document.getElementById('modeModalTitle').innerHTML = '<i class="bi bi-grid me-2"></i>Prompt-Art bearbeiten';
+            document.getElementById('modeCurrentImageSection').style.display = 'block';
+            document.getElementById('modeImageLabel').textContent = 'Neues Bild hochladen';
+            document.getElementById('modeDeleteBtn').style.display = 'inline-block';
 
             const imgContainer = document.getElementById('modeCurrentImage');
             if (data.imageUrl) {
@@ -521,9 +552,11 @@
     document.getElementById('modeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
+        const isNew = document.getElementById('modeIsNew').value === 'true';
+        const url = isNew ? '@Url.Action("CreateMode")' : '@Url.Action("UpdateMode")';
 
         try {
-            const res = await fetch('@Url.Action("UpdateMode")', {
+            const res = await fetch(url, {
                 method: 'POST',
                 body: formData
             });
@@ -533,8 +566,8 @@
                 modeModal.hide();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Gespeichert!',
-                    text: 'Prompt-Art wurde aktualisiert.',
+                    title: isNew ? 'Erstellt!' : 'Gespeichert!',
+                    text: isNew ? 'Neue Prompt-Art wurde erstellt.' : 'Prompt-Art wurde aktualisiert.',
                     timer: 1500,
                     showConfirmButton: false
                 }).then(() => location.reload());
