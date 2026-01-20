@@ -4,10 +4,10 @@
     ViewData["Title"] = "Leichte Sprache";
 } 
 
-<div class="mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            @Html.Raw(Model.ContentHtml)  <!-- Dynamically loads saved content -->
+<div class="container-fluid px-4 mt-5">
+    <div class="row">
+        <div class="col-12">
+            @Html.Raw(Model.ContentHtml)
         </div>
     </div>
 </div>

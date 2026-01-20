@@ -409,6 +409,14 @@
                                             </div>
                                         </div>
 
+                                        @{
+                                            var typeDisplayNames = ViewBag.TypeDisplayNames as Dictionary<string, string> ?? new Dictionary<string, string>();
+                                            string GetTypeLabel(ProjectsWebApp.Models.PromptType t)
+                                            {
+                                                var key = t.ToString();
+                                                return typeDisplayNames.TryGetValue(key, out var label) ? label : key;
+                                            }
+                                        }
                                         <div class="card pc-card">
                                             <div class="card-header fw-semibold">Typ‑Guidance</div>
                                             <div class="card-body">
@@ -420,7 +428,7 @@
                                                         {
                                                             var existing = cfg.TypeGuidances?.FirstOrDefault(x => x.Type == t);
                                                             <div class="col-12">
-                                                                <label class="form-label fw-semibold">@t</label>
+                                                                <label class="form-label fw-semibold">@GetTypeLabel(t)</label>
                                                                 <input type="hidden" name="types" value="@t" />
                                                                 <textarea name="texts" class="form-control" rows="3">@(existing?.GuidanceText ?? "")</textarea>
                                                             </div>

@@ -226,7 +226,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectsWebApp.DataAccsess.Data;
 using ProjectsWebApp.Models;
 using ProjectsWebApp.Models.ViewModels;
- 
+
 
 namespace ProjectsWebApp.Areas.Admin.Controllers
 {
@@ -240,6 +240,21 @@ namespace ProjectsWebApp.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            // Load Modes to get dynamic type labels
+            var modes = await _db.Modes
+                                 .Where(m => !string.IsNullOrEmpty(m.RouteType))
+                                 .ToListAsync();
+
+            // Build display name mapping from RouteType (enum name) to Title (display label)
+            var typeDisplayNames = modes
+                .GroupBy(m => m.RouteType, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.First().Title ?? g.Key,
+                    StringComparer.OrdinalIgnoreCase
+                );
+            ViewBag.TypeDisplayNames = typeDisplayNames;
+
             // Load existing multi-config; if none, seed from legacy
             var configs = await _db.GlobalPromptConfigs
                                    .Include(c => c.TypeGuidances)
