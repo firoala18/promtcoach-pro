@@ -193,6 +193,14 @@ public class FilterCategoryController : Controller
     }
 
 
+    // Helper: map PromptType enum to display label for filenames and UI
+    private static string GetTypeLabel(PromptType pt) => pt switch
+    {
+        PromptType.Bildung => "Domäne",
+        PromptType.Beruf => "KI-Agent",
+        _ => pt.ToString()
+    };
+
     [HttpGet]
     public IActionResult Export(string? type = null)
     {
@@ -252,7 +260,8 @@ public class FilterCategoryController : Controller
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
         var fileBytes = Encoding.UTF8.GetBytes(fullJson);
-        var fileName = $"{promptType}_FilterCategories.json";
+        var typeLabel = GetTypeLabel(promptType);
+        var fileName = $"{typeLabel}_FilterCategories.json";
 
         return File(fileBytes, "application/json", fileName);
     }
@@ -327,22 +336,31 @@ public class FilterCategoryController : Controller
          * ────────────────────────────────────────────*/
         var catMap = new Dictionary<FilterCategoryDto, FilterCategory>();
 
+        // Determine target type: use URL parameter if provided, otherwise use type from JSON
+        // This allows admins to import categories from one type (e.g., Text) into another (e.g., Bild)
+        var targetType = Enum.TryParse<PromptType>(type, true, out var parsedType)
+                         ? parsedType
+                         : (PromptType?)null;
+
         foreach (var dto in payload.Data)
         {
-            // 3a) Versuch: vorhandene Kategorie über Id finden
+            // Use target type from URL if specified, otherwise use type from JSON
+            var effectiveType = targetType ?? dto.Type;
+
+            // 3a) Versuch: vorhandene Kategorie über Id finden (only if same type)
             FilterCategory? cat = null;
             if (dto.Id.HasValue && dto.Id.Value != 0)
             {
                 cat = _unitOfWork.FilterCategory
-                                 .GetFirstOrDefault(c => c.Id == dto.Id.Value);
+                                 .GetFirstOrDefault(c => c.Id == dto.Id.Value && c.Type == effectiveType);
             }
 
-            // 3b) Fallback: gleiche (Name + Type) suchen
+            // 3b) Fallback: gleiche (Name + effectiveType) suchen
             if (cat == null)
             {
                 cat = _unitOfWork.FilterCategory
                                  .GetFirstOrDefault(c => c.Name == dto.Name &&
-                                                         c.Type == dto.Type);
+                                                         c.Type == effectiveType);
             }
 
             // 3c) Falls nichts gefunden → neue Kategorie
@@ -355,9 +373,9 @@ public class FilterCategoryController : Controller
                 _unitOfWork.FilterCategory.Add(cat);
             }
 
-            // 3d) Eigenschaften setzen
+            // 3d) Eigenschaften setzen - use effective type (from URL or JSON)
             cat.Name = dto.Name;
-            cat.Type = dto.Type;
+            cat.Type = effectiveType;
             cat.DisplayOrder = dto.DisplayOrder;
 
             catMap[dto] = cat;   // für Pass 2 merken

@@ -61,6 +61,8 @@ builder.Services.AddScoped<ISemanticIndexService, SemanticIndexService>();
 builder.Services.AddScoped<IAiProviderResolver, AiProviderResolver>();
 builder.Services.AddScoped<IUserActivityLogger, UserActivityLogger>();
 builder.Services.AddScoped<IUserActivityAnalyticsService, UserActivityAnalyticsService>();
+builder.Services.AddScoped<IPdfTextExtractor, PdfTextExtractor>();
+builder.Services.AddScoped<IPdfChunkingService, PdfChunkingService>();
 
 // ─────────── EF Core (MariaDB via Pomelo) ───────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

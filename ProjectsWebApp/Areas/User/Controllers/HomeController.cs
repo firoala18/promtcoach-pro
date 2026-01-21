@@ -36,6 +36,8 @@ namespace ProjectsWebApp.Areas.User.Controllers
         private readonly IConfiguration _cfg;
         private readonly IAiProviderResolver _resolver;
         private readonly IUserActivityLogger _activityLogger;
+        private readonly IPdfTextExtractor _pdfExtractor;
+        private readonly IPdfChunkingService _pdfChunker;
 
         public HomeController(ILogger<HomeController> logger,
                               IUnitOfWork unitOfWork,
@@ -43,7 +45,9 @@ namespace ProjectsWebApp.Areas.User.Controllers
                               UserManager<IdentityUser> userManager,
                               IConfiguration cfg,
                               IAiProviderResolver resolver,
-                              IUserActivityLogger activityLogger)
+                              IUserActivityLogger activityLogger,
+                              IPdfTextExtractor pdfExtractor,
+                              IPdfChunkingService pdfChunker)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -52,6 +56,8 @@ namespace ProjectsWebApp.Areas.User.Controllers
             _cfg = cfg;
             _resolver = resolver;
             _activityLogger = activityLogger;
+            _pdfExtractor = pdfExtractor;
+            _pdfChunker = pdfChunker;
         }
 
         [Authorize]
@@ -224,7 +230,7 @@ namespace ProjectsWebApp.Areas.User.Controllers
             }
             if (txtFile == null || txtFile.Length == 0)
             {
-                TempData["error"] = "Bitte eine Textdatei auswählen.";
+                TempData["error"] = "Bitte eine Datei auswählen.";
                 return RedirectToAction(nameof(AssistantChat), new { id });
             }
 
@@ -236,62 +242,107 @@ namespace ProjectsWebApp.Areas.User.Controllers
             bool allowed = string.Equals(model.CreatedByUserId, currentUserId, StringComparison.Ordinal);
             if (!allowed) return Forbid();
 
-            var isTxt = string.Equals(Path.GetExtension(txtFile.FileName), ".txt", StringComparison.OrdinalIgnoreCase)
+            var extension = Path.GetExtension(txtFile.FileName);
+            var isPdf = string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(txtFile.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase);
+            var isTxt = string.Equals(extension, ".txt", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(txtFile.ContentType, "text/plain", StringComparison.OrdinalIgnoreCase);
-            if (!isTxt)
-            {
-                TempData["error"] = "Nur .txt Dateien werden unterstützt.";
-                return RedirectToAction(nameof(AssistantChat), new { id });
-            }
 
-            string text;
-            using (var sr = new StreamReader(txtFile.OpenReadStream()))
+            if (!isPdf && !isTxt)
             {
-                text = await sr.ReadToEndAsync();
-            }
-            text = (text ?? string.Empty).Trim();
-            if (text.Length == 0)
-            {
-                TempData["error"] = "Die Datei ist leer.";
+                TempData["error"] = "Nur .txt und .pdf Dateien werden unterstützt.";
                 return RedirectToAction(nameof(AssistantChat), new { id });
             }
 
             var apiKey = await _resolver.ResolveEmbeddingsKeyAsync(ct);
-
-            var chunks = SplitIntoChunks(text, maxTokensPerChunk: 6000);
-            if (chunks.Count == 0)
-            {
-                TempData["error"] = "Text konnte nicht in gültige Chunks aufgeteilt werden.";
-                return RedirectToAction(nameof(AssistantChat), new { id });
-            }
+            var baseFileName = Path.GetFileNameWithoutExtension(txtFile.FileName);
 
             try
             {
                 var embClient = new EmbeddingClient("text-embedding-3-small", apiKey);
                 var embRepo = _unitOfWork.GetRepository<AssistantEmbedding>();
-
                 int stored = 0;
-                foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
-                {
-                    var resp = await embClient.GenerateEmbeddingAsync(chunk, cancellationToken: ct);
-                    var vector = resp.Value.ToFloats();
-                    var json = JsonSerializer.Serialize(vector);
 
-                    embRepo.Add(new AssistantEmbedding
+                if (isPdf)
+                {
+                    using var stream = txtFile.OpenReadStream();
+                    var pdfResult = await _pdfExtractor.ExtractTextAsync(stream, ct);
+
+                    if (string.IsNullOrWhiteSpace(pdfResult.FullText))
                     {
-                        AssistantId = id,
-                        SourceFileName = $"{Path.GetFileNameWithoutExtension(txtFile.FileName)}_teil{index + 1}{Path.GetExtension(txtFile.FileName)}",
-                        Content = chunk,
-                        EmbeddingJson = json,
-                        UploadedAtUtc = DateTime.UtcNow
-                    });
-                    stored++;
+                        TempData["error"] = "Die PDF-Datei enthält keinen extrahierbaren Text.";
+                        return RedirectToAction(nameof(AssistantChat), new { id });
+                    }
+
+                    var pdfChunks = _pdfChunker.ChunkDocument(pdfResult, maxTokensPerChunk: 6000);
+                    if (pdfChunks.Count == 0)
+                    {
+                        TempData["error"] = "PDF konnte nicht in gültige Chunks aufgeteilt werden.";
+                        return RedirectToAction(nameof(AssistantChat), new { id });
+                    }
+
+                    foreach (var chunk in pdfChunks)
+                    {
+                        var resp = await embClient.GenerateEmbeddingAsync(chunk.Content, cancellationToken: ct);
+                        var vector = resp.Value.ToFloats();
+                        var json = JsonSerializer.Serialize(vector);
+
+                        embRepo.Add(new AssistantEmbedding
+                        {
+                            AssistantId = id,
+                            SourceFileName = $"{baseFileName}_{chunk.SourceInfo}.pdf",
+                            Content = chunk.Content,
+                            EmbeddingJson = json,
+                            UploadedAtUtc = DateTime.UtcNow
+                        });
+                        stored++;
+                    }
                 }
+                else
+                {
+                    string text;
+                    using (var sr = new StreamReader(txtFile.OpenReadStream()))
+                    {
+                        text = await sr.ReadToEndAsync();
+                    }
+                    text = (text ?? string.Empty).Trim();
+
+                    if (text.Length == 0)
+                    {
+                        TempData["error"] = "Die Datei ist leer.";
+                        return RedirectToAction(nameof(AssistantChat), new { id });
+                    }
+
+                    var chunks = SplitIntoChunks(text, maxTokensPerChunk: 6000);
+                    if (chunks.Count == 0)
+                    {
+                        TempData["error"] = "Text konnte nicht in gültige Chunks aufgeteilt werden.";
+                        return RedirectToAction(nameof(AssistantChat), new { id });
+                    }
+
+                    foreach (var (chunk, index) in chunks.Select((c, i) => (c, i)))
+                    {
+                        var resp = await embClient.GenerateEmbeddingAsync(chunk, cancellationToken: ct);
+                        var vector = resp.Value.ToFloats();
+                        var json = JsonSerializer.Serialize(vector);
+
+                        embRepo.Add(new AssistantEmbedding
+                        {
+                            AssistantId = id,
+                            SourceFileName = $"{baseFileName}_teil{index + 1}.txt",
+                            Content = chunk,
+                            EmbeddingJson = json,
+                            UploadedAtUtc = DateTime.UtcNow
+                        });
+                        stored++;
+                    }
+                }
+
                 _unitOfWork.Save();
 
                 TempData["success"] = stored == 1
                     ? "Embedding gespeichert."
-                    : $"{stored} Embeddings als Teile gespeichert (Text wurde wegen Länge aufgeteilt).";
+                    : $"{stored} Embeddings gespeichert (Dokument wurde aufgeteilt).";
             }
             catch (Exception ex)
             {

@@ -1334,9 +1334,10 @@
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <div class="input-group">
-                            <input type="file" name="txtFile" accept=".txt,text/plain" class="form-control" />
-                            <button type="submit" class="btn btn-secondary">Hochladen &amp; Einbetten</button>
+                            <input type="file" name="txtFile" accept=".txt,.pdf,text/plain,application/pdf" class="form-control" />
+                            <button type="submit" class="btn btn-secondary">Datei hochladen &amp; einbetten</button>
                         </div>
+                        <div class="form-text mt-1">Unterstützte Formate: .txt und .pdf</div>
                     </form>
                     @{
                         var list = ViewBag.Embeddings as IEnumerable<ProjectsWebApp.Models.AssistantEmbedding>;

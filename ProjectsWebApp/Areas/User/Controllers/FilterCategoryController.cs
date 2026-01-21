@@ -33,6 +33,15 @@ namespace ProjectsWebApp.Areas.User.Controllers
             WriteIndented = false
         };
 
+        // Helper: map PromptType enum to display label for filenames and UI
+        private static string GetTypeLabel(PromptType pt) => pt switch
+        {
+            PromptType.Eigenfilter => "Szenarien",
+            PromptType.Framework => "Framework",
+            PromptType.Meta => "Meta",
+            _ => pt.ToString()
+        };
+
         public FilterCategoryController(IUnitOfWork unitOfWork, UserManager<IdentityUser> userManager)
         {
             _unitOfWork = unitOfWork;
@@ -266,7 +275,8 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 })
                 .ToList();
 
-            var payloadJson = BuildSignedPayload(dtoList, promptType + "_MeineFilter.json", out var fileName);
+            var label = GetTypeLabel(promptType);
+            var payloadJson = BuildSignedPayload(dtoList, label + "_MeineFilter.json", out var fileName);
             return File(Encoding.UTF8.GetBytes(payloadJson), "application/json", fileName);
         }
 
@@ -307,18 +317,13 @@ namespace ProjectsWebApp.Areas.User.Controllers
                 })
                 .ToList();
 
-            var label = promptType switch
-            {
-                PromptType.Framework => "Framework",
-                PromptType.Meta      => "Meta",
-                _                    => "Eigenfilter"
-            };
+            var label = GetTypeLabel(promptType);
             var title = isAi ? label + "_KI" : label + "_Eigene";
             var payloadJson = BuildSignedPayload(dtoList, title + ".json", out var fileName);
             return File(Encoding.UTF8.GetBytes(payloadJson), "application/json", fileName);
         }
 
-        // ========= Import (unchanged) =========
+        // ========= Import (allows cross-type import) =========
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Import(IFormFile file, string? type = null)
@@ -362,20 +367,29 @@ namespace ProjectsWebApp.Areas.User.Controllers
             var userId = _userManager.GetUserId(User)!;
             var dtoToCat = new Dictionary<FilterCategoryDto, FilterCategory>();
 
+            // Determine target type: use URL parameter if provided, otherwise use type from JSON
+            // This allows users to import categories from one type (e.g., Szenarien) into another (e.g., Framework)
+            var targetType = Enum.TryParse<PromptType>(type, true, out var parsedType)
+                             ? parsedType
+                             : (PromptType?)null;
+
             foreach (var dto in payload.Data)
             {
                 dto.FilterItems ??= new List<FilterItemDto>();
 
+                // Use target type from URL if specified, otherwise use type from JSON
+                var effectiveType = targetType ?? dto.Type;
+
                 var cat = _unitOfWork.FilterCategory
-                           .GetFirstOrDefault(c => c.Id == dto.Id && c.UserId == userId)
+                           .GetFirstOrDefault(c => c.Id == dto.Id && c.UserId == userId && c.Type == effectiveType)
                     ?? _unitOfWork.FilterCategory
                            .GetFirstOrDefault(c => c.UserId == userId &&
                                                    c.Name == dto.Name &&
-                                                   c.Type == dto.Type)
+                                                   c.Type == effectiveType)
                     ?? new FilterCategory { UserId = userId };
 
                 cat.Name = dto.Name ?? "(ohne Namen)";
-                cat.Type = dto.Type;
+                cat.Type = effectiveType;
                 cat.DisplayOrder = dto.DisplayOrder;
 
                 if (cat.Id == 0)
@@ -442,7 +456,8 @@ namespace ProjectsWebApp.Areas.User.Controllers
             foreach (var c in cats) _unitOfWork.FilterCategory.Remove(c);
             _unitOfWork.Save();
 
-            TempData["DeleteSuccess"] = $"Alle Kategorien vom Typ „{promptType}“ wurden gelöscht.";
+            var label = GetTypeLabel(promptType);
+            TempData["DeleteSuccess"] = $"Alle Kategorien vom Typ \"{label}\" wurden gelöscht.";
             return RedirectToAction(nameof(Index), new { type = promptType });
         }
 
@@ -485,15 +500,10 @@ namespace ProjectsWebApp.Areas.User.Controllers
             foreach (var c in cats) _unitOfWork.FilterCategory.Remove(c);
             _unitOfWork.Save();
 
-            var label = promptType switch
-            {
-                PromptType.Framework => "Framework-Filter",
-                PromptType.Meta      => "Meta-Filter",
-                _                    => "Eigenfilter"
-            };
+            var label = GetTypeLabel(promptType);
             TempData["DeleteSuccess"] = isAi
-                ? $"Alle KI-generierten {label} wurden gelöscht."
-                : $"Alle eigenen {label} wurden gelöscht.";
+                ? $"Alle KI-generierten {label}-Filter wurden gelöscht."
+                : $"Alle eigenen {label}-Filter wurden gelöscht.";
 
             return RedirectToAction(nameof(Index), new { type = promptType });
         }

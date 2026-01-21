@@ -7,16 +7,16 @@
     var currentTypeStr = currentType.ToString();
 
     // Feste Anzeige-Reihenfolge analog zur Prompt-Entwicklung
-    // Text, Bild, Video, Sound, Domäne, KI-Agent, Szenarien, Framework, Meta
+    // Text, Bild, Video, Sound, Domäne, KI-Agent, Framework, Meta
     var orderedPromptTypes = new[]
     {
         PromptType.Text,
         PromptType.Bild,
         PromptType.Video,
         PromptType.Sound,
-        PromptType.Eigenfilter, // Domäne
-        PromptType.Bildung,     // Szenarien
-        PromptType.Beruf,       // KI-Agent
+        PromptType.Eigenfilter, // (user-only)
+        PromptType.Bildung,     // Displayed as "Domäne"
+        PromptType.Beruf,       // Displayed as "KI-Agent"
         PromptType.Framework,
         PromptType.Meta
     };
@@ -730,7 +730,8 @@
             /* --- Bestätigung anzeigen ---------------------------------- */
             Swal.fire({
                 title: 'Import bestätigen',
-                html: `Der <b>aktuelle Inhalt</b> wird vollständig ersetzt.<br>
+                html: `Kategorien werden in <b>@currentTypeLabel</b> importiert.<br>
+                       Der aktuelle Inhalt wird ggf. aktualisiert.<br><br>
                        Möchten Sie fortfahren?`,
                 icon: 'warning',
                 showCancelButton: true,
@@ -813,12 +814,11 @@
 
                 Swal.fire({
                     title: 'Löschen',
-                    html : 'Möchten Sie nur Kategorien vom Typ <b>‘' + '@currentTypeStr' +
-                           '’</b> löschen oder <b>alle</b> Kategorien?',
+                    html : 'Möchten Sie nur Kategorien vom Typ <b>@currentTypeLabel</b> löschen oder <b>alle</b> Kategorien?',
                     icon : 'warning',
                     showCancelButton : true,
                     showDenyButton   : true,
-                    confirmButtonText: 'Nur ‘' + '@currentTypeStr' + '’ löschen',
+                    confirmButtonText: 'Nur „@currentTypeLabel" löschen',
                     denyButtonText   : 'Alle Typen löschen',
                     cancelButtonText : 'Abbrechen'
                 }).then(result => {

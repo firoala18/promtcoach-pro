@@ -29,6 +29,14 @@
         PromptType.Meta      => "Meta ",
         _                    => "Szenarien "
     };
+
+    // Label for dialogs (without trailing space)
+    var typeLabel = Model.Type switch
+    {
+        PromptType.Framework => "Framework",
+        PromptType.Meta      => "Meta",
+        _                    => "Szenarien"
+    };
 }
 
 <style>
@@ -496,17 +504,20 @@
         showPanel('manual');
 
         /* Export current group */
-        const baseExportGroupUrl = '@Url.Action("ExportEigenfilter", "FilterCategory", new { area = "User", type = currentTypeStr })';
+        const baseExportGroupUrl = '@Url.Action("ExportEigenfilter", "FilterCategory", new { area = "User" })';
+        const currentTypeParam = '@currentTypeStr';
         document.getElementById('btnExportGroup').addEventListener('click', () => {
-          const url = baseExportGroupUrl + '?group=' + encodeURIComponent(currentGroup);
+          const url = baseExportGroupUrl + '?type=' + encodeURIComponent(currentTypeParam) + '&group=' + encodeURIComponent(currentGroup);
           window.location.href = url;
         });
 
         /* Delete current group */
+        const typeLabel = '@typeLabel';
         document.getElementById('deleteGroupBtn').addEventListener('click', async () => {
           const isAi = (currentGroup === 'ai');
+          const title = isAi ? `KI-generierte ${typeLabel}-Filter löschen?` : `Eigene ${typeLabel}-Filter löschen?`;
           const ok = await Swal.fire({
-            title: isAi ? 'KI-Filter löschen?' : 'Eigene Filter löschen?',
+            title: title,
             text : 'Diese Aktion kann nicht rückgängig gemacht werden.',
             icon : 'warning',
             showCancelButton : true,
@@ -578,7 +589,7 @@
 
           const go = await Swal.fire({
             title: 'Import bestätigen',
-            html: 'Der <b>aktuelle Inhalt</b> wird vollständig ersetzt.<br>Möchten Sie fortfahren?',
+            html: `Kategorien werden in <b>${typeLabel}</b> importiert.<br>Der aktuelle Inhalt wird ggf. aktualisiert.<br><br>Möchten Sie fortfahren?`,
             icon: 'warning',
             showCancelButton: true,
             showDenyButton: true,
@@ -588,7 +599,7 @@
           }).then(r => r.isConfirmed ? 'import' : (r.isDenied ? 'download' : 'cancel'));
 
           if (go === 'import') document.getElementById('importJsonForm').submit();
-          if (go === 'download') window.location.href = baseExportGroupUrl + '?group=' + currentGroup;
+          if (go === 'download') window.location.href = baseExportGroupUrl + '?type=' + encodeURIComponent(currentTypeParam) + '&group=' + encodeURIComponent(currentGroup);
           if (go === 'cancel') e.target.value = '';
         });
 
