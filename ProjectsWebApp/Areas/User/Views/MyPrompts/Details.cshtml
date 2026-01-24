@@ -79,7 +79,8 @@
     {
         <style>
             .edit-btn, .delete-btn, .delete-image-form,
-            .publish-btn, .delete-variation, .edit-variation {
+            .publish-btn, .delete-variation, .edit-variation,
+            .header-actions-mobile, .header-actions-desktop {
                 display: none !important;
             }
 
@@ -1001,6 +1002,90 @@
             margin: 0.5rem 0;
         }
 
+        /* Header action buttons - desktop vs mobile */
+        .header-actions-desktop {
+            display: flex !important;
+            align-items: center;
+        }
+
+        .header-actions-mobile {
+            display: none !important;
+        }
+
+        .header-actions-mobile .btn-dots-menu {
+            background: #ffffff;
+            border: none;
+            border-radius: 50%;
+            color: #333;
+            width: 40px;
+            height: 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-actions-mobile .btn-dots-menu:hover {
+            background: #f8f9fa;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-actions-mobile .dots-dropdown-menu {
+            min-width: 200px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
+            background: #fff;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-radius: 8px;
+            color: #333;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item:hover {
+            background-color: #f0f2f5;
+            color: #000;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item.edit-action i {
+            color: #89ba17;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item.delete-action i {
+            color: #dc3545;
+        }
+
+        .header-actions-mobile .dots-dropdown-menu .dropdown-item.publish-action i {
+            color: #004f72;
+        }
+
+        @@media (max-width: 1200px) {
+            .header-actions-desktop {
+                display: none !important;
+            }
+
+            .header-actions-mobile {
+                display: block !important;
+            }
+        }
+
     </style>
 
 <div class="d-flex justify-content-end mb-4 container flex-wrap gap-2">
@@ -1040,8 +1125,8 @@
 
                  
 
-                    <div>
-                      
+                    <!-- Desktop action buttons -->
+                    <div class="header-actions-desktop">
                         <button class="edit-btn ms-2" title="Bearbeiten">
                             <i class="bi bi-pencil-fill"></i>
                         </button>
@@ -1055,7 +1140,34 @@
                                 title="In Bibliothek veröffentlichen">
                             <i class="bi bi-upload"></i>
                         </button>
-                       
+                    </div>
+
+                    <!-- Mobile three-dots menu -->
+                    <div class="header-actions-mobile dropdown">
+                        <button class="btn-dots-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dots-dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item edit-action mobile-edit-btn" href="#">
+                                    <i class="bi bi-pencil-fill"></i>
+                                    Bearbeiten
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item publish-action mobile-publish-btn" href="#" data-akronym="@Model.Akronym">
+                                    <i class="bi bi-upload"></i>
+                                    Veröffentlichen
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item delete-action mobile-delete-btn" href="#">
+                                    <i class="bi bi-trash-fill"></i>
+                                    Löschen
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
 
@@ -2175,6 +2287,27 @@
             }
           });
 
+        });
+
+        /* ─────────────────────────────────────────────────────
+           Mobile menu button handlers
+        ───────────────────────────────────────────────────── */
+        // Mobile Edit button - trigger same action as desktop edit button
+        document.querySelector('.mobile-edit-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelector('.edit-btn')?.click();
+        });
+
+        // Mobile Delete button - trigger same action as desktop delete button
+        document.querySelector('.mobile-delete-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelector('.delete-btn')?.click();
+        });
+
+        // Mobile Publish button - trigger same action as desktop publish button
+        document.querySelector('.mobile-publish-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.querySelector('.publish-btn')?.click();
         });
 
     </script>

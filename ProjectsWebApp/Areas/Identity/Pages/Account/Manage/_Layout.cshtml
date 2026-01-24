@@ -103,6 +103,11 @@
         grid-template-columns: 280px 1fr;
         gap: 2rem;
         align-items: start;
+        transition: grid-template-columns 0.3s ease;
+    }
+
+    .manage-container.sidebar-collapsed {
+        grid-template-columns: 72px 1fr;
     }
 
     /* Sidebar */
@@ -113,6 +118,19 @@
         padding: 1.5rem;
         position: sticky;
         top: 100px;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .manage-sidebar.collapsed {
+        padding: 1rem 0.75rem;
+    }
+
+    .manage-sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
     }
 
     .manage-sidebar-title {
@@ -122,7 +140,44 @@
         letter-spacing: 0.05em;
         color: var(--manage-gray);
         padding: 0 0.75rem;
-        margin-bottom: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        transition: opacity 0.2s ease;
+    }
+
+    .manage-sidebar.collapsed .manage-sidebar-title {
+        opacity: 0;
+        width: 0;
+        padding: 0;
+    }
+
+    .sidebar-toggle-btn {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--manage-border);
+        background: #fff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--manage-gray);
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .sidebar-toggle-btn:hover {
+        background: #f3f4f6;
+        color: var(--manage-primary);
+        border-color: var(--manage-primary);
+    }
+
+    .sidebar-toggle-btn i {
+        transition: transform 0.3s ease;
+    }
+
+    .manage-sidebar.collapsed .sidebar-toggle-btn i {
+        transform: rotate(180deg);
     }
 
     /* Content Area */
@@ -190,10 +245,15 @@
     </div>
 
     <!-- Main Grid -->
-    <div class="manage-container">
+    <div class="manage-container" id="manageContainer">
         <!-- Sidebar Navigation -->
-        <aside class="manage-sidebar">
-            <div class="manage-sidebar-title">Navigation</div>
+        <aside class="manage-sidebar" id="manageSidebar">
+            <div class="manage-sidebar-header">
+                <div class="manage-sidebar-title">Navigation</div>
+                <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Seitenleiste ein-/ausklappen">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            </div>
             <partial name="_ManageNav" />
         </aside>
 
@@ -203,6 +263,46 @@
         </main>
     </div>
 </div>
+
+<script>
+    (function() {
+        var sidebar = document.getElementById('manageSidebar');
+        var container = document.getElementById('manageContainer');
+        var toggleBtn = document.getElementById('sidebarToggle');
+        var storageKey = 'manage_sidebar_collapsed';
+
+        function isCollapsed() {
+            try {
+                return localStorage.getItem(storageKey) === '1';
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function setCollapsed(collapsed) {
+            try {
+                localStorage.setItem(storageKey, collapsed ? '1' : '0');
+            } catch(e) {}
+            if (collapsed) {
+                sidebar.classList.add('collapsed');
+                container.classList.add('sidebar-collapsed');
+            } else {
+                sidebar.classList.remove('collapsed');
+                container.classList.remove('sidebar-collapsed');
+            }
+        }
+
+        // Initialize state
+        if (isCollapsed()) {
+            setCollapsed(true);
+        }
+
+        // Toggle on click
+        toggleBtn.addEventListener('click', function() {
+            setCollapsed(!sidebar.classList.contains('collapsed'));
+        });
+    })();
+</script>
 
 @section Scripts {
     @RenderSection("Scripts", required: false)

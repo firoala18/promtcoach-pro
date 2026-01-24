@@ -12,7 +12,9 @@
       "Bash(dotnet ef database update:*)",
       "Bash(taskkill //F //PID 70436)",
       "Bash(findstr:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(Select-String -Pattern \"error\")",
+      "Bash(Select-Object -First 10)"
     ]
   }
 }

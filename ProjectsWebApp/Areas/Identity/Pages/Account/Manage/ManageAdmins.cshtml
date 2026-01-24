@@ -1,11 +1,32 @@
 @page
 @model ProjectsWebApp.Areas.Identity.Pages.Account.Manage.ManageAdminsModel
+@using Microsoft.AspNetCore.Identity
 @{
     ViewData["Title"] = "Admins verwalten";
     ViewData["ActivePage"] = ManageNavPages.ManageAdmins;
     var isSuperUser = User.IsInRole("SuperAdmin");
     var isCoachUser = User.IsInRole("Admin");
     var isDozentUser = User.IsInRole("Dozent");
+
+    // Split AdminUsers into high-level admins and dozenten
+    var highAdmins = new List<IdentityUser>();
+    var dozenten = new List<IdentityUser>();
+    foreach (var admin in Model.AdminUsers)
+    {
+        var isSuper_split = await Model.UserManager.IsInRoleAsync(admin, "SuperAdmin");
+        var isAdmin_split = await Model.UserManager.IsInRoleAsync(admin, "Admin");
+        var isDozent_split = await Model.UserManager.IsInRoleAsync(admin, "Dozent");
+        var isApiManager_split = await Model.UserManager.IsInRoleAsync(admin, "ApiManager");
+
+        if (isSuper_split || isAdmin_split || isApiManager_split)
+        {
+            highAdmins.Add(admin);
+        }
+        else if (isDozent_split)
+        {
+            dozenten.Add(admin);
+        }
+    }
 }
 
 <style>
@@ -226,6 +247,62 @@
             .admin-table tbody tr:last-child td {
                 border-bottom: none;
             }
+
+    /* Pagination styles */
+    .table-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        border-top: 1px solid var(--gray-100);
+        background: var(--gray-50);
+    }
+
+    .pagination-info {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .pagination-btn {
+        padding: 0.4rem 0.75rem;
+        border: 1px solid var(--gray-200);
+        background: #fff;
+        color: var(--gray-700);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-btn.active {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+    .pagination-select {
+        padding: 0.4rem 0.75rem;
+        border: 1px solid var(--gray-200);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background: #fff;
+    }
 
     /* User Cell */
     .user-cell {
@@ -735,13 +812,13 @@
             </div>
         </div> *@
 
-        <!-- Current Administrators -->
+        <!-- Current Administrators (SuperAdmin, Admin, ApiManager) -->
         <div class="admin-card">
             <div class="admin-card-header">
-                <h4><i class="bi bi-person-lines-fill"></i>Aktuelle Admins</h4>
+                <h4><i class="bi bi-shield-fill"></i>Aktuelle Admins</h4>
             </div>
             <div class="admin-card-body">
-                @if (!Model.AdminUsers.Any())
+                @if (!highAdmins.Any())
                 {
                     <div class="text-center py-4">
                         <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-300);"></i>
@@ -751,7 +828,7 @@
                 else
                 {
                     <div class="table-responsive">
-                        <table class="admin-table">
+                        <table class="admin-table" id="highAdminsTable">
                             <thead>
                                 <tr>
                                     <th style="width: 40%;">Anwender</th>
@@ -760,18 +837,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var admin in Model.AdminUsers)
+                                @foreach (var admin in highAdmins)
                                 {
                                     var isSuper = await Model.UserManager.IsInRoleAsync(admin, "SuperAdmin");
                                     var isAdmin = await Model.UserManager.IsInRoleAsync(admin, "Admin");
                                     var isDozent = await Model.UserManager.IsInRoleAsync(admin, "Dozent");
                                     var isApiManager = await Model.UserManager.IsInRoleAsync(admin, "ApiManager");
-                                    var cnt = Model.AdminUsers.Count;
+                                    var cnt = highAdmins.Count;
                                     var isSelf = admin.Email.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
                                     var disable = cnt == 1 || isSelf;
                                     var initials = string.Join("", admin.Email.Split('@')[0].Take(2)).ToUpper();
+                                    var deleteTitle = disable ? (isSelf ? "Nicht erlaubt - Sie können sich nicht selbst entfernen" : "Nicht erlaubt - Mindestens ein Admin muss erhalten bleiben") : "Admin entfernen";
 
-                                    <tr>
+                                    <tr class="paginated-row">
                                         <td>
                                             <div class="user-cell">
                                                 <div class="user-avatar">@initials</div>
@@ -784,6 +862,10 @@
                                                 </div>
                                             </div>
                                         </td>
+                                        @{
+                                            var userClaims_high = await Model.UserManager.GetClaimsAsync(admin);
+                                            var displayRole_high = userClaims_high.FirstOrDefault(c => c.Type == "RoleDisplayName")?.Value ?? "";
+                                        }
                                         <td>
                                             @if (isSuperUser && !disable)
                                             {
@@ -801,11 +883,11 @@
                                                         <option value="SuperAdmin" selected="@(isSuper)">Administrator*in</option>
                                                         <option value="ApiManager" selected="@(isApiManager && !isSuper && !isAdmin && !isDozent)">API‑Manager*in</option>
                                                         <option value="Admin" selected="@(isAdmin && !isSuper && !isDozent)">Coach*in</option>
-                                                        <option value="Dozent">Forscher*in</option>
-                                                        <option value="Dozent" selected="@(isDozent && !isSuper)">Dozent*in</option>
-                                                        <option value="Dozent">Gruppen‑Manager*in</option>
-                                                        <option value="User">Student*in</option>
-                                                        <option value="User" selected="@(!isAdmin && !isSuper && !isDozent)">Benutzer*in</option>
+                                                        <option value="Dozent|Forscher" selected="@(isDozent && !isSuper && !isAdmin && displayRole_high == "Forscher")">Forscher*in</option>
+                                                        <option value="Dozent|Dozent" selected="@(isDozent && !isSuper && !isAdmin && (displayRole_high == "Dozent" || displayRole_high == ""))">Dozent*in</option>
+                                                        <option value="Dozent|GruppenManager" selected="@(isDozent && !isSuper && !isAdmin && displayRole_high == "GruppenManager")">Gruppen‑Manager*in</option>
+                                                        <option value="User|Student">Student*in</option>
+                                                        <option value="User|Benutzer">Benutzer*in</option>
                                                     </select>
                                                 </form>
                                             }
@@ -823,22 +905,10 @@
                                                         <i class="bi bi-person-badge-fill"></i>Coach*in
                                                     </span>
                                                 }
-                                                else if (isApiManager && !isSuper && !isAdmin && !isDozent)
+                                                else if (isApiManager)
                                                 {
                                                     <span class="role-badge role-badge-admin">
                                                         <i class="bi bi-gear-fill"></i>API‑Manager*in
-                                                    </span>
-                                                }
-                                                else if (isDozent)
-                                                {
-                                                    <span class="role-badge role-badge-dozent">
-                                                        <i class="bi bi-mortarboard-fill"></i>Dozent*in
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="role-badge role-badge-user">
-                                                        <i class="bi bi-person-fill"></i>Benutzer*in
                                                     </span>
                                                 }
                                             }
@@ -846,15 +916,6 @@
                                         <td>
                                             <form method="post" asp-page-handler="RemoveAdmin" class="d-inline remove-admin-form">
                                                 <input type="hidden" name="RemoveAdminEmail" value="@admin.Email" />
-                                                @{
-                                                    var deleteTitle = "Admin entfernen";
-                                                    if (disable)
-                                                    {
-                                                        deleteTitle = isSelf
-                                                        ? "Nicht erlaubt - Sie können sich nicht selbst entfernen"
-                                                        : "Nicht erlaubt - Mindestens ein Admin muss erhalten bleiben";
-                                                    }
-                                                }
                                                 <button type="submit"
                                                         class="btn-modern btn-modern-danger btn-modern-sm"
                                                         title="@deleteTitle"
@@ -870,6 +931,134 @@
                             </tbody>
                         </table>
                     </div>
+                    @if (highAdmins.Count > 10)
+                    {
+                        <div class="table-pagination" id="highAdminsPagination">
+                            <div class="pagination-info">
+                                <span id="highAdminsInfo"></span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button type="button" class="pagination-btn" onclick="changePage('highAdmins', -1)"><i class="bi bi-chevron-left"></i></button>
+                                <span id="highAdminsPages"></span>
+                                <button type="button" class="pagination-btn" onclick="changePage('highAdmins', 1)"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Dozenten & Forschende (Dozent roles) -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h4><i class="bi bi-mortarboard-fill"></i>Dozenten & Forschende</h4>
+            </div>
+            <div class="admin-card-body">
+                @if (!dozenten.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-300);"></i>
+                        <p class="mt-3 text-muted">Keine Dozenten oder Forschende vorhanden</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="admin-table" id="dozentenTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Anwender</th>
+                                    <th style="width: 30%;">Rolle</th>
+                                    <th style="width: 30%;">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var admin in dozenten)
+                                {
+                                    var isSelf = admin.Email.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                                    var initials = string.Join("", admin.Email.Split('@')[0].Take(2)).ToUpper();
+
+                                    <tr class="paginated-row">
+                                        <td>
+                                            <div class="user-cell">
+                                                <div class="user-avatar">@initials</div>
+                                                <div class="user-info">
+                                                    <div class="user-email">@admin.Email</div>
+                                                    @if (isSelf)
+                                                    {
+                                                        <div class="user-meta">Das sind Sie</div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        @{
+                                            var userClaims_doz = await Model.UserManager.GetClaimsAsync(admin);
+                                            var displayRole_doz = userClaims_doz.FirstOrDefault(c => c.Type == "RoleDisplayName")?.Value ?? "";
+                                        }
+                                        <td>
+                                            @if (isSuperUser)
+                                            {
+                                                <form class="d-inline">
+                                                    <select name="UpdateStatusRole"
+                                                            class="role-select-modern"
+                                                            data-admin-email="@admin.Email"
+                                                            title="Rolle und Gruppe ändern"
+                                                            onchange="openRoleGroupModal('@admin.Email', this.value)">
+                                                        <option value="SuperAdmin">Administrator*in</option>
+                                                        <option value="ApiManager">API‑Manager*in</option>
+                                                        <option value="Admin">Coach*in</option>
+                                                        <option value="Dozent|Forscher" selected="@(displayRole_doz == "Forscher")">Forscher*in</option>
+                                                        <option value="Dozent|Dozent" selected="@(displayRole_doz == "Dozent" || displayRole_doz == "")">Dozent*in</option>
+                                                        <option value="Dozent|GruppenManager" selected="@(displayRole_doz == "GruppenManager")">Gruppen‑Manager*in</option>
+                                                        <option value="User|Student">Student*in</option>
+                                                        <option value="User|Benutzer">Benutzer*in</option>
+                                                    </select>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                var badgeLabel = displayRole_doz switch
+                                                {
+                                                    "Forscher" => "Forscher*in",
+                                                    "GruppenManager" => "Gruppen-Manager*in",
+                                                    _ => "Dozent*in"
+                                                };
+                                                <span class="role-badge role-badge-dozent">
+                                                    <i class="bi bi-mortarboard-fill"></i>@badgeLabel
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <form method="post" asp-page-handler="RemoveAdmin" class="d-inline remove-admin-form">
+                                                <input type="hidden" name="RemoveAdminEmail" value="@admin.Email" />
+                                                <button type="submit"
+                                                        class="btn-modern btn-modern-danger btn-modern-sm"
+                                                        title="Dozent entfernen"
+                                                        @(isSelf ? "disabled" : "")
+                                                        onclick="return confirmDelete('@admin.Email');">
+                                                    <i class="bi bi-trash"></i>
+                                                    Entfernen
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (dozenten.Count > 10)
+                    {
+                        <div class="table-pagination" id="dozentenPagination">
+                            <div class="pagination-info">
+                                <span id="dozentenInfo"></span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button type="button" class="pagination-btn" onclick="changePage('dozenten', -1)"><i class="bi bi-chevron-left"></i></button>
+                                <span id="dozentenPages"></span>
+                                <button type="button" class="pagination-btn" onclick="changePage('dozenten', 1)"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    }
                 }
             </div>
         </div>
@@ -986,16 +1175,17 @@
                         <input type="text" class="form-control" id="roleGroupEmailDisplay" disabled />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Gruppe</label>
+                        <label class="form-label">Gruppe <span id="roleGroupRequiredLabel" class="text-danger">*</span></label>
                         @if (Model.AllGroups.Any())
                         {
-                            <select class="form-select" name="UpdateStatusGroup" id="roleGroupSelect" required>
+                            <select class="form-select" name="UpdateStatusGroup" id="roleGroupSelect">
                                 <option value="">Bitte Gruppe auswählen...</option>
                                 @foreach (var g in Model.AllGroups)
                                 {
                                     <option value="@g">@g</option>
                                 }
                             </select>
+                            <div id="roleGroupHint" class="form-text text-muted" style="display:none;">Optional für diese Rolle</div>
                         }
                         else
                         {
@@ -1015,6 +1205,78 @@
 </div>
 
 <script>
+    // Pagination state
+    var paginationState = {
+        highAdmins: { page: 1, perPage: 10 },
+        dozenten: { page: 1, perPage: 10 }
+    };
+
+    function initPagination(tableId) {
+        var table = document.getElementById(tableId + 'Table');
+        if (!table) return;
+        var rows = table.querySelectorAll('tbody tr.paginated-row');
+        if (rows.length <= 10) return; // No pagination needed
+        updatePagination(tableId);
+    }
+
+    function updatePagination(tableId) {
+        var table = document.getElementById(tableId + 'Table');
+        if (!table) return;
+        var rows = table.querySelectorAll('tbody tr.paginated-row');
+        var state = paginationState[tableId];
+        var totalRows = rows.length;
+        var totalPages = Math.ceil(totalRows / state.perPage);
+        var start = (state.page - 1) * state.perPage;
+        var end = start + state.perPage;
+
+        // Show/hide rows
+        rows.forEach(function(row, i) {
+            row.style.display = (i >= start && i < end) ? '' : 'none';
+        });
+
+        // Update info
+        var infoEl = document.getElementById(tableId + 'Info');
+        if (infoEl) {
+            var showStart = Math.min(start + 1, totalRows);
+            var showEnd = Math.min(end, totalRows);
+            infoEl.textContent = showStart + '–' + showEnd + ' von ' + totalRows;
+        }
+
+        // Update page buttons
+        var pagesEl = document.getElementById(tableId + 'Pages');
+        if (pagesEl) {
+            var html = '';
+            for (var p = 1; p <= totalPages; p++) {
+                html += '<button type="button" class="pagination-btn ' + (p === state.page ? 'active' : '') + '" onclick="goToPage(\'' + tableId + '\', ' + p + ')">' + p + '</button>';
+            }
+            pagesEl.innerHTML = html;
+        }
+    }
+
+    function changePage(tableId, delta) {
+        var table = document.getElementById(tableId + 'Table');
+        if (!table) return;
+        var rows = table.querySelectorAll('tbody tr.paginated-row');
+        var state = paginationState[tableId];
+        var totalPages = Math.ceil(rows.length / state.perPage);
+        var newPage = state.page + delta;
+        if (newPage >= 1 && newPage <= totalPages) {
+            state.page = newPage;
+            updatePagination(tableId);
+        }
+    }
+
+    function goToPage(tableId, page) {
+        paginationState[tableId].page = page;
+        updatePagination(tableId);
+    }
+
+    // Initialize pagination on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initPagination('highAdmins');
+        initPagination('dozenten');
+    });
+
     function openRoleGroupModal(email, role) {
         var modal = document.getElementById('roleGroupModal');
         if (!modal) return;
@@ -1022,10 +1284,30 @@
         var emailDisplay = document.getElementById('roleGroupEmailDisplay');
         var roleHidden = document.getElementById('roleGroupRole');
         var groupSelect = document.getElementById('roleGroupSelect');
+        var requiredLabel = document.getElementById('roleGroupRequiredLabel');
+        var hintEl = document.getElementById('roleGroupHint');
+
         if (emailHidden) emailHidden.value = email;
         if (emailDisplay) emailDisplay.value = email;
         if (roleHidden) roleHidden.value = role;
         if (groupSelect) groupSelect.selectedIndex = 0;
+
+        // Group is required only for User role (Student/Benutzer)
+        var isUserRole = role === 'User' || role.startsWith('User|');
+        if (groupSelect) {
+            if (isUserRole) {
+                groupSelect.setAttribute('required', 'required');
+            } else {
+                groupSelect.removeAttribute('required');
+            }
+        }
+        if (requiredLabel) {
+            requiredLabel.style.display = isUserRole ? 'inline' : 'none';
+        }
+        if (hintEl) {
+            hintEl.style.display = isUserRole ? 'none' : 'block';
+        }
+
         modal.style.display = 'block';
     }
 

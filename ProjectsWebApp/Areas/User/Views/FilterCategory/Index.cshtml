@@ -123,6 +123,16 @@
         color: #fff;
     }
 
+    .fc-page .items-btn {
+        background: #004f72;
+        color: #fff;
+    }
+
+    .fc-page .display-order-btn {
+        background: black;
+        color: #fff;
+    }
+
     /* ——— Buttons ——— */
     .fc-page .btn {
         border-radius: 6px;
@@ -223,8 +233,9 @@
             <thead>
                 <tr>
                     <th style="width:10%">Reihenfolge</th>
-                    <th style="width:60%">Name</th>
-                    <th style="width:30%" class="text-end">Aktionen</th>
+                    <th style="width:45%">Name</th>
+                    <th style="width:15%" class="text-center">Einträge</th>
+                    <th style="width:30%" class="text-center">Aktionen</th>
                 </tr>
             </thead>
             <tbody>
@@ -232,10 +243,13 @@
                 {
                     <tr>
                         <td>
-                            <span class="badge bg-info">@cat.DisplayOrder</span>
+                            <span class="badge display-order-btn">@cat.DisplayOrder</span>
                         </td>
                         <td class="fw-semibold">@cat.Name</td>
-                        <td class="text-end">
+                        <td class="text-center">
+                            <span class="badge items-btn">@cat.FilterItems?.Count</span>
+                        </td>
+                        <td class="text-center">
                             <a asp-action="Upsert"
                                asp-route-id="@cat.Id"
                                class="btn btn-sm btn-warning me-1">

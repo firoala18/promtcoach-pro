@@ -422,6 +422,319 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
         color: #89ba17;
     }
 
+    /* ============================================================
+       HIGH CONTRAST MODE STYLES (WCAG 2.1 AA Compliant)
+       ============================================================ */
+
+    /* High Contrast Dark Mode */
+    body.high-contrast-dark,
+    html.high-contrast-dark {
+        background-color: #000 !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .navbar,
+    .high-contrast-dark .site-header,
+    .high-contrast-dark header {
+        background-color: #000 !important;
+        border-bottom: 2px solid #fff !important;
+    }
+
+    .high-contrast-dark .card,
+    .high-contrast-dark .modal-content,
+    .high-contrast-dark .dropdown-menu,
+    .high-contrast-dark .offcanvas {
+        background-color: #000 !important;
+        border: 2px solid #fff !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .btn {
+        border: 2px solid #fff !important;
+        color: #fff !important;
+        background-color: #000 !important;
+    }
+
+    .high-contrast-dark .btn:hover,
+    .high-contrast-dark .btn:focus {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-dark .btn-primary,
+    .high-contrast-dark .btn-success,
+    .high-contrast-dark .btn-accent {
+        background-color: #ffff00 !important;
+        color: #000 !important;
+        border-color: #ffff00 !important;
+    }
+
+    .high-contrast-dark .btn-primary:hover,
+    .high-contrast-dark .btn-success:hover,
+    .high-contrast-dark .btn-accent:hover {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-dark a {
+        color: #ffff00 !important;
+        text-decoration: underline !important;
+    }
+
+    .high-contrast-dark a:hover {
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .form-control,
+    .high-contrast-dark .form-select,
+    .high-contrast-dark input,
+    .high-contrast-dark textarea,
+    .high-contrast-dark select {
+        background-color: #000 !important;
+        color: #fff !important;
+        border: 2px solid #fff !important;
+    }
+
+    .high-contrast-dark .form-control:focus,
+    .high-contrast-dark .form-select:focus,
+    .high-contrast-dark input:focus,
+    .high-contrast-dark textarea:focus {
+        outline: 3px solid #ffff00 !important;
+        outline-offset: 2px;
+    }
+
+    .high-contrast-dark .text-muted,
+    .high-contrast-dark .text-secondary {
+        color: #ccc !important;
+    }
+
+    .high-contrast-dark h1, .high-contrast-dark h2, .high-contrast-dark h3,
+    .high-contrast-dark h4, .high-contrast-dark h5, .high-contrast-dark h6,
+    .high-contrast-dark p, .high-contrast-dark span, .high-contrast-dark div,
+    .high-contrast-dark label {
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .bg-light,
+    .high-contrast-dark .bg-white {
+        background-color: #1a1a1a !important;
+    }
+
+    .high-contrast-dark .table {
+        color: #fff !important;
+        border-color: #fff !important;
+    }
+
+    .high-contrast-dark .table th,
+    .high-contrast-dark .table td {
+        border-color: #fff !important;
+        background-color: #000 !important;
+    }
+
+    .high-contrast-dark .badge {
+        border: 1px solid #fff !important;
+    }
+
+    .high-contrast-dark footer,
+    .high-contrast-dark .footer {
+        background-color: #000 !important;
+        border-top: 2px solid #fff !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-dark ::placeholder {
+        color: #aaa !important;
+    }
+
+    .high-contrast-dark .dropdown-item {
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .dropdown-item:hover,
+    .high-contrast-dark .dropdown-item:focus {
+        background-color: #ffff00 !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-dark .nav-link {
+        color: #fff !important;
+    }
+
+    .high-contrast-dark .nav-link:hover {
+        color: #ffff00 !important;
+    }
+
+    .high-contrast-dark .breadcrumb-item a {
+        color: #ffff00 !important;
+    }
+
+    .high-contrast-dark .alert {
+        border: 2px solid #fff !important;
+        background-color: #1a1a1a !important;
+        color: #fff !important;
+    }
+
+    /* High Contrast Light Mode */
+    body.high-contrast-light,
+    html.high-contrast-light {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-light .navbar,
+    .high-contrast-light .site-header,
+    .high-contrast-light header {
+        background-color: #fff !important;
+        border-bottom: 3px solid #000 !important;
+    }
+
+    .high-contrast-light .card,
+    .high-contrast-light .modal-content,
+    .high-contrast-light .dropdown-menu,
+    .high-contrast-light .offcanvas {
+        background-color: #fff !important;
+        border: 3px solid #000 !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-light .btn {
+        border: 3px solid #000 !important;
+        color: #000 !important;
+        background-color: #fff !important;
+        font-weight: 700 !important;
+    }
+
+    .high-contrast-light .btn:hover,
+    .high-contrast-light .btn:focus {
+        background-color: #000 !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-light .btn-primary,
+    .high-contrast-light .btn-success,
+    .high-contrast-light .btn-accent {
+        background-color: #000 !important;
+        color: #fff !important;
+        border-color: #000 !important;
+    }
+
+    .high-contrast-light .btn-primary:hover,
+    .high-contrast-light .btn-success:hover,
+    .high-contrast-light .btn-accent:hover {
+        background-color: #333 !important;
+    }
+
+    .high-contrast-light a {
+        color: #00008b !important;
+        text-decoration: underline !important;
+        font-weight: 600 !important;
+    }
+
+    .high-contrast-light a:hover {
+        color: #000 !important;
+    }
+
+    .high-contrast-light .form-control,
+    .high-contrast-light .form-select,
+    .high-contrast-light input,
+    .high-contrast-light textarea,
+    .high-contrast-light select {
+        background-color: #fff !important;
+        color: #000 !important;
+        border: 3px solid #000 !important;
+    }
+
+    .high-contrast-light .form-control:focus,
+    .high-contrast-light .form-select:focus,
+    .high-contrast-light input:focus,
+    .high-contrast-light textarea:focus {
+        outline: 4px solid #000 !important;
+        outline-offset: 2px;
+    }
+
+    .high-contrast-light .text-muted,
+    .high-contrast-light .text-secondary {
+        color: #333 !important;
+        font-weight: 600 !important;
+    }
+
+    .high-contrast-light h1, .high-contrast-light h2, .high-contrast-light h3,
+    .high-contrast-light h4, .high-contrast-light h5, .high-contrast-light h6,
+    .high-contrast-light p, .high-contrast-light span, .high-contrast-light div,
+    .high-contrast-light label {
+        color: #000 !important;
+    }
+
+    .high-contrast-light .bg-dark {
+        background-color: #000 !important;
+    }
+
+    .high-contrast-light .table {
+        color: #000 !important;
+        border: 2px solid #000 !important;
+    }
+
+    .high-contrast-light .table th,
+    .high-contrast-light .table td {
+        border: 2px solid #000 !important;
+        background-color: #fff !important;
+    }
+
+    .high-contrast-light .table thead th {
+        background-color: #000 !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-light .badge {
+        border: 2px solid #000 !important;
+        font-weight: 700 !important;
+    }
+
+    .high-contrast-light footer,
+    .high-contrast-light .footer {
+        background-color: #fff !important;
+        border-top: 3px solid #000 !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-light ::placeholder {
+        color: #555 !important;
+    }
+
+    .high-contrast-light .dropdown-item {
+        color: #000 !important;
+        font-weight: 600 !important;
+    }
+
+    .high-contrast-light .dropdown-item:hover,
+    .high-contrast-light .dropdown-item:focus {
+        background-color: #000 !important;
+        color: #fff !important;
+    }
+
+    .high-contrast-light .nav-link {
+        color: #000 !important;
+        font-weight: 600 !important;
+    }
+
+    .high-contrast-light .nav-link:hover {
+        text-decoration: underline !important;
+    }
+
+    .high-contrast-light .breadcrumb-item a {
+        color: #00008b !important;
+    }
+
+    .high-contrast-light .alert {
+        border: 3px solid #000 !important;
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+
+    .high-contrast-light img {
+        border: 2px solid #000 !important;
+    }
+
     /* Font size dropdown styling */
     #fontSizeDropdown {
         font-size: 0.9rem !important;
@@ -942,7 +1255,7 @@ Questions at Dr. Heike Seehagen-Marx, E-Mail: heike@seehagen-marx.de
             <nav class="navbar navbar-expand-xl" style="background-color: #191919;" data-bs-theme="dark">
                
                 <div class="container-fluid">
-                    <a class="navbar-brand me-auto ps-md-4 ps-lg-5" href="https://prompt-coach.xr-adiqu.de/">
+                    <a class="navbar-brand me-auto ps-md-4 ps-lg-5" href="https://promptcoach.adiqu.de/">
                         <img src="@Url.Content("~/logo-PromptCoach-transparenz.svg")" style="height: 90px; width: auto; margin: 0 8px 0 0;" alt="App Logo" class="img-fluid brand-logo" />
                     </a>
 

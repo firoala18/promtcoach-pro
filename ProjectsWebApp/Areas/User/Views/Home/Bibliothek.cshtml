@@ -1888,7 +1888,7 @@
 
 
 
-<div class="d-flex justify-content-end mb-4 container">
+<div class="d-flex justify-content-end mb-4">
     <div class="d-flex gap-2">
         <!-- Bibliothek-Button -->
         <a asp-area="User"
@@ -1906,13 +1906,11 @@
         </a>
     </div>
 </div>
-
-    <div class="header-area mb-4 container">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0"> <i class="fa fa-university me-1" aria-hidden="true"></i> Unsere Prompts Bibliothek</h2>
-
-        </div>
+<div class="header-area mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="fa fa-university me-1" aria-hidden="true"></i> Unsere Prompts Bibliothek</h2>
     </div>
+</div>
 
 
 
@@ -1984,17 +1982,38 @@
 
     .bib-filter-portal {
         position: fixed; background: #fff; border: 2px solid #587a0f; border-radius: 10px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none; min-width: 300px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none;
+        min-width: 320px; max-width: 420px; width: max-content;
     }
     .bib-filter-portal.open { display: block; }
 
     .bib-filter-search {
         width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
         font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 8px 8px 0 0;
+        position: sticky; top: 0; background: #fff; z-index: 1;
     }
     .bib-filter-search::placeholder { color: #9ca3af; }
 
-    .bib-filter-list { max-height: 280px; overflow-y: auto; }
+    .bib-filter-list {
+        max-height: 340px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #a3c472 #f1f5f9;
+    }
+    .bib-filter-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .bib-filter-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+    }
+    .bib-filter-list::-webkit-scrollbar-thumb {
+        background: #a3c472;
+        border-radius: 3px;
+    }
+    .bib-filter-list::-webkit-scrollbar-thumb:hover {
+        background: #587a0f;
+    }
     .bib-filter-item {
         padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
         transition: background 0.15s; font-size: 0.95rem; color: #374151;
@@ -2005,9 +2024,23 @@
     .bib-filter-item.hidden { display: none !important; }
     .bib-filter-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
 
+    @@media (max-width: 1199.98px) {
+        .bib-filter-portal {
+            min-width: 280px;
+            max-width: calc(100vw - 40px);
+        }
+    }
+
     @@media (max-width: 991.98px) {
         .bib-filter-container { min-width: 0; width: 100%; }
         .bib-filter-box { width: 100%; }
+        .bib-filter-portal {
+            min-width: 260px;
+            max-width: calc(100vw - 32px);
+            left: 16px !important;
+            right: 16px !important;
+            width: auto !important;
+        }
     }
 </style>
 

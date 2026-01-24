@@ -764,7 +764,7 @@
     .room-list-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
 
     /* Premium Filter Dropdown (single-select) */
-    .filter-select-container { position: relative; width: 100%; min-width: 300px; max-width: 380px; }
+    .filter-select-container { position: relative; flex: 1 1 auto; min-width: 140px; max-width: 280px; }
     .filter-select-box {
         height: 46px; padding: 0 18px; border: 1px solid #e5e7eb; border-radius: 999px;
         background: #fff; cursor: pointer; display: flex; align-items: center; gap: 10px;
@@ -780,17 +780,38 @@
 
     .filter-dropdown-portal {
         position: fixed; background: #fff; border: 2px solid var(--accent); border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none; min-width: 300px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 999999; display: none;
+        min-width: 320px; max-width: 420px; width: max-content;
     }
     .filter-dropdown-portal.open { display: block; }
 
     .filter-search-input {
         width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid #e5e7eb;
         font-size: 0.95rem; outline: none; box-sizing: border-box; border-radius: 10px 10px 0 0;
+        position: sticky; top: 0; background: #fff; z-index: 1;
     }
     .filter-search-input::placeholder { color: #9ca3af; }
 
-    .filter-list { max-height: 280px; overflow-y: auto; }
+    .filter-list {
+        max-height: 340px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    .filter-list::-webkit-scrollbar {
+        width: 6px;
+    }
+    .filter-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+    }
+    .filter-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+    }
+    .filter-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
     .filter-list-item {
         padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px;
         transition: background 0.15s; font-size: 0.95rem; color: #374151;
@@ -802,9 +823,63 @@
     .filter-list-empty { padding: 16px 14px; text-align: center; color: #9ca3af; font-size: 0.9rem; }
 
     /* Responsive adjustments for filter dropdown */
+    @@media (max-width: 1199.98px) {
+        .filter-select-container { min-width: 0; max-width: none; flex: 1 1 auto; }
+        .filter-select-box {
+            width: 100%;
+            padding: 0 12px;
+            height: 42px;
+            font-size: 0.9rem;
+        }
+        .filter-select-box .filter-text {
+            max-width: 120px;
+        }
+        .smart-search {
+            max-width: 100%;
+        }
+        .smart-input {
+            font-size: 0.9rem;
+        }
+        .toggle-pill {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .toggle-pill span {
+            display: none;
+        }
+        .sort-filter-shell {
+            gap: 0.5rem;
+        }
+        .filter-dropdown-portal {
+            min-width: 280px;
+            max-width: calc(100vw - 40px);
+        }
+    }
+
     @@media (max-width: 991.98px) {
-        .filter-select-container { min-width: 0; width: 100%; }
+        .filter-select-container { min-width: 0; width: 100%; max-width: none; flex: 1 1 100%; }
         .filter-select-box { width: 100%; }
+        .filter-select-box .filter-text {
+            max-width: none;
+        }
+        .toggle-pill {
+            width: 100%;
+            justify-content: center;
+        }
+        .toggle-pill span {
+            display: inline;
+        }
+        .sort-filter-shell {
+            flex-wrap: wrap;
+        }
+        .filter-dropdown-portal {
+            min-width: 260px;
+            max-width: calc(100vw - 32px);
+            left: 16px !important;
+            right: 16px !important;
+            width: auto !important;
+        }
     }
 
     /* Page content spacing */

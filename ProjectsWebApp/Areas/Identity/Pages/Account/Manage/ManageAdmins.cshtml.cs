@@ -232,8 +232,13 @@ namespace ProjectsWebApp.Areas.Identity.Pages.Account.Manage
             var allUsers = await _userMgr.Users.ToListAsync();
             foreach (var u in allUsers)
             {
-                if (await _userMgr.IsInRoleAsync(u, "Admin") ||
-                await _userMgr.IsInRoleAsync(u, "SuperAdmin"))
+                var isAdminRole = await _userMgr.IsInRoleAsync(u, "Admin");
+                var isSuperAdminRole = await _userMgr.IsInRoleAsync(u, "SuperAdmin");
+                var isDozentRole = await _userMgr.IsInRoleAsync(u, "Dozent");
+                var isApiManagerRole = await _userMgr.IsInRoleAsync(u, "ApiManager");
+
+                // Include Admin, SuperAdmin, Dozent, and ApiManager in AdminUsers
+                if (isAdminRole || isSuperAdminRole || isDozentRole || isApiManagerRole)
                 {
                     AdminUsers.Add(u);
                     continue;
@@ -491,10 +496,28 @@ namespace ProjectsWebApp.Areas.Identity.Pages.Account.Manage
             if (!User.IsInRole("SuperAdmin")) return Forbid();
 
             if (string.IsNullOrWhiteSpace(UpdateStatusEmail) ||
-                string.IsNullOrWhiteSpace(UpdateStatusRole) ||
-                string.IsNullOrWhiteSpace(UpdateStatusGroup))
+                string.IsNullOrWhiteSpace(UpdateStatusRole))
             {
-                TempData["error"] = "Bitte Rolle und Gruppe auswählen.";
+                TempData["error"] = "Bitte Rolle auswählen.";
+                return RedirectToPage();
+            }
+
+            // Parse composite role value (e.g., "Dozent|Forscher" -> role "Dozent", display "Forscher")
+            var roleParts = UpdateStatusRole.Split('|');
+            var actualRole = roleParts[0];
+            var displayName = roleParts.Length > 1 ? roleParts[1] : "";
+
+            // Check if this is a User role (Student/Benutzer) - group is required only for these
+            var isUserRole = actualRole.Equals("User", StringComparison.OrdinalIgnoreCase);
+
+            var groupNorm = (UpdateStatusGroup ?? string.Empty).Trim();
+            var hasValidGroup = !string.IsNullOrWhiteSpace(groupNorm) &&
+                                !string.Equals(groupNorm, "Ohne Gruppe", StringComparison.OrdinalIgnoreCase);
+
+            // For User roles, group is required
+            if (isUserRole && !hasValidGroup)
+            {
+                TempData["error"] = "Bitte eine Gruppe für Student*in/Benutzer*in auswählen.";
                 return RedirectToPage();
             }
 
@@ -505,40 +528,50 @@ namespace ProjectsWebApp.Areas.Identity.Pages.Account.Manage
                 return RedirectToPage();
             }
 
-            var groupNorm = (UpdateStatusGroup ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(groupNorm) ||
-                string.Equals(groupNorm, "Ohne Gruppe", StringComparison.OrdinalIgnoreCase))
+            // Store display name as claim (for alias distinction like Forscher/Dozent/GruppenManager)
+            if (!string.IsNullOrWhiteSpace(displayName))
             {
-                TempData["error"] = "Bitte eine gültige Gruppe auswählen.";
-                return RedirectToPage();
+                var existingClaims = await _userMgr.GetClaimsAsync(user);
+                var existingDisplayClaim = existingClaims.FirstOrDefault(c => c.Type == "RoleDisplayName");
+                if (existingDisplayClaim != null)
+                {
+                    await _userMgr.RemoveClaimAsync(user, existingDisplayClaim);
+                }
+                await _userMgr.AddClaimAsync(user, new System.Security.Claims.Claim("RoleDisplayName", displayName));
             }
 
-            // Upsert latest group membership for this user
-            try
+            // Only update group membership if a valid group was selected
+            if (hasValidGroup)
             {
-                var existing = await _db.UserGroupMemberships
-                    .Where(m => m.UserId == user.Id)
-                    .OrderByDescending(m => m.CreatedAt)
-                    .FirstOrDefaultAsync();
-
-                if (existing == null)
+                try
                 {
-                    _db.UserGroupMemberships.Add(new UserGroupMembership
+                    var existing = await _db.UserGroupMemberships
+                        .Where(m => m.UserId == user.Id)
+                        .OrderByDescending(m => m.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (existing == null)
                     {
-                        UserId = user.Id,
-                        Group = groupNorm,
-                        CreatedAt = DateTime.UtcNow
-                    });
+                        _db.UserGroupMemberships.Add(new UserGroupMembership
+                        {
+                            UserId = user.Id,
+                            Group = groupNorm,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                    else
+                    {
+                        existing.Group = groupNorm;
+                        existing.CreatedAt = DateTime.UtcNow;
+                        _db.UserGroupMemberships.Update(existing);
+                    }
+                    await _db.SaveChangesAsync();
                 }
-                else
-                {
-                    existing.Group = groupNorm;
-                    existing.CreatedAt = DateTime.UtcNow;
-                    _db.UserGroupMemberships.Update(existing);
-                }
-                await _db.SaveChangesAsync();
+                catch { }
             }
-            catch { }
+
+            // Update the role value to actual role for the existing handler
+            UpdateStatusRole = actualRole;
 
             // Delegate role change logic to existing handler
             return await OnPostUpdateStatusAsync();
