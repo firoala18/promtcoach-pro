@@ -100,6 +100,11 @@
                 };
             }
 
+            @{
+                // User-private types that should not appear in admin dropdown
+                var excludedTypes = new[] { PromptType.Eigenfilter, PromptType.Framework, PromptType.Meta };
+            }
+
             @if (Model.Id == 0)
             {
                 <div class="mb-4">
@@ -107,7 +112,10 @@
                     <select asp-for="Type" class="form-select">
                         @foreach (PromptType pt in Enum.GetValues(typeof(PromptType)))
                         {
-                            <option value="@pt">@GetTypeLabel(pt)</option>
+                            if (!excludedTypes.Contains(pt))
+                            {
+                                <option value="@pt">@GetTypeLabel(pt)</option>
+                            }
                         }
                     </select>
                     <span asp-validation-for="Type" class="text-danger"></span>
