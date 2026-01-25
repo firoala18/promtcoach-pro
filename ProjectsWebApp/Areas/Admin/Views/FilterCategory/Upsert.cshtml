@@ -87,6 +87,19 @@
                 </button>
             </div>
 
+            @{
+                // Map enum values to display labels
+                string GetTypeLabel(PromptType pt) => pt switch
+                {
+                    PromptType.Bildung => "Domäne",
+                    PromptType.Beruf => "KI-Agent",
+                    PromptType.Eigenfilter => "Szenarien",
+                    PromptType.Framework => "Framework",
+                    PromptType.Meta => "Meta",
+                    _ => pt.ToString()
+                };
+            }
+
             @if (Model.Id == 0)
             {
                 <div class="mb-4">
@@ -94,7 +107,7 @@
                     <select asp-for="Type" class="form-select">
                         @foreach (PromptType pt in Enum.GetValues(typeof(PromptType)))
                         {
-                            <option value="@pt">@pt</option>
+                            <option value="@pt">@GetTypeLabel(pt)</option>
                         }
                     </select>
                     <span asp-validation-for="Type" class="text-danger"></span>
@@ -104,7 +117,7 @@
             {
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Prompt-Typ</label>
-                    <input class="form-control" value="@Model.Type" disabled />
+                    <input class="form-control" value="@GetTypeLabel(Model.Type)" disabled />
                     <input type="hidden" asp-for="Type" />
                 </div>
             }
