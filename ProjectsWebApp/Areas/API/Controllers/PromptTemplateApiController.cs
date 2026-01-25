@@ -215,16 +215,44 @@ namespace ProjectsWebApp.Areas.Api.Controllers
 
         /*──────────────────────────────────────────────
           1)  Existiert das Akronym?
+              Optional: nur in bestimmten Gruppen prüfen
         ──────────────────────────────────────────────*/
         [HttpGet]
-        public async Task<IActionResult> Exists(string akronym)
+        public async Task<IActionResult> Exists(string akronym, [FromQuery] string[]? groups = null)
         {
             if (string.IsNullOrWhiteSpace(akronym))
                 return BadRequest(new { exists = false, message = "Akronym fehlt." });
 
-            bool exists = await _db.PromptTemplate
-                                   .AnyAsync(t => t.Akronym == akronym.Trim());
-            return Ok(new { exists });
+            var trimmedAkronym = akronym.Trim();
+
+            // If no groups specified, check globally (original behavior)
+            if (groups == null || groups.Length == 0)
+            {
+                bool existsGlobal = await _db.PromptTemplate
+                                             .AnyAsync(t => t.Akronym == trimmedAkronym);
+                return Ok(new { exists = existsGlobal });
+            }
+
+            // Check if akronym exists in any of the specified groups
+            var groupNames = groups
+                .Where(g => !string.IsNullOrWhiteSpace(g))
+                .Select(g => g.Trim())
+                .ToList();
+
+            if (groupNames.Count == 0)
+            {
+                bool existsGlobal = await _db.PromptTemplate
+                                             .AnyAsync(t => t.Akronym == trimmedAkronym);
+                return Ok(new { exists = existsGlobal });
+            }
+
+            // Find prompts with this akronym that are in any of the specified groups
+            bool existsInGroups = await _db.PromptTemplateGroups
+                .AnyAsync(ptg =>
+                    groupNames.Contains(ptg.Group) &&
+                    _db.PromptTemplate.Any(pt => pt.Id == ptg.PromptTemplateId && pt.Akronym == trimmedAkronym));
+
+            return Ok(new { exists = existsInGroups });
         }
 
         /*──────────────────────────────────────────────

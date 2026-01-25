@@ -1047,6 +1047,89 @@
     </div>
 </div>
 
+<!-- ───────── Room Selection Modal ───────── -->
+<div class="modal fade" id="roomSelectModal" tabindex="-1" aria-labelledby="roomSelectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: #004f72; color: white;">
+                <h5 class="modal-title" id="roomSelectModalLabel">
+                    <i class="bi bi-door-open me-2"></i>Raum auswählen
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Wählen Sie die Räume, in denen der Prompt veröffentlicht werden soll:</p>
+
+                <div id="roomListContainer" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;">
+                    <!-- Rooms will be loaded here -->
+                    <div id="roomListLoading" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Lädt...</span>
+                        </div>
+                        <p class="mt-2 mb-0 text-muted">Räume werden geladen...</p>
+                    </div>
+                    <div id="roomList" class="list-group list-group-flush" style="display: none;">
+                        <!-- Room items will be inserted here -->
+                    </div>
+                    <div id="roomListEmpty" class="text-center py-4" style="display: none;">
+                        <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-0 text-muted">Sie gehören noch keinem Raum an.</p>
+                    </div>
+                </div>
+
+                <div id="selectedRoomInfo" class="alert alert-info mt-3 mb-0" style="display: none;">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Ausgewählt: <strong id="selectedRoomNames"></strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="confirmPublishBtn" disabled style="background: #004f72; border-color: #004f72;">
+                    <i class="bi bi-upload me-1"></i>Veröffentlichen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Room selection modal styles */
+    #roomList .list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s, border-color 0.2s;
+        border-left: 3px solid transparent;
+    }
+    #roomList .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    #roomList .list-group-item.selected {
+        background-color: #e7f3ff;
+        border-left-color: #004f72;
+    }
+    #roomList .list-group-item .room-name {
+        font-weight: 500;
+        color: #333;
+    }
+    #roomList .list-group-item .room-check {
+        color: #004f72;
+        font-size: 1.2rem;
+    }
+    #roomListContainer::-webkit-scrollbar {
+        width: 8px;
+    }
+    #roomListContainer::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    #roomListContainer::-webkit-scrollbar-thumb {
+        background: #004f72;
+        border-radius: 4px;
+    }
+    #roomListContainer::-webkit-scrollbar-thumb:hover {
+        background: #003d59;
+    }
+</style>
+
 
 @section Scripts {
     <script>
@@ -1068,6 +1151,18 @@
                                 { credentials:'same-origin' });
         if (res.status === 404) return false;           // Fallback ↑ older servers
         const { exists } = await res.json();            // { exists : true|false }
+        return !!exists;
+    }
+
+    // Check if akronym exists in specific rooms only
+    async function akronymExistsInRooms(akronym, rooms) {
+        if (!rooms || rooms.length === 0) return false;
+        const params = new URLSearchParams();
+        params.append('akronym', akronym);
+        rooms.forEach(r => params.append('groups', r));
+        const res = await fetch(`${existsUrl}?${params.toString()}`, { credentials: 'same-origin' });
+        if (res.status === 404) return false;
+        const { exists } = await res.json();
         return !!exists;
     }
 
@@ -1191,88 +1286,204 @@
                /* -----------------------------------------------------------
            Publish → Bibliothek  (mit „Überschreiben?“-Dialog)
         ----------------------------------------------------------- */
+        // Room selection modal elements
+        const roomModal = new bootstrap.Modal(document.getElementById('roomSelectModal'));
+        const roomListEl = document.getElementById('roomList');
+        const roomLoadingEl = document.getElementById('roomListLoading');
+        const roomEmptyEl = document.getElementById('roomListEmpty');
+        const confirmPublishBtn = document.getElementById('confirmPublishBtn');
+        const selectedRoomInfo = document.getElementById('selectedRoomInfo');
+        const selectedRoomNames = document.getElementById('selectedRoomNames');
+
+        let currentPublishPayload = null;
+        let currentAkronym = null;
+        let selectedRooms = [];  // Array for multi-selection
+        let alreadyExists = false;
+
+        // Fetch user's allowed groups/rooms
+        async function fetchUserRooms() {
+            try {
+                const res = await fetch('@Url.Action("AllowedGroups", "PromptTemplateApi", new { area = "Api" })', {
+                    credentials: 'same-origin'
+                });
+                if (!res.ok) throw new Error('Failed to fetch rooms');
+                const data = await res.json();
+                return data.groups || [];
+            } catch (err) {
+                console.error('Error fetching rooms:', err);
+                return [];
+            }
+        }
+
+        // Update selected rooms display
+        function updateSelectedRoomsDisplay() {
+            if (selectedRooms.length === 0) {
+                selectedRoomInfo.style.display = 'none';
+                confirmPublishBtn.disabled = true;
+            } else {
+                selectedRoomNames.textContent = selectedRooms.join(', ');
+                selectedRoomInfo.style.display = '';
+                confirmPublishBtn.disabled = false;
+            }
+        }
+
+        // Render room list with multi-select
+        function renderRoomList(rooms) {
+            roomLoadingEl.style.display = 'none';
+
+            if (rooms.length === 0) {
+                roomEmptyEl.style.display = '';
+                roomListEl.style.display = 'none';
+                return;
+            }
+
+            roomEmptyEl.style.display = 'none';
+            roomListEl.style.display = '';
+            roomListEl.innerHTML = rooms.map(room => `
+                <div class="list-group-item d-flex justify-content-between align-items-center" data-room="${room}">
+                    <span class="room-name"><i class="bi bi-door-open me-2 text-muted"></i>${room}</span>
+                    <i class="bi bi-check-circle-fill room-check" style="display: none;"></i>
+                </div>
+            `).join('');
+
+            // Add click handlers for multi-select
+            roomListEl.querySelectorAll('.list-group-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const room = item.dataset.room;
+                    const idx = selectedRooms.indexOf(room);
+
+                    if (idx > -1) {
+                        // Deselect
+                        selectedRooms.splice(idx, 1);
+                        item.classList.remove('selected');
+                        item.querySelector('.room-check').style.display = 'none';
+                    } else {
+                        // Select
+                        selectedRooms.push(room);
+                        item.classList.add('selected');
+                        item.querySelector('.room-check').style.display = '';
+                    }
+
+                    updateSelectedRoomsDisplay();
+                });
+            });
+        }
+
+        // Reset modal state
+        function resetRoomModal() {
+            roomLoadingEl.style.display = '';
+            roomListEl.style.display = 'none';
+            roomEmptyEl.style.display = 'none';
+            roomListEl.innerHTML = '';
+            selectedRooms = [];
+            selectedRoomInfo.style.display = 'none';
+            confirmPublishBtn.disabled = true;
+        }
+
+        // Handle publish button clicks
         document.querySelectorAll('.publish-btn').forEach(btn => {
-
             btn.addEventListener('click', async () => {
-
-                /* -------- 1) Daten zusammensuchen ------------------- */
-                const akronym = btn.dataset.akronym?.trim() ||
+                /* -------- 1) Collect data ------------------- */
+                currentAkronym = btn.dataset.akronym?.trim() ||
                                 btn.closest('.tpl-card')?.dataset.akronym;
 
-                if (!akronym)
+                if (!currentAkronym)
                     return Swal.fire({ icon:'error', title:'Akronym fehlt' });
 
-                /* Payload aus Karte oder – im Details-View – aus globaler Variable */
-                const payload = btn.closest('.tpl-card')
+                /* Payload from card or global variable (Details page) */
+                currentPublishPayload = btn.closest('.tpl-card')
                       ? JSON.parse(btn.closest('.tpl-card').dataset.payload)
-                      : window.promptState;                      // Details-Seite
+                      : window.promptState;
 
-                /* -------- 2) Prüfen, ob es schon existiert ----------- */
-                let alreadyThere = false;
-                try {
-                    alreadyThere = await akronymExists(akronym);
-                } catch (err) {
-                    return Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
-                }
+                /* -------- 2) Show room selection modal ----------- */
+                resetRoomModal();
+                roomModal.show();
 
-                /* -------- 3) Benutzer fragen ------------------------- */
-                const proceed = await Swal.fire({
-                    title: alreadyThere
-                                   ? `Akronym „${akronym}“ existiert bereits in der Bibliothek.`
-                           : 'In Bibliothek speichern?',
-                    text : alreadyThere
-                           ? 'Möchten Sie den bestehenden Prompt überschreiben?'
-                               : 'Sind Sie sicher, dass Sie diesen Prompt in der Bibliothek speichern möchten?',
-                    icon : alreadyThere ? 'warning' : 'question',
-                    showCancelButton: true,
-                    confirmButtonText: alreadyThere ? 'Überschreiben' : 'Speichern',
-                    cancelButtonText : 'Abbrechen'
-                }).then(r => r.isConfirmed);
-
-                if (!proceed) return;
-
-                /* -------- 4) POST an /Publish ------------------------ */
-                const bodyPayload = {
-                    Akronym           : payload.akronym,
-                    Title             : payload.title,
-                    Beschreibung      : payload.beschreibung       ?? '',
-                    Schluesselbegriffe: payload.schluesselbegriffe ?? '',
-                    Thema             : payload.thema              ?? '',
-                    Ziele             : payload.ziele              ?? '',
-                    PromptHtml        : payload.promptHtml,
-                    PromptType        : payload.type,
-                    FilterJson        : JSON.stringify(payload.checkedItems
-                                           ?? JSON.parse(payload.filterJson || '[]')),
-                    Temperatur        : payload.temperatur         ?? 0,
-                    MaxZeichen        : payload.maxZeichen         ?? null,
-                    UsedModels        : payload.usedModels         ?? '',
-                    GeneratedImagePath: payload.generatedImagePath ?? ''
-                };
-                const metaHash = await sha256(JSON.stringify(bodyPayload));
-                const body     = { ...bodyPayload, MetaHash: metaHash };
-
-                try {
-                    const res = await fetch(
-                        '@Url.Action("Publish",
-                                                                  "PromptTemplateApi",
-                                                                  new { area = "Api" })',
-                    { method :'POST',
-                      headers:{ 'Content-Type':'application/json' },
-                      body   : JSON.stringify(body) });
-
-                    if (!res.ok) throw await res.text();
-
-                    Swal.fire({
-                        icon : 'success',
-                        title: alreadyThere ? 'Überschrieben!' : 'Gespeichert!',
-                        timer: 1500,
-                        showConfirmButton:false
-                    });
-
-                } catch (err) {
-                    Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
-                }
+                // Fetch and render rooms
+                const rooms = await fetchUserRooms();
+                renderRoomList(rooms);
             });
+        });
+
+        // Handle confirm publish button
+        confirmPublishBtn.addEventListener('click', async () => {
+            if (selectedRooms.length === 0 || !currentPublishPayload) return;
+
+            // Close modal
+            roomModal.hide();
+
+            /* -------- Check if already exists in selected rooms ----------- */
+            try {
+                alreadyExists = await akronymExistsInRooms(currentAkronym, selectedRooms);
+            } catch (err) {
+                return Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
+            }
+
+            const roomsText = selectedRooms.length === 1
+                ? `Raum <strong>${selectedRooms[0]}</strong>`
+                : `${selectedRooms.length} Räumen:<br><strong>${selectedRooms.join(', ')}</strong>`;
+
+            /* -------- Confirm with user ------------------------- */
+            const proceed = await Swal.fire({
+                title: alreadyExists
+                       ? `Akronym „${currentAkronym}" existiert bereits.`
+                       : 'In Bibliothek speichern?',
+                html: alreadyExists
+                      ? `Möchten Sie den bestehenden Prompt überschreiben?<br><small class="text-muted">${roomsText}</small>`
+                      : `Prompt wird in ${roomsText} veröffentlicht.`,
+                icon: alreadyExists ? 'warning' : 'question',
+                showCancelButton: true,
+                confirmButtonText: alreadyExists ? 'Überschreiben' : 'Speichern',
+                cancelButtonText: 'Abbrechen'
+            }).then(r => r.isConfirmed);
+
+            if (!proceed) return;
+
+            /* -------- POST to /Publish ------------------------ */
+            const bodyPayload = {
+                Akronym           : currentPublishPayload.akronym,
+                Title             : currentPublishPayload.title,
+                Beschreibung      : currentPublishPayload.beschreibung       ?? '',
+                Schluesselbegriffe: currentPublishPayload.schluesselbegriffe ?? '',
+                Thema             : currentPublishPayload.thema              ?? '',
+                Ziele             : currentPublishPayload.ziele              ?? '',
+                PromptHtml        : currentPublishPayload.promptHtml,
+                PromptType        : currentPublishPayload.type,
+                FilterJson        : JSON.stringify(currentPublishPayload.checkedItems
+                                       ?? JSON.parse(currentPublishPayload.filterJson || '[]')),
+                Temperatur        : currentPublishPayload.temperatur         ?? 0,
+                MaxZeichen        : currentPublishPayload.maxZeichen         ?? null,
+                UsedModels        : currentPublishPayload.usedModels         ?? '',
+                GeneratedImagePath: currentPublishPayload.generatedImagePath ?? '',
+                Groups            : selectedRooms  // Include all selected rooms
+            };
+            const metaHash = await sha256(JSON.stringify(bodyPayload));
+            const body     = { ...bodyPayload, MetaHash: metaHash };
+
+            try {
+                const res = await fetch(
+                    '@Url.Action("Publish", "PromptTemplateApi", new { area = "Api" })',
+                { method :'POST',
+                  headers:{ 'Content-Type':'application/json' },
+                  body   : JSON.stringify(body) });
+
+                if (!res.ok) throw await res.text();
+
+                const successText = selectedRooms.length === 1
+                    ? `Prompt wurde im Raum <strong>${selectedRooms[0]}</strong> veröffentlicht.`
+                    : `Prompt wurde in ${selectedRooms.length} Räumen veröffentlicht.`;
+
+                Swal.fire({
+                    icon : 'success',
+                    title: alreadyExists ? 'Überschrieben!' : 'Gespeichert!',
+                    html: successText,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+            } catch (err) {
+                Swal.fire({ icon:'error', title:'Fehler', text:String(err) });
+            }
         });
 
     </script>

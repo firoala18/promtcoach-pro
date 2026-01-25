@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using System.Linq
 @using System.Text.RegularExpressions
+@using System.Net
 @using Microsoft.AspNetCore.Identity
 @using ProjectsWebApp.DataAccsess.Data
 
@@ -47,7 +48,8 @@
                     var raw = e.GetProperty("value").GetString() ?? "";
                     // alles zwischen <...> entfernen
                     var plain = Regex.Replace(raw, "<.*?>", string.Empty);
-                    return plain.Trim();
+                    // HTML-Entities dekodieren (z.B. &nbsp; → Leerzeichen)
+                    return WebUtility.HtmlDecode(plain.Trim());
                 })
                 .Where(v => !string.IsNullOrWhiteSpace(v))
                 .Take(4);
@@ -68,7 +70,8 @@
                               : e.TryGetProperty("text", out var tx) ? (tx.GetString() ?? "")
                               : "";
                     var plain = Regex.Replace(raw, "<.*?>", string.Empty);
-                    return plain.Trim();
+                    // HTML-Entities dekodieren (z.B. &nbsp; → Leerzeichen)
+                    return WebUtility.HtmlDecode(plain.Trim());
                 })
                 .Where(v => !string.IsNullOrWhiteSpace(v));
         }
