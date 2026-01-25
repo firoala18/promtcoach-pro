@@ -164,9 +164,9 @@ public class FilterCategoryController : Controller
         return RedirectToAction(nameof(Index), new { type = category.Type });
     }
 
-    // NEW – read‑only list of a student’s Eigenfilter
+    // NEW – read‑only list of a student's Eigenfilter/Framework/Meta
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<IActionResult> AdminList(string uid)
+    public async Task<IActionResult> AdminList(string uid, string? type = null)
     {
         if (string.IsNullOrWhiteSpace(uid))
             return BadRequest();
@@ -175,21 +175,31 @@ public class FilterCategoryController : Controller
         if (targetUser is null)
             return NotFound();
 
-        // only Eigenfilter that belong to this user
-        var list = await _db.FilterCategories           // << your DbSet
+        // Parse the type parameter, default to Eigenfilter
+        var promptType = Enum.TryParse<PromptType>(type, true, out var parsed)
+                         ? parsed
+                         : PromptType.Eigenfilter;
+
+        // Only allow user-private types (Eigenfilter, Framework, Meta)
+        var allowedTypes = new[] { PromptType.Eigenfilter, PromptType.Framework, PromptType.Meta };
+        if (!allowedTypes.Contains(promptType))
+            promptType = PromptType.Eigenfilter;
+
+        // Get categories for the selected type
+        var list = await _db.FilterCategories
                             .Include(c => c.FilterItems)
-                            .Where(c => c.Type == PromptType.Eigenfilter &&
-                                        c.UserId == uid)   // field exists in user‑area version
+                            .Where(c => c.Type == promptType &&
+                                        c.UserId == uid)
                             .OrderBy(c => c.DisplayOrder)
                             .ThenBy(c => c.Name)
                             .ToListAsync();
 
-        ViewBag.ReadOnly = true;      // tell the view to hide buttons
+        ViewBag.ReadOnly = true;
         ViewBag.TargetUser = targetUser;
-        ViewBag.Type = PromptType.Eigenfilter; // tab highlight
+        ViewBag.TargetUserId = uid;
+        ViewBag.Type = promptType;
 
-        /* reuse the normal Index view */
-        return View("Index", list);
+        return View("AdminList", list);
     }
 
 

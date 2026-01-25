@@ -469,6 +469,102 @@
     .alpha-nav .pill.active { border-color: #89ba17; color:#0f172a; box-shadow:0 0 0 .16rem rgba(137,186,23,.15); }
     .alpha-nav .pill[data-alpha]:not([data-alpha="all"]):not([data-alpha="0-9"]) { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center; aspect-ratio:1/1; }
 
+    /* Members Pagination */
+    .members-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1rem 0;
+        margin-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .members-pagination-info {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .members-pagination-info strong {
+        color: #111827;
+    }
+
+    .members-pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .members-pagination-controls .btn {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #374151;
+        transition: all 0.15s;
+    }
+
+    .members-pagination-controls .btn:hover:not(:disabled) {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .members-pagination-controls .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .members-pagination-controls .btn.active {
+        background: #89ba17;
+        border-color: #89ba17;
+        color: #fff;
+    }
+
+    .members-pagination-controls .page-num {
+        min-width: 38px;
+    }
+
+    .members-page-size {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .members-page-size select {
+        padding: 0.4rem 2rem 0.4rem 0.75rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #fff;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    @@media (max-width: 640px) {
+        .members-pagination {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: center;
+        }
+
+        .members-pagination-controls {
+            justify-content: center;
+        }
+
+        .members-page-size {
+            justify-content: center;
+        }
+    }
+
     @@media (max-width: 1200px) {
         .members-table-wrapper {
             overflow-x: auto;
@@ -2559,6 +2655,33 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination Controls -->
+                <div class="members-pagination" id="membersPagination">
+                    <div class="members-pagination-info">
+                        Zeige <strong id="paginationStart">1</strong>–<strong id="paginationEnd">10</strong> von <strong id="paginationTotal">@Model.MemberCount</strong> Mitgliedern
+                    </div>
+                    <div class="members-pagination-controls" id="paginationControls">
+                        <button type="button" class="btn" id="paginationPrev" title="Vorherige Seite">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <div id="paginationPages" class="d-flex gap-1">
+                            <!-- Page numbers will be inserted here by JS -->
+                        </div>
+                        <button type="button" class="btn" id="paginationNext" title="Nächste Seite">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="members-page-size">
+                        <label for="pageSizeSelect">Pro Seite:</label>
+                        <select id="pageSizeSelect">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
             }
             else
             {
@@ -3091,42 +3214,173 @@
             });
         })();
 
-        // Mitglieder: Alphabet filter (A–Z)
+        // Mitglieder: Alphabet filter (A–Z) + Pagination
         (function () {
             var nav = document.getElementById('alphaNavMembers');
             var table = document.getElementById('groupMembersTable');
+            var paginationContainer = document.getElementById('membersPagination');
             if (!nav || !table) return;
 
             var buttons = Array.from(nav.querySelectorAll('.pill'));
-            var rows = Array.from(table.querySelectorAll('tbody tr.member-row'));
+            var allRows = Array.from(table.querySelectorAll('tbody tr.member-row'));
+            var filteredRows = allRows.slice();
+
+            // Pagination state
+            var currentPage = 1;
+            var pageSize = 10;
+            var currentAlpha = 'all';
+
+            // Pagination elements
+            var paginationStart = document.getElementById('paginationStart');
+            var paginationEnd = document.getElementById('paginationEnd');
+            var paginationTotal = document.getElementById('paginationTotal');
+            var paginationPages = document.getElementById('paginationPages');
+            var paginationPrev = document.getElementById('paginationPrev');
+            var paginationNext = document.getElementById('paginationNext');
+            var pageSizeSelect = document.getElementById('pageSizeSelect');
 
             function setActive(btn) {
                 buttons.forEach(function (b) { b.classList.remove('active'); });
                 btn.classList.add('active');
             }
 
-            function applyFilter(alpha) {
+            function applyAlphaFilter(alpha) {
                 var a = (alpha || 'all').toString();
-                rows.forEach(function (row) {
+                currentAlpha = a;
+                filteredRows = allRows.filter(function (row) {
                     var ra = (row.getAttribute('data-alpha') || '').toString();
-                    var ok = true;
-                    if (a === 'all') ok = true;
-                    else if (a === '0-9') ok = ra === '0-9';
-                    else ok = ra === a;
-                    row.classList.toggle('d-none', !ok);
+                    if (a === 'all') return true;
+                    else if (a === '0-9') return ra === '0-9';
+                    else return ra === a;
                 });
+                currentPage = 1;
+                renderPagination();
             }
 
+            function renderPagination() {
+                var totalItems = filteredRows.length;
+                var totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                var startIndex = (currentPage - 1) * pageSize;
+                var endIndex = Math.min(startIndex + pageSize, totalItems);
+
+                // Hide all rows first
+                allRows.forEach(function (row) {
+                    row.classList.add('d-none');
+                });
+
+                // Show only rows for current page
+                for (var i = startIndex; i < endIndex; i++) {
+                    filteredRows[i].classList.remove('d-none');
+                }
+
+                // Update info text
+                if (paginationStart) paginationStart.textContent = totalItems > 0 ? startIndex + 1 : 0;
+                if (paginationEnd) paginationEnd.textContent = endIndex;
+                if (paginationTotal) paginationTotal.textContent = totalItems;
+
+                // Update prev/next buttons
+                if (paginationPrev) paginationPrev.disabled = currentPage <= 1;
+                if (paginationNext) paginationNext.disabled = currentPage >= totalPages;
+
+                // Render page numbers
+                if (paginationPages) {
+                    paginationPages.innerHTML = '';
+
+                    var maxVisible = 5;
+                    var startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                    var endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                    if (endPage - startPage < maxVisible - 1) {
+                        startPage = Math.max(1, endPage - maxVisible + 1);
+                    }
+
+                    if (startPage > 1) {
+                        paginationPages.appendChild(createPageButton(1));
+                        if (startPage > 2) {
+                            var ellipsis = document.createElement('span');
+                            ellipsis.className = 'px-2 text-muted';
+                            ellipsis.textContent = '…';
+                            paginationPages.appendChild(ellipsis);
+                        }
+                    }
+
+                    for (var p = startPage; p <= endPage; p++) {
+                        paginationPages.appendChild(createPageButton(p));
+                    }
+
+                    if (endPage < totalPages) {
+                        if (endPage < totalPages - 1) {
+                            var ellipsis = document.createElement('span');
+                            ellipsis.className = 'px-2 text-muted';
+                            ellipsis.textContent = '…';
+                            paginationPages.appendChild(ellipsis);
+                        }
+                        paginationPages.appendChild(createPageButton(totalPages));
+                    }
+                }
+
+                // Hide pagination if only one page
+                if (paginationContainer) {
+                    paginationContainer.style.display = totalPages <= 1 ? 'none' : 'flex';
+                }
+            }
+
+            function createPageButton(page) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn page-num' + (page === currentPage ? ' active' : '');
+                btn.textContent = page;
+                btn.addEventListener('click', function () {
+                    currentPage = page;
+                    renderPagination();
+                });
+                return btn;
+            }
+
+            function goToPage(page) {
+                var totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+                if (page >= 1 && page <= totalPages) {
+                    currentPage = page;
+                    renderPagination();
+                }
+            }
+
+            // Event listeners for alphabet filter
             buttons.forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     var alpha = btn.getAttribute('data-alpha') || 'all';
                     setActive(btn);
-                    applyFilter(alpha);
+                    applyAlphaFilter(alpha);
                 });
             });
 
-            // default
-            applyFilter('all');
+            // Event listeners for pagination
+            if (paginationPrev) {
+                paginationPrev.addEventListener('click', function () {
+                    goToPage(currentPage - 1);
+                });
+            }
+
+            if (paginationNext) {
+                paginationNext.addEventListener('click', function () {
+                    goToPage(currentPage + 1);
+                });
+            }
+
+            if (pageSizeSelect) {
+                pageSizeSelect.addEventListener('change', function () {
+                    pageSize = parseInt(this.value, 10) || 10;
+                    currentPage = 1;
+                    renderPagination();
+                });
+            }
+
+            // Initialize
+            applyAlphaFilter('all');
         })();
 
         // Global Toggle Sync

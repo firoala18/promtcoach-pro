@@ -1,0 +1,362 @@
+@model IEnumerable<ProjectsWebApp.Models.FilterCategory>
+@using ProjectsWebApp.Models
+@using Microsoft.AspNetCore.Identity
+
+@{
+    var currentType = (PromptType)ViewBag.Type;
+    var targetUser = (IdentityUser)ViewBag.TargetUser;
+    var targetUserId = (string)ViewBag.TargetUserId;
+
+    var types = new[] { PromptType.Eigenfilter, PromptType.Framework, PromptType.Meta };
+
+    ViewData["Title"] = currentType switch
+    {
+        PromptType.Framework => "Framework - Benutzerfilter",
+        PromptType.Meta      => "Meta - Benutzerfilter",
+        _                    => "Szenarien - Benutzerfilter"
+    };
+
+    var typeLabel = currentType switch
+    {
+        PromptType.Framework => "Framework",
+        PromptType.Meta      => "Meta",
+        _                    => "Szenarien"
+    };
+}
+
+<style>
+    .admin-list-page .card {
+        background: #ffffff;
+        border-radius: 10px;
+        border: 1px solid #e4e4e4;
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        margin-bottom: 3rem;
+    }
+
+    .admin-list-page .card-header {
+        background: #f1f1f1;
+        border-bottom: 1px solid #e4e4e4;
+        padding: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+    }
+
+    .admin-list-page .table {
+        background: #fff;
+        margin-bottom: 0;
+    }
+
+    .admin-list-page .table thead th {
+        border-bottom: 2px solid #e4e4e4;
+        color: #333;
+    }
+
+    .admin-list-page .table tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .admin-list-page .table td,
+    .admin-list-page .table th {
+        vertical-align: middle;
+        color: #333;
+    }
+
+    .admin-list-page .badge {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .admin-list-page .items-btn {
+        background: #004f72;
+        color: #fff;
+    }
+
+    .admin-list-page .display-order-btn {
+        background: black;
+        color: #fff;
+    }
+
+    .admin-list-page .user-info-box {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-list-page .user-info-box .user-email {
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .admin-list-page .user-info-box .user-id {
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+
+    /* Tab styling similar to user view */
+    #filterTypeTabs.custom-pills {
+        border-bottom: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        justify-content: center;
+        width: 100%;
+    }
+
+    #filterTypeTabs.custom-pills .nav-item {
+        flex: 0 0 auto;
+    }
+
+    #filterTypeTabs.custom-pills .nav-link {
+        background: #f1f3f5;
+        color: #333;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        padding: .45rem 1rem;
+        font-weight: 600;
+        white-space: nowrap;
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        min-height: 36px;
+        transition: background .2s, color .2s, box-shadow .2s;
+    }
+
+    #filterTypeTabs.custom-pills .nav-link:hover {
+        background: #e9ecef;
+        color: #111;
+    }
+
+    #filterTypeTabs.custom-pills .nav-link.active {
+        background: #89ba17;
+        color: #fff;
+        border-color: #89ba17;
+        box-shadow: 0 6px 14px rgba(137,186,23,.25);
+    }
+
+    .admin-list-page .back-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+    }
+
+    .admin-list-page .back-btn:hover {
+        background: #5a6268;
+    }
+</style>
+
+<div class="admin-list-page">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="bi bi-funnel me-2"></i>Benutzer Filter verwalten</h2>
+        <button onclick="history.back()" class="btn back-btn">
+            <i class="bi bi-arrow-left me-1"></i> Zurück
+        </button>
+    </div>
+
+    <!-- User info box -->
+    <div class="user-info-box">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                <i class="bi bi-person-fill fs-4"></i>
+            </div>
+            <div>
+                <div class="user-email">@targetUser.Email</div>
+                <div class="user-id">ID: @targetUser.Id</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Type tabs -->
+    <div class="d-flex justify-content-center mb-4">
+        <ul id="filterTypeTabs" class="nav nav-pills custom-pills">
+            @foreach (var pt in types)
+            {
+                var tabLabel = pt switch
+                {
+                    PromptType.Framework => "Framework",
+                    PromptType.Meta      => "Meta",
+                    _                    => "Szenarien"
+                };
+                <li class="nav-item">
+                    <a class="nav-link @(pt == currentType ? "active" : "")"
+                       asp-action="AdminList"
+                       asp-route-uid="@targetUserId"
+                       asp-route-type="@pt">
+                        @tabLabel
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- Categories card -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">@typeLabel - Kategorien</h4>
+            <span class="badge bg-secondary">@Model.Count() Kategorien</span>
+        </div>
+
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-3 mb-0">Keine @typeLabel-Kategorien vorhanden.</p>
+                </div>
+            }
+            else
+            {
+                <table id="categoriesTable" class="table table-hover table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:10%">Reihenfolge</th>
+                            <th style="width:50%">Name</th>
+                            <th style="width:15%" class="text-center">Einträge</th>
+                            <th style="width:25%" class="text-center">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cat in Model)
+                        {
+                            <tr>
+                                <td><span class="badge display-order-btn">@cat.DisplayOrder</span></td>
+                                <td class="fw-semibold">
+                                    @cat.Name
+                                    @if (cat.IsAiGenerated)
+                                    {
+                                        <span class="badge bg-info ms-2" title="KI-generiert">
+                                            <i class="bi bi-stars"></i> KI
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge items-btn">@(cat.FilterItems?.Count ?? 0)</span>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-secondary view-items-btn"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#itemsModal"
+                                            data-cat-name="@cat.Name"
+                                            data-cat-items="@System.Text.Json.JsonSerializer.Serialize(cat.FilterItems?.Select(i => new { i.Title, i.Info, i.Instruction, i.SortOrder }).OrderBy(i => i.SortOrder) ?? Enumerable.Empty<object>())">
+                                        <i class="bi bi-eye me-1"></i> Anzeigen
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Items Modal -->
+<div class="modal fade" id="itemsModal" tabindex="-1" aria-labelledby="itemsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="itemsModalLabel">Kategorie-Einträge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="itemsModalBody" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Content loaded via JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            $('#categoriesTable').DataTable({
+                pagingType: "simple",
+                lengthChange: true,
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                language: {
+                    lengthMenu: "Zeige _MENU_ Einträge",
+                    search: "Suchen:",
+                    searchPlaceholder: "",
+                    paginate: { previous: "‹", next: "›" },
+                    info: "Zeige _START_ bis _END_ von _TOTAL_ Einträgen",
+                    infoEmpty: "Keine Einträge vorhanden",
+                    infoFiltered: "(gefiltert aus _MAX_ Einträgen)",
+                    zeroRecords: "Keine passenden Einträge gefunden"
+                }
+            });
+        });
+
+        // View items modal
+        document.querySelectorAll('.view-items-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const catName = this.dataset.catName;
+                const items = JSON.parse(this.dataset.catItems || '[]');
+
+                document.getElementById('itemsModalLabel').textContent = catName + ' - Einträge';
+
+                let html = '';
+                if (items.length === 0) {
+                    html = '<p class="text-muted text-center">Keine Einträge vorhanden.</p>';
+                } else {
+                    html = '<div class="accordion" id="itemsAccordion">';
+                    items.forEach((item, idx) => {
+                        const collapseId = 'collapse' + idx;
+                        const title = stripHtml(item.Title || '(Kein Titel)');
+                        const info = stripHtml(item.Info || '');
+                        const instruction = stripHtml(item.Instruction || '(Keine Instruktion)');
+                        html += `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button ${idx > 0 ? 'collapsed' : ''}" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                                        <span class="badge bg-dark me-2">${item.SortOrder}</span>
+                                        ${escapeHtml(title)}
+                                    </button>
+                                </h2>
+                                <div id="${collapseId}" class="accordion-collapse collapse ${idx === 0 ? 'show' : ''}">
+                                    <div class="accordion-body">
+                                        ${info ? `<p class="text-muted small mb-2"><strong>Info:</strong> ${escapeHtml(info)}</p>` : ''}
+                                        <div class="border rounded p-2 bg-light" style="white-space: pre-wrap; font-size: 0.9rem;">
+                                            ${escapeHtml(instruction)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                document.getElementById('itemsModalBody').innerHTML = html;
+            });
+        });
+
+        // Strip HTML tags from text
+        function stripHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.innerHTML = text;
+            return div.textContent || div.innerText || '';
+        }
+
+        // Escape HTML for safe display
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+}

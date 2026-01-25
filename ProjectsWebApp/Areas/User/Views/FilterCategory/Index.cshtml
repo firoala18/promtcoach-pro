@@ -383,16 +383,10 @@
             const data = obj.data ?? obj.Data,
                   hash = obj.hash ?? obj.Hash;
             if (!data || !hash)
-                return Swal.fire('Fehler','JSON muss „data“ und „hash“ enthalten.','error');
+                return Swal.fire('Fehler','JSON muss „data" und „hash" enthalten.','error');
 
-            const secret = 'uni-wuppertal2025';
-            const digest = await crypto.subtle.digest(
-                'SHA-256',
-                new TextEncoder().encode(secret + JSON.stringify(data))
-            );
-            const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
-            if (hex !== hash)
-                return Swal.fire('Fehler','Integritätsprüfung fehlgeschlagen.','error');
+            // Note: Server-side performs the cryptographic hash verification
+            // Client-side only validates structure (data and hash fields exist)
 
             Swal.fire({
                 title: 'Import bestätigen',

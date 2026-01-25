@@ -2104,8 +2104,8 @@
             const payload = {
               ...state,          // Basis = Haupt‑Prompt
               ...varData,        // überschreibt PromptHtml + checkedItems + …
-              akronym : '@Model.Akronym',
-              title   : '@Model.Title'          // (oder varData.title, falls vorhanden)
+              akronym : @Html.Raw(Json.Serialize(Model.Akronym)),
+              title   : @Html.Raw(Json.Serialize(Model.Title))          // (oder varData.title, falls vorhanden)
             };
 
             /* 4) Hash berechnen & rüber in den Assistenten          */

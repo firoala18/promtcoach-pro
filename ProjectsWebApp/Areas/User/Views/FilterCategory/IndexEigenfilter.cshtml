@@ -320,13 +320,11 @@
 </div>
 
 <div class="card shadow-lg rounded-3">
-    @if (User.IsInRole("Admin"))
-    {
     <div class="card-header">
         <div class="d-flex align-items-center gap-2">
             <h4 class="mb-0">Übersicht</h4>
             <!-- segmented toggle -->
-            
+
             <div class="btn-group btn-group-sm ms-3 seg-toggle" role="group" aria-label="Filtergruppen">
                 <button type="button" class="btn active" id="toggleManual" data-target="manual">
                     <i class="bi bi-person-check me-1"></i> Eigene Filter
@@ -339,16 +337,12 @@
         </div>
 
         <div class="btn-group">
-        @*     <a asp-controller="Home" asp-action="PromptAssistent" asp-route-type="@currentTypeStr" class="btn btn-sm btn-dark">
-                <i class="bi bi-plus-lg me-1"></i> @applyLabel
-            </a> *@
             <a asp-action="Upsert" asp-route-type="@Model.Type" class="btn btn-sm btn-dark ms-3">
                 <i class="bi bi-plus-lg me-1"></i> Kategorie
             </a>
         </div>
-        
+
     </div>
-    }
     <!-- Eigene Filter -->
     <div id="panelManual" class="card-body p-0">
         <table id="tableManual" class="table table-hover table-striped align-middle mb-0">
@@ -584,12 +578,10 @@
 
           let obj; try { obj = JSON.parse(text); } catch { return Swal.fire('Fehler','Ungültiges JSON-Format.','error'); }
           const data = obj.data ?? obj.Data, hash = obj.hash ?? obj.Hash;
-          if (!data || !hash) return Swal.fire('Fehler','JSON muss „data“ und „hash“ enthalten.','error');
+          if (!data || !hash) return Swal.fire('Fehler','JSON muss „data" und „hash" enthalten.','error');
 
-          const secret = 'uni-wuppertal2025';
-          const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret + JSON.stringify(data)));
-          const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
-          if (hex !== hash) return Swal.fire('Fehler','Integritätsprüfung fehlgeschlagen.','error');
+          // Note: Server-side performs the cryptographic hash verification
+          // Client-side only validates structure (data and hash fields exist)
 
           const go = await Swal.fire({
             title: 'Import bestätigen',
