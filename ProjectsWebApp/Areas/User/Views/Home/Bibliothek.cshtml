@@ -2446,6 +2446,12 @@
             const cards = Array.from(grid.querySelectorAll('.tpl-card'));
             if(cards.length===0) return;
 
+            // Helper to strip HTML tags AND decode HTML entities (e.g. &nbsp; → space)
+            function cleanTagText(str) {
+              const doc = new DOMParser().parseFromString(str || '', 'text/html');
+              return (doc.body.textContent || '').trim();
+            }
+
             // Render up to 4 chips per card, prioritizing FilterJson/checkedItems, fallback to schluesselbegriffe
             (function renderKeywordChips(){
               for(const card of cards){
@@ -2459,7 +2465,7 @@
                   if (Array.isArray(data?.checkedItems)){
                     for (const it of data.checkedItems){
                       const raw = (it && (it.value || it.title || it.text)) || '';
-                      const plain = String(raw).replace(/<[^>]*>/g,'').trim();
+                      const plain = cleanTagText(raw);
                       if (plain) fromFilters.push(plain);
                     }
                   } else if (data?.filterJson){
@@ -2468,7 +2474,7 @@
                       if (Array.isArray(arr)){
                         for (const it of arr){
                           const raw = (it && (it.value || it.title || it.text)) || '';
-                          const plain = String(raw).replace(/<[^>]*>/g,'').trim();
+                          const plain = cleanTagText(raw);
                           if (plain) fromFilters.push(plain);
                         }
                       }
